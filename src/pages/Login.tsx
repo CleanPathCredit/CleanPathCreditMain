@@ -1,25 +1,36 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "@/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/Button";
-import { Shield } from "lucide-react";
+import { Shield, Mail } from "lucide-react";
 
 export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [resending, setResending] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setShowVerificationMessage(false);
     setLoading(true);
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Check if email is verified
+      if (!userCredential.user.emailVerified) {
+        setShowVerificationMessage(true);
+        setLoading(false);
+        return;
+      }
+
       const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
       if (userDoc.exists() && userDoc.data().role === "admin") {
         navigate("/admin");
@@ -27,10 +38,26 @@ export function Login() {
         navigate("/dashboard");
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred");
+      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
+        setError("Invalid email or password. Please try again.");
+      } else {
+        setError(err.message || "An error occurred");
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      // Need to sign in briefly to get the user object for resend
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await sendEmailVerification(userCredential.user);
+    } catch (err: any) {
+      // Silently handle - rate limits etc.
+    }
+    setTimeout(() => setResending(false), 3000);
   };
 
   return (
@@ -51,6 +78,27 @@ export function Login() {
         {error && (
           <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-100">
             {error}
+          </div>
+        )}
+
+        {showVerificationMessage && (
+          <div className="mb-6 rounded-lg bg-amber-50 p-4 border border-amber-200">
+            <div className="flex items-start gap-3">
+              <Mail className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-800 mb-1">Email Not Verified</p>
+                <p className="text-xs text-amber-700 mb-3">
+                  Please check your inbox and click the verification link before signing in.
+                </p>
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                  className="text-xs font-semibold text-amber-800 hover:text-amber-900 underline underline-offset-2 transition-colors"
+                >
+                  {resending ? "Verification email sent!" : "Resend verification email"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

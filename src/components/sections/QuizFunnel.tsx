@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Loader2, Calendar, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Link } from 'react-router-dom';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -492,7 +493,7 @@ export function QuizFunnel() {
                   </div>
                   <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-4">Application Received & Approved!</h3>
                   <p className="text-base sm:text-lg text-zinc-600 mb-6 sm:mb-8 max-w-lg">
-                    Based on your answers, you are eligible for a free 30-minute Credit Strategy Session. We will review your report line-by-line and show you exactly how to reach your goal.
+                    Based on your profile, you qualify for a complete Credit Strategy Session. On this call, we will pop the hood on your 3-bureau report, pinpoint the exact negative items holding your score hostage, and show you the exact legal strategies we use to force them off your report.
                   </p>
                   
                   <a 
@@ -543,11 +544,11 @@ export function QuizFunnel() {
                           Download your Master Financial List and premium credit resources.
                         </li>
                       </ul>
-                      <a href={`/register?name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}`}>
+                      <Link to={`/register?name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}`}>
                         <Button variant="primary" className="w-full h-12">
                           Create My Free Account
                         </Button>
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </motion.div>

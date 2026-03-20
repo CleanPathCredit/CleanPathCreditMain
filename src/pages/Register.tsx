@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { auth, db } from "@/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/Button";
-import { Shield, X, Check } from "lucide-react";
+import { Shield, X, Check, Mail, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export function Register() {
@@ -20,6 +20,8 @@ export function Register() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [resending, setResending] = useState(false);
   const navigate = useNavigate();
 
   const password = formData.password;
@@ -29,7 +31,7 @@ export function Register() {
   const reqLower = /[a-z]/.test(password);
   const reqNumber = /[0-9]/.test(password);
   const reqSpecial = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/.test(password);
-  const reqNoTriple = password.length === 0 || !/(.)\1\1/.test(password);
+  const reqNoTriple = password.length === 0 || !/(.)\\1\\1/.test(password);
   
   const nameParts = formData.fullName.toLowerCase().split(' ').filter(p => p.length > 2);
   const emailParts = formData.email.toLowerCase().split('@').flatMap(p => p.split('.')).filter(p => p.length > 2);
@@ -72,17 +74,29 @@ export function Register() {
         idUploaded: false,
         ssnUploaded: false,
         videoVerified: false,
+        documents: [],
       });
       
-      if (isAdmin) {
-        navigate("/admin", { state: { role: "admin" } });
-      } else {
-        navigate("/dashboard", { state: { role: "client" } });
-      }
+      // Send verification email
+      await sendEmailVerification(userCredential.user);
+      setVerificationSent(true);
+      setLoading(false);
     } catch (err: any) {
       setError(err.message || "An error occurred");
       setLoading(false);
     }
+  };
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+      }
+    } catch (err: any) {
+      // Silently handle - Firebase rate limits resends
+    }
+    setTimeout(() => setResending(false), 3000);
   };
 
   const RequirementItem = ({ met, text }: { met: boolean, text: string }) => (
@@ -95,6 +109,60 @@ export function Register() {
       <span className={met ? "text-zinc-600" : "text-zinc-600"}>{text}</span>
     </div>
   );
+
+  // Verification sent screen
+  if (verificationSent) {
+    return (
+      <div className="flex min-h-screen flex-col bg-zinc-50">
+        <div className="flex flex-1 items-center justify-center px-4 py-12">
+          <div className="w-full max-w-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-2xl bg-white p-8 shadow-xl border border-zinc-100 text-center"
+            >
+              <div className="mb-6 flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+                  <Mail className="h-8 w-8 text-emerald-600" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-2">Check Your Email</h2>
+              <p className="text-sm text-zinc-500 mb-6">
+                We've sent a verification link to <span className="font-semibold text-zinc-700">{formData.email}</span>. 
+                Please click the link to verify your account before signing in.
+              </p>
+              
+              <div className="space-y-3">
+                <Button 
+                  onClick={handleResendVerification}
+                  variant="outline" 
+                  className="w-full h-11"
+                  disabled={resending}
+                >
+                  {resending ? "Email Sent!" : "Resend Verification Email"}
+                </Button>
+                <Button 
+                  onClick={() => navigate("/login")}
+                  variant="primary" 
+                  className="w-full h-11"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Go to Sign In
+                </Button>
+              </div>
+
+              <div className="mt-6 p-4 bg-zinc-50 rounded-xl border border-zinc-100">
+                <p className="text-xs text-zinc-500">
+                  <strong className="text-zinc-700">Didn't receive it?</strong> Check your spam/junk folder, or click "Resend" above. 
+                  The email comes from <span className="font-mono text-zinc-600">noreply@leadsgorilla360-337519.firebaseapp.com</span>.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
@@ -163,7 +231,7 @@ export function Register() {
                     <RequirementItem met={reqUpper} text="MUST contain at least one uppercase letter" />
                     <RequirementItem met={reqLower} text="MUST contain at least one lowercase letter" />
                     <RequirementItem met={reqNumber} text="MUST contain at least one number" />
-                    <RequirementItem met={reqSpecial} text="MUST contain at least one special character (!&quot;#$%&'()*+,-./:;<=>?@[\]^_`{|}~)" />
+                    <RequirementItem met={reqSpecial} text={'MUST contain at least one special character (!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~)'} />
                     <RequirementItem met={reqNoTriple} text="MAY NOT contain more than two identical characters in a row" />
                     <RequirementItem met={reqNoPersonal} text="MAY NOT contain first name, last name, email address mailbox or domain, company name or commonly used passwords" />
                     <RequirementItem met={reqNoPattern} text="MAY NOT match commonly used password character patterns" />
@@ -190,7 +258,7 @@ export function Register() {
                 </Button>
               </form>
               <div className="mt-6 text-center text-sm text-zinc-600">
-                Already have an account? <a href="/login" className="font-medium text-emerald-600 hover:text-emerald-500">Sign in</a>
+                Already have an account? <button onClick={() => navigate("/login")} className="font-medium text-emerald-600 hover:text-emerald-500">Sign in</button>
               </div>
             </motion.div>
           </AnimatePresence>
