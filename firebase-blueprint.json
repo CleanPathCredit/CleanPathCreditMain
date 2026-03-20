@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application (client or admin)",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["client", "admin"]
+        },
+        "progress": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "idUploaded": {
+          "type": "boolean"
+        },
+        "ssnUploaded": {
+          "type": "boolean"
+        },
+        "videoVerified": {
+          "type": "boolean"
+        },
+        "bureausConnected": {
+          "type": "boolean"
+        }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "User profiles"
+    }
+  }
+}
