@@ -130,7 +130,7 @@ export function QuizFunnel() {
     <section id="quiz-funnel" className="py-24 bg-zinc-50">
       <div className="mx-auto max-w-3xl px-6">
         <div className="mb-12 text-center">
-          <h2 className="font-display text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl md:text-4xl">
             Find out if this will work for you
           </h2>
           <p className="mt-4 text-lg text-zinc-600">
@@ -138,7 +138,7 @@ export function QuizFunnel() {
           </p>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-zinc-200">
+        <div className="relative overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-zinc-200" role="form" aria-label="Credit analysis quiz">
           {/* Progress Bar */}
           <div className="absolute top-0 left-0 h-1.5 w-full bg-zinc-100">
             <motion.div
@@ -149,7 +149,7 @@ export function QuizFunnel() {
             />
           </div>
 
-          <div className="p-8 sm:p-12 min-h-[400px]">
+          <div className="p-5 sm:p-8 md:p-12 min-h-[320px] sm:min-h-[400px]">
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div
@@ -160,8 +160,8 @@ export function QuizFunnel() {
                   transition={{ duration: 0.3 }}
                   className="flex flex-col h-full"
                 >
-                  <h3 className="text-2xl font-semibold text-zinc-900 mb-2">What is your primary financial goal right now?</h3>
-                  <p className="text-zinc-500 mb-8">We customize our dispute strategies based on exactly what you are trying to achieve.</p>
+                  <h3 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-2">What is your primary financial goal right now?</h3>
+                  <p className="text-sm sm:text-base text-zinc-500 mb-6 sm:mb-8">We customize our dispute strategies based on exactly what you are trying to achieve.</p>
                   
                   <div className="grid gap-4 flex-grow">
                     {STEP_1_OPTIONS.map((option) => {
@@ -178,7 +178,7 @@ export function QuizFunnel() {
                               if (!showFact) handleOptionSelect(1, option.id);
                             }
                           }}
-                          className={`relative w-full rounded-xl border-2 p-6 text-left transition-all duration-300 cursor-pointer ${
+                          className={`relative w-full rounded-xl border-2 p-4 sm:p-6 text-left transition-all duration-300 cursor-pointer ${
                             isSelected
                               ? 'border-emerald-500 bg-emerald-50'
                               : 'border-zinc-200 bg-white hover:border-emerald-200 hover:bg-zinc-50'
@@ -192,7 +192,7 @@ export function QuizFunnel() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="block text-lg font-medium text-zinc-900"
+                                className="block text-base sm:text-lg font-medium text-zinc-900"
                               >
                                 {option.label}
                               </motion.span>
@@ -234,7 +234,7 @@ export function QuizFunnel() {
                   transition={{ duration: 0.3 }}
                   className="flex flex-col h-full"
                 >
-                  <h3 className="text-2xl font-semibold text-zinc-900 mb-8">What do you feel is currently holding your score down?</h3>
+                  <h3 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-6 sm:mb-8">What do you feel is currently holding your score down?</h3>
                   
                   <div className="grid gap-4 flex-grow">
                     {STEP_2_OPTIONS.map((option) => {
@@ -307,7 +307,7 @@ export function QuizFunnel() {
                   transition={{ duration: 0.3 }}
                   className="flex flex-col h-full"
                 >
-                  <h3 className="text-2xl font-semibold text-zinc-900 mb-8">Let's get a baseline of where you are at.</h3>
+                  <h3 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-6 sm:mb-8">Let's get a baseline of where you are at.</h3>
                   
                   {isAnalyzing ? (
                     <div className="flex flex-col items-center justify-center flex-grow py-12">
@@ -490,8 +490,8 @@ export function QuizFunnel() {
                   <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
                     <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                   </div>
-                  <h3 className="text-3xl font-semibold text-zinc-900 mb-4">Application Received & Approved!</h3>
-                  <p className="text-lg text-zinc-600 mb-8 max-w-lg">
+                  <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-4">Application Received & Approved!</h3>
+                  <p className="text-base sm:text-lg text-zinc-600 mb-6 sm:mb-8 max-w-lg">
                     Based on your answers, you are eligible for a free 30-minute Credit Strategy Session. We will review your report line-by-line and show you exactly how to reach your goal.
                   </p>
                   

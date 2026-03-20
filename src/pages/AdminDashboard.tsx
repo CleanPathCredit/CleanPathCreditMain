@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/Button";
-import { LogOut, Users, FileText, Settings, ChevronLeft, Send, Download, Eye, ShieldCheck, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { LogOut, Users, FileText, Settings, ChevronLeft, Send, Download, Eye, ShieldCheck, Clock, CheckCircle2, AlertCircle, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 const STATUS_OPTIONS = [
@@ -25,6 +25,7 @@ export function AdminDashboard() {
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const stateRole = location.state?.role;
@@ -96,18 +97,34 @@ export function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-zinc-50 flex font-sans">
+      {/* Sidebar overlay for mobile */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-[#111111] text-zinc-400 flex flex-col border-r border-zinc-800">
-        <div className="p-6 border-b border-zinc-800">
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-emerald-500" />
-            Clean Path
-          </h1>
-          <p className="text-xs mt-1 text-zinc-500 uppercase tracking-wider font-medium">Admin Portal</p>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#111111] text-zinc-400 flex flex-col border-r border-zinc-800 transform transition-transform duration-300 md:relative md:translate-x-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+              <ShieldCheck className="h-6 w-6 text-emerald-500" />
+              Clean Path
+            </h1>
+            <p className="text-xs mt-1 text-zinc-500 uppercase tracking-wider font-medium">Admin Portal</p>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors md:hidden"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           <button 
-            onClick={() => setSelectedClient(null)}
+            onClick={() => { setSelectedClient(null); setSidebarOpen(false); }}
             className={`flex items-center gap-3 px-4 py-3 w-full rounded-lg transition-colors text-left ${!selectedClient ? 'bg-zinc-800 text-white' : 'hover:bg-zinc-800/50 hover:text-zinc-200'}`}
           >
             <Users className="h-5 w-5" /> CRM Dashboard
@@ -138,13 +155,22 @@ export function AdminDashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="flex-1 overflow-auto p-8"
+              className="flex-1 overflow-auto p-4 sm:p-8"
             >
               <div className="max-w-6xl mx-auto">
-                <div className="flex justify-between items-end mb-8">
-                  <div>
-                    <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">Client Management</h2>
-                    <p className="text-zinc-500 mt-1">Manage active clients, documents, and disputes.</p>
+                <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end mb-8">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setSidebarOpen(true)}
+                      className="p-2 -ml-2 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-500 md:hidden"
+                      aria-label="Open sidebar"
+                    >
+                      <Menu className="h-5 w-5" />
+                    </button>
+                    <div>
+                      <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Client Management</h2>
+                      <p className="text-zinc-500 mt-1 text-sm sm:text-base">Manage active clients, documents, and disputes.</p>
+                    </div>
                   </div>
                   <div className="flex gap-3">
                     <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm flex items-center gap-2">
@@ -154,8 +180,8 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-                  <table className="w-full text-left text-sm">
+                <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-x-auto">
+                  <table className="w-full text-left text-sm min-w-[600px]">
                     <thead className="bg-zinc-50/50 border-b border-zinc-200 text-zinc-500">
                       <tr>
                         <th className="px-6 py-4 font-medium">Client Details</th>
@@ -220,8 +246,15 @@ export function AdminDashboard() {
               className="flex-1 flex flex-col h-full"
             >
               {/* Detail Header */}
-              <header className="bg-white border-b border-zinc-200 px-8 py-5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-6">
+              <header className="bg-white border-b border-zinc-200 px-4 sm:px-8 py-4 sm:py-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shrink-0">
+                <div className="flex items-center gap-3 sm:gap-6">
+                  <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="p-2 -ml-2 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-500 md:hidden"
+                    aria-label="Open sidebar"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </button>
                   <button 
                     onClick={() => setSelectedClient(null)}
                     className="p-2 -ml-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-500 hover:text-zinc-900"
@@ -250,9 +283,9 @@ export function AdminDashboard() {
               </header>
 
               {/* Detail Content Grid */}
-              <div className="flex-1 overflow-hidden flex">
+              <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
                 {/* Left Column: Document Vault & Info */}
-                <div className="w-1/2 p-8 overflow-y-auto border-r border-zinc-200 bg-zinc-50/50">
+                <div className="w-full md:w-1/2 p-4 sm:p-8 overflow-y-auto border-b md:border-b-0 md:border-r border-zinc-200 bg-zinc-50/50">
                   <div className="max-w-xl mx-auto space-y-8">
                     
                     {/* Client Info Card */}
@@ -320,11 +353,11 @@ export function AdminDashboard() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-md transition-colors">
+                              <div className="flex gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-md transition-colors" aria-label="View document">
                                   <Eye className="h-4 w-4" />
                                 </button>
-                                <button className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-md transition-colors">
+                                <button className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-md transition-colors" aria-label="Download document">
                                   <Download className="h-4 w-4" />
                                 </button>
                               </div>
@@ -338,7 +371,7 @@ export function AdminDashboard() {
                 </div>
 
                 {/* Right Column: Messenger */}
-                <div className="w-1/2 flex flex-col bg-white">
+                <div className="w-full md:w-1/2 flex flex-col bg-white min-h-[300px]">
                   <div className="p-4 border-b border-zinc-200 bg-zinc-50/50 shrink-0">
                     <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
                       <Send className="h-4 w-4 text-zinc-400" /> Two-Way Messenger

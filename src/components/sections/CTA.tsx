@@ -41,7 +41,7 @@ export function CTA() {
               e.preventDefault();
               document.getElementById('quiz-funnel')?.scrollIntoView({ behavior: 'smooth' });
             }}>
-              <Button variant="primary" className="group h-14 px-10 text-lg bg-white text-zinc-900 hover:bg-zinc-100">
+              <Button variant="primary" className="group h-14 px-10 text-lg">
                 Get Started Now
                 <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
