@@ -109,7 +109,7 @@ export function AdminDashboard() {
         <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <img src="/src/assets/logo.png" alt="Clean Path Credit" className="h-8 w-8 object-contain" />
+              <img src="/logo.png" alt="Clean Path Credit" className="h-8 w-8 object-contain" />
               Clean Path
             </h1>
             <p className="text-[9px] mt-1 text-zinc-500 uppercase tracking-widest font-medium">Powered by AI · Admin Portal</p>
