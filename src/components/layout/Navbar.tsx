@@ -18,10 +18,11 @@ export function Navbar() {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white">
-            <Shield className="h-5 w-5" />
+          <img src="/src/assets/logo.png" alt="Clean Path Credit" className="h-9 w-9 object-contain" />
+          <div className="flex flex-col">
+            <span className="font-semibold tracking-tight text-zinc-900 leading-tight">Clean Path Credit</span>
+            <span className="text-[9px] font-medium text-zinc-400 tracking-widest uppercase leading-tight">Powered by AI</span>
           </div>
-          <span className="font-semibold tracking-tight text-zinc-900">Clean Path Credit</span>
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
