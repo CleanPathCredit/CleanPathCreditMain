@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
+import { MasterList } from "@/components/dashboard/MasterList";
 import { PlanGate } from "@/components/dashboard/PlanGate";
 import { CreditScoreWidget } from "@/components/dashboard/CreditScoreWidget";
 import { canAccess, PLAN_LABEL } from "@/lib/planAccess";
@@ -291,16 +292,8 @@ export function Dashboard() {
             {/* ── MASTER LIST ── */}
             {activeTab === "masterlist" && (
               <motion.div key="masterlist" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <PlanGate feature="master_list" plan={profile?.plan} blurChildren={false}>
-                  <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
-                    <h2 className="text-xl font-bold text-zinc-900 mb-2 tracking-tight">The Master Financial List</h2>
-                    <p className="text-sm text-zinc-500 mb-6">Your curated list of credit-building tools, secured cards, and financial resources.</p>
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
-                      <FileText className="h-8 w-8 text-amber-400 mx-auto mb-2" />
-                      <p className="text-sm font-semibold text-amber-800">Coming soon</p>
-                      <p className="text-xs text-amber-700 mt-1">Your specialist will share your personalised list once your audit is complete.</p>
-                    </div>
-                  </section>
+                <PlanGate feature="master_list" plan={profile?.plan} blurChildren={true}>
+                  <MasterList />
                 </PlanGate>
               </motion.div>
             )}
