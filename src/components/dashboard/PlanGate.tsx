@@ -33,15 +33,17 @@ export function PlanGate({ feature, plan, children, blurChildren = true }: PlanG
 
   return (
     <div className="relative overflow-hidden rounded-2xl">
-      {/* Blurred preview of actual content */}
+      {/* Blurred preview of actual content — visible but not readable */}
       {blurChildren && (
-        <div className="pointer-events-none select-none blur-sm opacity-40">
+        <div className="pointer-events-none select-none" style={{ filter: "blur(3px)", opacity: 0.65 }}>
           {children}
         </div>
       )}
 
-      {/* Lock overlay */}
-      <div className={`${blurChildren ? "absolute inset-0" : ""} flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl border border-zinc-200 p-8 text-center min-h-[240px]`}>
+      {/* Gradient overlay — transparent at top so cards are visible, fades to white at bottom where CTA sits */}
+      <div className={`${blurChildren ? "absolute inset-0" : ""} flex flex-col items-end justify-end rounded-2xl border border-zinc-200 text-center min-h-[240px]`}
+           style={blurChildren ? { background: "linear-gradient(to bottom, transparent 0%, transparent 35%, rgba(255,255,255,0.92) 60%, #ffffff 80%)" } : { background: "#ffffff", padding: "2rem" }}>
+        <div className="w-full flex flex-col items-center pb-8 px-8">
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100">
           <Lock className="h-6 w-6 text-zinc-400" />
         </div>
@@ -68,6 +70,7 @@ export function PlanGate({ feature, plan, children, blurChildren = true }: PlanG
             {copy.cta}
           </a>
         )}
+        </div>
       </div>
     </div>
   );
