@@ -20,9 +20,11 @@ interface PlanGateProps {
   children: React.ReactNode;
   /** Optional override: blur the children instead of hiding completely */
   blurChildren?: boolean;
+  /** Use a lighter blur so content is more visible (e.g. dispute tracker) */
+  lightBlur?: boolean;
 }
 
-export function PlanGate({ feature, plan, children, blurChildren = true }: PlanGateProps) {
+export function PlanGate({ feature, plan, children, blurChildren = true, lightBlur = false }: PlanGateProps) {
   const currentPlan   = (plan ?? "free") as Plan;
   const hasAccess     = canAccess(currentPlan, feature);
   const copy          = UPGRADE_COPY[feature];
@@ -35,7 +37,12 @@ export function PlanGate({ feature, plan, children, blurChildren = true }: PlanG
     <div className="relative overflow-hidden rounded-2xl">
       {/* Blurred preview of actual content — visible but not readable */}
       {blurChildren && (
-        <div className="pointer-events-none select-none" style={{ filter: "blur(3px)", opacity: 0.65 }}>
+        <div
+          className="pointer-events-none select-none"
+          style={lightBlur
+            ? { filter: "blur(1px)", opacity: 0.82 }
+            : { filter: "blur(3px)", opacity: 0.65 }}
+        >
           {children}
         </div>
       )}

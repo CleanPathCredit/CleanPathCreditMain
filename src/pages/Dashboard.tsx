@@ -205,7 +205,7 @@ export function Dashboard() {
                 <CreditScoreWidget profile={profile} />
 
                 {/* Dispute Tracker */}
-                <PlanGate feature="dispute_tracker" plan={profile?.plan}>
+                <PlanGate feature="dispute_tracker" plan={profile?.plan} lightBlur={true}>
                 <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
                   <h2 className="text-xl font-bold text-zinc-900 mb-6 tracking-tight">Dispute Tracker</h2>
                   <div className="space-y-6">
