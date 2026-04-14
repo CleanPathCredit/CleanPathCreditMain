@@ -59,13 +59,12 @@ export function PlanGate({ feature, plan, children, blurChildren = true, lightBl
 
         {buyButtonId ? (
           <div className="flex flex-col items-center gap-3">
-            {/* Stripe Buy Button for inline upgrade */}
-            <div dangerouslySetInnerHTML={{
-              __html: `<stripe-buy-button
-                buy-button-id="${buyButtonId}"
-                publishable-key="${STRIPE_PUBLISHABLE_KEY}"
-              ></stripe-buy-button>`
-            }} />
+            {/* Stripe Buy Button — rendered via createElement so no type declaration is needed
+                for the custom element, and no dangerouslySetInnerHTML is required. */}
+            {React.createElement("stripe-buy-button", {
+              "buy-button-id": buyButtonId,
+              "publishable-key": STRIPE_PUBLISHABLE_KEY,
+            })}
             <p className="text-xs text-zinc-400">Instant access after checkout</p>
           </div>
         ) : (

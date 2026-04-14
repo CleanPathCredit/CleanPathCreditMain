@@ -5,18 +5,22 @@
 
 import React from "react";
 import { SignUp } from "@clerk/clerk-react";
-import { useSearchParams } from "react-router-dom";
 
 export function Register() {
-  const [searchParams] = useSearchParams();
-
-  // Pre-fill from quiz funnel URL params (?name=&email=&phone=)
+  // Pre-fill from quiz funnel lead stored in sessionStorage (no PII in URL)
   const initialValues: Record<string, string> = {};
-  const name  = searchParams.get("name");
-  const email = searchParams.get("email");
-  if (name)  initialValues.firstName = name.split(" ")[0] ?? "";
-  if (name)  initialValues.lastName  = name.split(" ").slice(1).join(" ") ?? "";
-  if (email) initialValues.emailAddress = email;
+  try {
+    const raw = sessionStorage.getItem("cpc_lead");
+    if (raw) {
+      const lead = JSON.parse(raw) as { name?: string; email?: string };
+      if (lead.name) {
+        initialValues.firstName = lead.name.split(" ")[0] ?? "";
+        initialValues.lastName  = lead.name.split(" ").slice(1).join(" ") ?? "";
+      }
+      if (lead.email) initialValues.emailAddress = lead.email;
+      sessionStorage.removeItem("cpc_lead"); // consume once
+    }
+  } catch { /* sessionStorage unavailable — form starts empty */ }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12">

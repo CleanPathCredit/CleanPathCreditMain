@@ -5,7 +5,6 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
 import { MasterList } from "@/components/dashboard/MasterList";
@@ -47,8 +46,7 @@ function getStepStatus(profileStatus: string, stepKey: string): "completed" | "a
 }
 
 export function Dashboard() {
-  const { clerkUser, profile, logout } = useAuth();
-  const supabase = useSupabaseClient();
+  const { clerkUser, profile, logout, supabase } = useAuth();
 
   const [messages, setMessages]               = useState<Message[]>([]);
   const [newMessage, setNewMessage]           = useState("");

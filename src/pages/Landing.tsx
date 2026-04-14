@@ -13,7 +13,7 @@ import React, { useEffect } from "react";
 
 export function Landing() {
   useEffect(() => {
-    document.title = "Clean Path Credit";
+    document.title = "Clean Path Credit | AI-Powered Credit Repair & Restoration";
   }, []);
 
   return (

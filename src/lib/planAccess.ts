@@ -62,7 +62,7 @@ export const UPGRADE_COPY: Record<Feature, { heading: string; body: string; cta:
     cta:     "Upgrade to Unlock →",
   },
   master_list: {
-    heading: "Your personalised financial master list",
+    heading: "Your personalized financial master list",
     body:    "Unlock the curated list of secured cards, credit-builder tools, and lender shortcuts our clients use.",
     cta:     "Unlock the Master List →",
   },

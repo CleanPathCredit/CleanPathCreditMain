@@ -16,7 +16,7 @@ const STEP_1_OPTIONS = [
 const STEP_2_OPTIONS = [
   { id: 'medical', label: 'Medical or Utility Collections', fact: "Fact: Paying a collection doesn't remove it. We use federal laws to legally challenge and delete them." },
   { id: 'late', label: 'Late Payments/ Collections', fact: 'One late payment/ collection can cost you 50+ points. We aggressively target these for removal.' },
-  { id: 'bankruptcies', label: 'Bankruptcies / Liens', fact: 'Yes, even public records can be challenged using our advanced Section AI powered strategies.' },
+  { id: 'bankruptcies', label: 'Bankruptcies / Liens', fact: 'Yes, even public records can be challenged using our advanced Section 609 AI-powered dispute strategies.' },
   { id: 'balances', label: 'High Credit Card Balances', fact: "We will build you a custom 'Master Financial List' to optimize your credit utilization." },
   { id: 'unsure', label: "I'm Not Sure", fact: "That's exactly what our free deep-dive audit is for. We'll find the hidden errors." },
 ];
@@ -557,7 +557,19 @@ export function QuizFunnel() {
                           Download your Master Financial List and premium credit resources.
                         </li>
                       </ul>
-                      <Link to={`/register?name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}&phone=${encodeURIComponent(formData.phone)}`}>
+                      <Link
+                        to="/register"
+                        onClick={() => {
+                          // Store lead data in sessionStorage so Register can pre-fill
+                          // the Clerk form without exposing PII in the URL (logs/history).
+                          try {
+                            sessionStorage.setItem("cpc_lead", JSON.stringify({
+                              name: formData.fullName,
+                              email: formData.email,
+                            }));
+                          } catch { /* sessionStorage unavailable — Register falls back gracefully */ }
+                        }}
+                      >
                         <Button variant="primary" className="w-full h-12">
                           Create My Free Account
                         </Button>

@@ -27,6 +27,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   /** Re-fetch the profile row (call after updating profile data) */
   refreshProfile: () => Promise<void>;
+  /** Shared Supabase client — use this instead of calling useSupabaseClient() directly
+   *  to avoid spawning multiple GoTrueClient instances in the same browser context. */
+  supabase: ReturnType<typeof useSupabaseClient>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -36,6 +39,9 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   logout: async () => {},
   refreshProfile: async () => {},
+  // Default is intentionally incomplete — AuthProvider is always in the tree.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: null as any,
 });
 
 const devError = (...args: unknown[]) => {
@@ -99,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         logout,
         refreshProfile: fetchProfile,
+        supabase,
       }}
     >
       {children}
