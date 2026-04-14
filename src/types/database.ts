@@ -21,6 +21,7 @@ export type ClientStatus =
   | "results_received"
   | "complete";
 
+export type Plan = "free" | "diy" | "standard" | "premium";
 export type DocumentCategory = "id" | "ssn" | "credit_report" | "other";
 export type DocumentStatus = "pending" | "verified" | "rejected";
 export type MessageSender = "admin" | "client";
@@ -38,6 +39,10 @@ export interface Database {
           goal: string | null;
           challenge: string | null;
           role: UserRole;
+          plan: Plan;
+          quiz_data: Record<string, unknown> | null;
+          stripe_customer_id: string | null;
+          stripe_session_id: string | null;
           status: ClientStatus;
           progress: number;
           id_uploaded: boolean;
@@ -58,6 +63,10 @@ export interface Database {
           goal?: string | null;
           challenge?: string | null;
           role?: UserRole;
+          plan?: Plan;
+          quiz_data?: Record<string, unknown> | null;
+          stripe_customer_id?: string | null;
+          stripe_session_id?: string | null;
           status?: ClientStatus;
           progress?: number;
           id_uploaded?: boolean;

@@ -17,6 +17,7 @@ const Register = lazy(() => import("@/pages/Register").then(m => ({ default: m.R
 const Dashboard = lazy(() => import("@/pages/Dashboard").then(m => ({ default: m.Dashboard })));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 const Methodology = lazy(() => import("@/pages/Methodology").then(m => ({ default: m.Methodology })));
+const Welcome     = lazy(() => import("@/pages/Welcome").then(m => ({ default: m.Welcome })));
 
 function LoadingFallback() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
               <Route path="/how-it-works" element={<Methodology />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/welcome" element={<Welcome />} />
               <Route
                 path="/dashboard"
                 element={

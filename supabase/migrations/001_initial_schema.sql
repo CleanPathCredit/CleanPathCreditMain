@@ -40,6 +40,14 @@ create table public.profiles (
   challenge       text,
   role            text not null default 'client'
                     check (role in ('client', 'admin')),
+  -- Subscription tier — controls dashboard feature access
+  plan            text not null default 'free'
+                    check (plan in ('free','diy','standard','premium')),
+  -- Quiz answers stored for personalization
+  quiz_data       jsonb,
+  -- Stripe session/customer IDs for billing lookups
+  stripe_customer_id  text,
+  stripe_session_id   text,
   status          text not null default 'pending_connection'
                     check (status in (
                       'pending_connection','missing_id','ready_for_audit',
