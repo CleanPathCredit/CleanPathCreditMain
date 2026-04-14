@@ -15,7 +15,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { SignUp, useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { CheckCircle2, Star, Zap, Shield } from "lucide-react";
 import type { Plan } from "@/types/database";
 
@@ -93,40 +93,12 @@ export function Welcome() {
   // Don't block rendering on Clerk — show content immediately.
   // If Clerk fails to load (DNS/CORS issues), the page still works.
 
+  // Redirect to Clerk's hosted sign-up page (served directly by Clerk,
+  // bypasses any local JS loading issues)
   if (showAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12">
-        <div className="w-full max-w-md">
-          <div className="mb-6 text-center">
-            <p className="text-sm text-zinc-500">
-              Create your account to access your {plan === "free" ? "free" : plan.toUpperCase()} dashboard
-            </p>
-          </div>
-          <SignUp
-            routing="hash"
-            signInUrl="/login"
-            forceRedirectUrl="/dashboard"
-            appearance={{
-              elements: {
-                rootBox: "w-full",
-                card: "rounded-2xl shadow-xl border border-zinc-100 bg-white",
-                headerTitle: "text-2xl font-semibold text-zinc-900",
-                formButtonPrimary:
-                  "bg-zinc-900 hover:bg-zinc-800 text-white rounded-full h-11 font-medium",
-                formFieldInput:
-                  "rounded-lg border-zinc-300 focus:border-emerald-500 focus:ring-emerald-500",
-                footerActionLink: "text-emerald-600 hover:text-emerald-500 font-medium",
-              },
-              variables: {
-                colorPrimary: "#10b981",
-                borderRadius: "0.5rem",
-                fontFamily: "inherit",
-              },
-            }}
-          />
-        </div>
-      </div>
-    );
+    const redirectUrl = encodeURIComponent("https://cleanpathcredit.com/dashboard");
+    window.location.href = `https://accounts.cleanpathcredit.com/sign-up?redirect_url=${redirectUrl}`;
+    return null;
   }
 
   return (
