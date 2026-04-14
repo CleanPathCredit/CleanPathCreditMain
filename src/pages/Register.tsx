@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { SignUp } from "@clerk/clerk-react";
+import { SignUp, ClerkLoading, ClerkLoaded } from "@clerk/clerk-react";
 
 export function Register() {
   // Pre-fill from quiz funnel lead stored in sessionStorage (no PII in URL)
@@ -24,6 +24,13 @@ export function Register() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12">
+      <ClerkLoading>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-900" />
+          <span className="text-sm font-medium text-zinc-400">Loading...</span>
+        </div>
+      </ClerkLoading>
+      <ClerkLoaded>
       <SignUp
         routing="path"
         path="/register"
@@ -51,6 +58,7 @@ export function Register() {
           },
         }}
       />
+      </ClerkLoaded>
     </div>
   );
 }
