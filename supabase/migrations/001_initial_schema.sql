@@ -213,3 +213,52 @@ begin
   values (clerk_user_id(), p_action, p_target, p_metadata);
 end;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Storage — "documents" bucket
+-- Private bucket; files stored at  documents/{clerk_user_id}/{category}_{ts}.{ext}
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'documents',
+  'documents',
+  false,
+  8388608,   -- 8 MB hard limit matches DocumentVault.tsx MAX_FILE_BYTES
+  array['image/jpeg','image/png','image/webp','application/pdf']
+) on conflict (id) do nothing;
+
+-- Enable RLS on storage objects (it's off by default)
+alter table storage.objects enable row level security;
+
+-- Clients may upload only into their own folder
+create policy "storage: owner upload"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'documents'
+    and name like 'documents/' || public.clerk_user_id() || '/%'
+  );
+
+-- Clients read their own files; admins read everything in the bucket
+create policy "storage: owner read"
+  on storage.objects for select
+  using (
+    bucket_id = 'documents'
+    and (
+      name like 'documents/' || public.clerk_user_id() || '/%'
+      or exists (
+        select 1 from public.profiles p
+        where p.id = public.clerk_user_id() and p.role = 'admin'
+      )
+    )
+  );
+
+-- Admins can delete / update documents
+create policy "storage: admin write"
+  on storage.objects for all
+  using (
+    bucket_id = 'documents'
+    and exists (
+      select 1 from public.profiles p
+      where p.id = public.clerk_user_id() and p.role = 'admin'
+    )
+  );
