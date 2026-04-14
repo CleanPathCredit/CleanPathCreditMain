@@ -3,11 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { Suspense, lazy } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { Suspense, lazy, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+
+const CHAT_PAGES = ["/", "/dashboard"];
+const AGENT_ID   = "agent_5401kp5w96nqf65rw5wd46np1p4d";
+
+function ChatWidget() {
+  const { pathname } = useLocation();
+  const show = CHAT_PAGES.includes(pathname);
+
+  useEffect(() => {
+    if (!show) return;
+    const el = document.createElement("elevenlabs-convai");
+    el.setAttribute("agent-id", AGENT_ID);
+    document.body.appendChild(el);
+    return () => { el.remove(); };
+  }, [show]);
+
+  return null;
+}
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 
@@ -35,6 +53,7 @@ export default function App() {
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
       <Router>
         <AuthProvider>
+          <ChatWidget />
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<Landing />} />
