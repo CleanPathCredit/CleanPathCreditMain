@@ -2,9 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { db, auth } from "@/firebase";
-import { doc, getDoc, updateDoc, onSnapshot } from "firebase/firestore";
+import { doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/Button";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
+import type { UserData, ChatMessage } from "@/types/user";
 import {
   CheckCircle2, LogOut, Shield, Lock, FileText, Download,
   HelpCircle, MessageSquare, BookOpen, X, Send,
@@ -47,7 +48,7 @@ function getStepStatus(profileStatus: string, stepKey: string): "completed" | "a
 export function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<SidebarTab>("dashboard");
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -64,7 +65,7 @@ export function Dashboard() {
 
     const unsubscribe = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
       if (docSnap.exists()) {
-        setProfile(docSnap.data());
+        setProfile(docSnap.data() as UserData);
       }
       setLoading(false);
     });
@@ -81,14 +82,14 @@ export function Dashboard() {
   const sendMessage = async () => {
     if (!newMessage.trim() || !user) return;
 
-    const message = {
+    const message: ChatMessage = {
       id: Date.now().toString(),
       text: newMessage,
       sender: "client",
       timestamp: new Date().toISOString(),
     };
 
-    const updatedMessages = [...(profile?.messages || []), message];
+    const updatedMessages = [...(profile?.messages ?? []), message];
     await updateDoc(doc(db, "users", user.uid), { messages: updatedMessages });
     setNewMessage("");
   };
@@ -413,7 +414,7 @@ export function Dashboard() {
                           <p className="text-sm font-medium">Send us a message to get started.</p>
                         </div>
                       ) : (
-                        profile.messages.map((msg: any) => (
+                        profile.messages.map((msg: ChatMessage) => (
                           <div key={msg.id} className={`flex flex-col ${msg.sender === 'client' ? 'items-end' : 'items-start'}`}>
                             <div className="flex items-end gap-2 max-w-[85%]">
                               {msg.sender === 'admin' && (

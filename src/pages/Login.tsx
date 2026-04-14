@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "@/firebase";
-import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { signInWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/Button";
 import { Shield, Mail } from "lucide-react";
@@ -24,8 +24,10 @@ export function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Check if email is verified
+      // Check if email is verified. If not, sign the user out immediately so
+      // no authenticated session persists that could bypass the route guard.
       if (!userCredential.user.emailVerified) {
+        await signOut(auth);
         setShowVerificationMessage(true);
         setLoading(false);
         return;

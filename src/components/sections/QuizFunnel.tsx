@@ -98,14 +98,23 @@ export function QuizFunnel() {
     setIsFinalAnalyzing(true);
     setAnalysisProgress(0);
 
-    // Send lead data to webhook
-    fetch("https://services.leadconnectorhq.com/hooks/da0KTegxFQ62eqS73TQv/webhook-trigger/aef6b546-5e8e-4d0b-96b6-c92d57a4e80e", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    }).catch(error => console.error("Error sending lead data:", error));
+    // Send lead data to the CRM via a same-origin backend proxy. Never embed
+    // raw webhook URLs (or secrets) in client code — anyone could replay or
+    // spam them. The proxy is expected to validate + forward server-side.
+    // Configure the endpoint with VITE_LEAD_WEBHOOK_URL (e.g. "/api/lead").
+    const leadEndpoint = import.meta.env.VITE_LEAD_WEBHOOK_URL;
+    if (leadEndpoint) {
+      fetch(leadEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      }).catch((error) => {
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.error("Error sending lead data:", error);
+        }
+      });
+    }
     
     const interval = setInterval(() => {
       setAnalysisProgress(prev => {
@@ -319,8 +328,9 @@ export function QuizFunnel() {
                   ) : (
                     <div className="space-y-6 flex-grow">
                       <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-2">What is your estimated credit score?</label>
-                        <select 
+                        <label htmlFor="quiz-credit-score" className="block text-sm font-medium text-zinc-700 mb-2">What is your estimated credit score?</label>
+                        <select
+                          id="quiz-credit-score"
                           className="w-full rounded-lg border-zinc-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 border"
                           value={formData.creditScore}
                           onChange={(e) => setFormData({...formData, creditScore: e.target.value})}
@@ -332,10 +342,11 @@ export function QuizFunnel() {
                           <option value="680+">680+</option>
                         </select>
                       </div>
-                      
+
                       <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-2">What is your approximate annual income?</label>
-                        <select 
+                        <label htmlFor="quiz-income" className="block text-sm font-medium text-zinc-700 mb-2">What is your approximate annual income?</label>
+                        <select
+                          id="quiz-income"
                           className="w-full rounded-lg border-zinc-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 border"
                           value={formData.income}
                           onChange={(e) => setFormData({...formData, income: e.target.value})}
@@ -349,8 +360,9 @@ export function QuizFunnel() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-2">What is your ideal credit score?</label>
-                        <select 
+                        <label htmlFor="quiz-ideal-score" className="block text-sm font-medium text-zinc-700 mb-2">What is your ideal credit score?</label>
+                        <select
+                          id="quiz-ideal-score"
                           className="w-full rounded-lg border-zinc-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 border"
                           value={formData.idealScore}
                           onChange={(e) => setFormData({...formData, idealScore: e.target.value})}
@@ -363,8 +375,9 @@ export function QuizFunnel() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-2">How soon do you want to reach your goal?</label>
-                        <select 
+                        <label htmlFor="quiz-timeline" className="block text-sm font-medium text-zinc-700 mb-2">How soon do you want to reach your goal?</label>
+                        <select
+                          id="quiz-timeline"
                           className="w-full rounded-lg border-zinc-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 p-3 border"
                           value={formData.timeline}
                           onChange={(e) => setFormData({...formData, timeline: e.target.value})}

@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { db } from "@/firebase";
-import { collection, getDocs, doc, updateDoc, onSnapshot } from "firebase/firestore";
+import { collection, doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/Button";
+import type { ClientRecord, ChatMessage, ClientStatus } from "@/types/user";
 import { LogOut, Users, FileText, Settings, ChevronLeft, Send, Download, Eye, ShieldCheck, Clock, CheckCircle2, AlertCircle, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -19,24 +20,27 @@ const STATUS_OPTIONS = [
 export function AdminDashboard() {
   const { user, userData, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<ClientRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const stateRole = location.state?.role;
-    if (!user || (userData?.role !== "admin" && stateRole !== "admin")) {
+    // SECURITY: Authorization must come from Firestore-backed userData only.
+    // Never trust router state/location.state for role checks — it is
+    // entirely client-controlled and can be forged by any logged-in user.
+    if (!user || userData?.role !== "admin") {
       navigate("/login");
       return;
     }
 
     const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
-      const usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      const clientList = usersList.filter(u => u.role !== "admin");
+      const usersList = snapshot.docs.map(
+        (d) => ({ id: d.id, ...(d.data() as Omit<ClientRecord, "id">) }),
+      );
+      const clientList = usersList.filter((u) => u.role !== "admin");
       setClients(clientList);
       
       if (selectedClient) {
@@ -54,7 +58,7 @@ export function AdminDashboard() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selectedClient?.messages]);
 
-  const updateClientStatus = async (clientId: string, status: string) => {
+  const updateClientStatus = async (clientId: string, status: ClientStatus) => {
     let progress = 0;
     switch (status) {
       case "missing_id": progress = 10; break;
@@ -71,25 +75,25 @@ export function AdminDashboard() {
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedClient) return;
 
-    const message = {
+    const message: ChatMessage = {
       id: Date.now().toString(),
       text: newMessage,
       sender: "admin",
       timestamp: new Date().toISOString(),
     };
 
-    const updatedMessages = [...(selectedClient.messages || []), message];
+    const updatedMessages = [...(selectedClient.messages ?? []), message];
     await updateDoc(doc(db, "users", selectedClient.id), { messages: updatedMessages });
     setNewMessage("");
   };
 
-  const getStatusColor = (statusValue: string) => {
-    const status = STATUS_OPTIONS.find(s => s.value === statusValue);
+  const getStatusColor = (statusValue?: string) => {
+    const status = STATUS_OPTIONS.find((s) => s.value === statusValue);
     return status ? status.color : "bg-zinc-100 text-zinc-700 border-zinc-200";
   };
 
-  const getStatusLabel = (statusValue: string) => {
-    const status = STATUS_OPTIONS.find(s => s.value === statusValue);
+  const getStatusLabel = (statusValue?: string) => {
+    const status = STATUS_OPTIONS.find((s) => s.value === statusValue);
     return status ? status.label : "Pending";
   };
 
@@ -269,9 +273,9 @@ export function AdminDashboard() {
                 
                 <div className="flex items-center gap-4">
                   <div className="text-sm font-medium text-zinc-500">Current Status:</div>
-                  <select 
+                  <select
                     value={selectedClient.status || "missing_id"}
-                    onChange={(e) => updateClientStatus(selectedClient.id, e.target.value)}
+                    onChange={(e) => updateClientStatus(selectedClient.id, e.target.value as ClientStatus)}
                     className={`text-sm font-medium rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-900/20 transition-shadow cursor-pointer appearance-none pr-8 relative ${getStatusColor(selectedClient.status)}`}
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.2em 1.2em` }}
                   >
@@ -388,7 +392,7 @@ export function AdminDashboard() {
                         <p className="text-sm">No messages yet. Start the conversation.</p>
                       </div>
                     ) : (
-                      selectedClient.messages.map((msg: any) => (
+                      selectedClient.messages.map((msg: ChatMessage) => (
                         <div key={msg.id} className={`flex flex-col ${msg.sender === 'admin' ? 'items-end' : 'items-start'}`}>
                           <div className="flex items-end gap-2 max-w-[80%]">
                             {msg.sender !== 'admin' && (

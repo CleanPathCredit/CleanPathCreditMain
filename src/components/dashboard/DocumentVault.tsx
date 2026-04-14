@@ -6,11 +6,13 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Button } from "@/components/ui/Button";
 import {
   Upload, Camera, CheckCircle2, AlertTriangle, FileText,
-  Eye, Download, X, Shield, Image as ImageIcon, Loader2
+  Eye, Download, X, Shield, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import type { UserData } from "@/types/user";
 
-interface DocumentFile {
+/** Local Document record — extends the shared DocumentFile with a category. */
+interface VaultDocument {
   id: string;
   name: string;
   type: string;
@@ -19,6 +21,64 @@ interface DocumentFile {
   uploadedAt: string;
   status: "verified" | "rejected" | "pending";
   thumbnailUrl?: string;
+}
+
+/** Maximum accepted upload size. Mirrors server-side storage rules. */
+const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB
+const ACCEPTED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "application/pdf",
+]);
+
+const devError = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.error(...args);
+  }
+};
+
+/**
+ * Re-encodes an image via canvas to strip EXIF/metadata (including GPS) and
+ * downscale oversized originals. Returns the sanitized File.
+ * PDFs and unknown types pass through unchanged.
+ */
+async function sanitizeImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  return new Promise<File>((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxEdge = 2048;
+      const scale = Math.min(maxEdge / img.width, maxEdge / img.height, 1);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          // Drop the original extension — we always output JPEG after re-encode.
+          const baseName = file.name.replace(/\.[^.]+$/, "");
+          resolve(new File([blob], `${baseName}.jpg`, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        0.9,
+      );
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
 }
 
 interface UploadSlot {
@@ -104,7 +164,7 @@ function analyzeImageQuality(file: File): Promise<{ passed: boolean; reason: str
   });
 }
 
-export function DocumentVault({ profile }: { profile: any }) {
+export function DocumentVault({ profile }: { profile: UserData | null }) {
   const { user } = useAuth();
   const [activeView, setActiveView] = useState<"upload" | "vault">("vault");
   const [uploading, setUploading] = useState(false);
@@ -136,9 +196,41 @@ export function DocumentVault({ profile }: { profile: any }) {
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const cameraInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const existingDocs: DocumentFile[] = profile?.documents || [];
+  const existingDocs: VaultDocument[] = (profile?.documents ?? []) as VaultDocument[];
 
   const handleFileSelect = useCallback(async (index: number, file: File) => {
+    // Client-side validation. Storage rules MUST re-validate size + MIME;
+    // never trust the client alone.
+    if (file.size > MAX_FILE_BYTES) {
+      setUploadSlots((prev) => {
+        const next = [...prev];
+        next[index] = {
+          ...next[index],
+          file: null,
+          preview: null,
+          status: "rejected",
+          rejectReason: `File is too large (max ${Math.round(MAX_FILE_BYTES / 1024 / 1024)}MB).`,
+        };
+        return next;
+      });
+      return;
+    }
+
+    if (!ACCEPTED_MIME_TYPES.has(file.type) && !file.type.startsWith("image/")) {
+      setUploadSlots((prev) => {
+        const next = [...prev];
+        next[index] = {
+          ...next[index],
+          file: null,
+          preview: null,
+          status: "rejected",
+          rejectReason: "Unsupported file type. Please upload JPG, PNG, WEBP, HEIC, or PDF.",
+        };
+        return next;
+      });
+      return;
+    }
+
     const slots = [...uploadSlots];
     const slot = { ...slots[index] };
 
@@ -179,18 +271,23 @@ export function DocumentVault({ profile }: { profile: any }) {
 
     setUploading(true);
     try {
-      const newDocs: DocumentFile[] = [];
+      const newDocs: VaultDocument[] = [];
 
       for (const slot of acceptedSlots) {
         if (!slot.file) continue;
-        const fileRef = ref(storage, `users/${user.uid}/documents/${slot.category}_${Date.now()}_${slot.file.name}`);
-        await uploadBytes(fileRef, slot.file);
+        // Strip EXIF / GPS metadata from images before upload. PDFs pass through.
+        const sanitized = await sanitizeImage(slot.file);
+        const fileRef = ref(
+          storage,
+          `users/${user.uid}/documents/${slot.category}_${Date.now()}_${sanitized.name}`,
+        );
+        await uploadBytes(fileRef, sanitized, { contentType: sanitized.type });
         const url = await getDownloadURL(fileRef);
 
         newDocs.push({
           id: `${slot.category}_${Date.now()}`,
-          name: slot.file.name,
-          type: slot.file.type,
+          name: sanitized.name,
+          type: sanitized.type,
           category: slot.category,
           url,
           uploadedAt: new Date().toISOString(),
@@ -199,9 +296,9 @@ export function DocumentVault({ profile }: { profile: any }) {
       }
 
       // Update Firestore
-      const updateData: any = {};
-      if (acceptedSlots.some(s => s.category === "id")) updateData.idUploaded = true;
-      if (acceptedSlots.some(s => s.category === "ssn")) updateData.ssnUploaded = true;
+      const updateData: Partial<Pick<UserData, "idUploaded" | "ssnUploaded">> = {};
+      if (acceptedSlots.some((s) => s.category === "id")) updateData.idUploaded = true;
+      if (acceptedSlots.some((s) => s.category === "ssn")) updateData.ssnUploaded = true;
 
       await updateDoc(doc(db, "users", user.uid), {
         ...updateData,
@@ -209,7 +306,7 @@ export function DocumentVault({ profile }: { profile: any }) {
       });
 
       // Reset slots
-      setUploadSlots(prev => prev.map(s => ({
+      setUploadSlots((prev) => prev.map((s) => ({
         ...s,
         file: null,
         preview: null,
@@ -218,7 +315,7 @@ export function DocumentVault({ profile }: { profile: any }) {
       })));
       setActiveView("vault");
     } catch (err) {
-      console.error("Upload failed:", err);
+      devError("Upload failed:", err);
     } finally {
       setUploading(false);
     }
@@ -436,7 +533,7 @@ export function DocumentVault({ profile }: { profile: any }) {
                       {docFile.type?.startsWith("image/") ? (
                         <img
                           src={docFile.url}
-                          alt={docFile.name}
+                          alt={`Uploaded document: ${docFile.name}`}
                           className="w-full h-full object-cover"
                         />
                       ) : (

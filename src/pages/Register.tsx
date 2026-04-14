@@ -59,15 +59,17 @@ export function Register() {
     
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const isAdmin = formData.email.toLowerCase() === "perfectcredit780@gmail.com";
-      
+
+      // SECURITY: Never assign admin role from the client. Admin status must be
+      // provisioned server-side (Cloud Function + Firebase custom claims).
+      // Every new registration starts as a regular client.
       await setDoc(doc(db, "users", userCredential.user.uid), {
         email: formData.email,
         fullName: formData.fullName,
         phone: formData.phone,
         goal: formData.goal,
         challenge: formData.challenge,
-        role: isAdmin ? "admin" : "client",
+        role: "client",
         progress: 0,
         status: "pending_connection",
         createdAt: new Date().toISOString(),
@@ -77,7 +79,9 @@ export function Register() {
         documents: [],
       });
       
-      // Send verification email
+      // Send verification email. The user stays signed in so they can
+      // resend the email if needed; protected routes still block access
+      // because ProtectedRoute enforces emailVerified.
       await sendEmailVerification(userCredential.user);
       setVerificationSent(true);
       setLoading(false);
