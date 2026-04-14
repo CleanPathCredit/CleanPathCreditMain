@@ -6,39 +6,39 @@ import { Star } from "lucide-react";
 export function Proof() {
   const testimonials = [
     {
-      name: "Sarah Jenkins",
-      title: "Software Engineer",
-      quote: "The AI analysis found errors I didn't even know existed. My score jumped 80 points in 45 days. The dashboard is incredibly clean and intuitive.",
+      name: "Sarah M.",
+      title: "First-Time Homebuyer — Dallas, TX",
+      quote: "I was one missed payment away from losing my shot at a house. My specialist removed 4 collections in under 60 days. I closed on my home last month. I genuinely cried.",
       rating: 5,
     },
     {
-      name: "Michael Chen",
-      title: "Small Business Owner",
-      quote: "I needed a fast solution to secure a business loan. Clean Path Credit handled the disputes automatically. It felt like having a developer team working on my credit.",
+      name: "Marcus T.",
+      title: "Restaurant Owner — Chicago, IL",
+      quote: "My advisor found reporting errors I'd had for 8 years. Eight years. Gone in 5 weeks. I secured a $50k business line of credit the month after. This service pays for itself.",
       rating: 5,
     },
     {
-      name: "Elena Rodriguez",
-      title: "Product Designer",
-      quote: "Finally, a credit repair service that doesn't feel like a scam. The UI is gorgeous, the process is transparent, and the results are real.",
+      name: "Aisha R.",
+      title: "Registered Nurse — Atlanta, GA",
+      quote: "I paid off a medical collection thinking it would help my score. It didn't move at all. Clean Path explained why — then disputed it off completely. Up 67 points in 45 days.",
       rating: 5,
     },
     {
-      name: "David Thompson",
-      title: "Freelance Consultant",
-      quote: "The automated dispute generation is magic. I watched my negative items disappear one by one. Highly recommended for anyone who values efficiency.",
+      name: "Kevin L.",
+      title: "Small Business Owner — Phoenix, AZ",
+      quote: "I was getting 23% interest rates on auto loans. After 90 days with Clean Path, I refinanced at 6.9%. That's over $4,000 back in my pocket. Wish I'd done this years ago.",
       rating: 4.9,
     },
     {
-      name: "Jessica Lee",
-      title: "Marketing Director",
-      quote: "I was skeptical about AI credit repair, but the results speak for themselves. The platform is seamless and the customer support is top-notch.",
+      name: "Vanessa B.",
+      title: "Marketing Manager — Houston, TX",
+      quote: "I tried two other credit repair companies. Both sent the same generic letters month after month. Clean Path actually looked at my reports, told me exactly what to fight and why. Night and day.",
       rating: 5,
     },
     {
-      name: "Marcus Johnson",
-      title: "Real Estate Agent",
-      quote: "I refer all my clients with credit issues to Clean Path. It's the most reliable, modern, and effective service I've seen in the industry.",
+      name: "James H.",
+      title: "Real Estate Investor — Miami, FL",
+      quote: "My advisor knew the FCRA inside and out. She challenged items I thought were permanent and got three of them deleted. I now refer every client who needs credit work to Clean Path.",
       rating: 4.8,
     },
   ];
@@ -48,10 +48,10 @@ export function Proof() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-20 text-center">
           <h2 className="mb-4 font-display text-3xl font-semibold tracking-tight text-zinc-900 md:text-5xl">
-            Trusted by professionals.
+            Real people. Real results.
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-zinc-600">
-            Our mission is to drive progress and enhance the financial lives of our customers by delivering superior products and services that exceed expectations.
+            Our clients don't just see better scores — they get approved for homes, cars, and funding they were denied for before. See what's possible when you stop hoping and start fighting.
           </p>
         </div>
 

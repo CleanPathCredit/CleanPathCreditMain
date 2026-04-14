@@ -7,18 +7,18 @@ export function ValueProp() {
   const features = [
     {
       icon: Zap,
-      title: "AI-Driven Disputes",
-      description: "Our algorithms analyze your credit report to identify errors and generate highly effective dispute letters instantly.",
+      title: "AI Finds What You Can't",
+      description: "Our system scans your full credit profile across all 3 bureaus to pinpoint inaccurate, unverifiable, and outdated items that are silently dragging your score down.",
     },
     {
       icon: ShieldCheck,
-      title: "Proven Methods",
-      description: "We use strategies backed by the Fair Credit Reporting Act (FCRA) to ensure maximum compliance and success rates.",
+      title: "Specialists Fight to Remove Them",
+      description: "Our FCRA-certified specialists craft custom dispute strategies — not copy-paste templates — and use federal law to force bureaus to delete negative items from your report.",
     },
     {
       icon: Activity,
-      title: "Real-Time Tracking",
-      description: "Monitor your progress with our developer-grade dashboard. See updates as soon as they happen.",
+      title: "You Watch the Score Go Up",
+      description: "Track every dispute, deletion, and score change in your private client portal. Full transparency, no guessing, and a specialist in your corner every step of the way.",
     },
   ];
 
@@ -27,10 +27,10 @@ export function ValueProp() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-16 text-center">
           <h2 className="mb-4 font-display text-3xl font-semibold tracking-tight text-zinc-900 md:text-5xl">
-            The modern way to repair credit.
+            The smarter way to repair credit.
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-zinc-600">
-            Stop relying on slow, manual processes. Our AI systems automate the heavy lifting, giving you faster results and complete transparency.
+            Most credit repair companies send the same letters and hope something sticks. We use AI to find the exact items to target, then our specialists execute the legal strategies to remove them.
           </p>
         </div>
 

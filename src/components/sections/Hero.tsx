@@ -42,7 +42,7 @@ export function Hero() {
         
         <div className="mb-10 inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 border border-emerald-200">
           <ShieldCheck className="h-5 w-5 text-emerald-600" />
-          <span><strong>Ironclad Guarantee:</strong> Fix your credit in 45 days or less, or you pay $0.</span>
+          <span><strong>Ironclad Guarantee:</strong> See results in 45 days or your money back — no questions asked.</span>
         </div>
 
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
