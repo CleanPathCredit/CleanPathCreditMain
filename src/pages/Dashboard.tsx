@@ -8,10 +8,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
+import { PlanGate } from "@/components/dashboard/PlanGate";
+import { CreditScoreWidget } from "@/components/dashboard/CreditScoreWidget";
+import { canAccess, PLAN_LABEL } from "@/lib/planAccess";
 import type { Message } from "@/types/database";
 import {
   CheckCircle2, LogOut, Shield, FileText, Download,
-  MessageSquare, BookOpen, X, Send,
+  MessageSquare, BookOpen, X, Send, Lock,
   LayoutDashboard, FolderLock, List, LifeBuoy, Menu
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -117,6 +120,16 @@ export function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {profile?.plan && (
+            <span className={`hidden md:inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              profile.plan === "premium"  ? "bg-yellow-500/20 text-yellow-300" :
+              profile.plan === "standard" ? "bg-emerald-500/20 text-emerald-300" :
+              profile.plan === "diy"      ? "bg-blue-500/20 text-blue-300" :
+                                            "bg-zinc-700 text-zinc-300"
+            }`}>
+              {PLAN_LABEL[profile.plan]}
+            </span>
+          )}
           <span className="text-xs text-zinc-400 hidden md:inline-block">{clerkUser?.emailAddresses[0]?.emailAddress}</span>
           <Button variant="outline" onClick={logout} className="h-8 px-3 text-xs bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white">
             <LogOut className="h-3.5 w-3.5 md:mr-1.5" />
@@ -186,7 +199,11 @@ export function Dashboard() {
                   </div>
                 )}
 
+                {/* Credit Score */}
+                <CreditScoreWidget profile={profile} />
+
                 {/* Dispute Tracker */}
+                <PlanGate feature="dispute_tracker" plan={profile?.plan}>
                 <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
                   <h2 className="text-xl font-bold text-zinc-900 mb-6 tracking-tight">Dispute Tracker</h2>
                   <div className="space-y-6">
@@ -210,33 +227,54 @@ export function Dashboard() {
                     })}
                   </div>
                 </section>
+                </PlanGate>
 
                 {/* Resource Library */}
                 <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
-                  <h2 className="text-xl font-bold text-zinc-900 mb-6 tracking-tight">Resource Library</h2>
+                  <h2 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">Resource Library</h2>
+                  <p className="text-xs text-zinc-400 mb-6">
+                    {canAccess(profile?.plan, "all_guides") ? "Full library unlocked" : "2 of 6 resources available — upgrade to unlock all"}
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      { title: "The 720 Credit Score Blueprint", type: "PDF Guide" },
-                      { title: "How to Handle Debt Collectors",  type: "E-Book" },
-                      { title: "Understanding Credit Utilization", type: "Cheatsheet" },
-                      { title: "Building Positive Credit History", type: "Action Plan" },
-                    ].map((r, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-zinc-200 hover:border-emerald-500 transition-all group cursor-pointer">
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
-                            <BookOpen className="h-6 w-6" />
+                      { title: "5 Steps to Understanding Your Credit Report", type: "Free Guide",   free: true  },
+                      { title: "How Credit Scores Are Calculated",             type: "Free Guide",   free: true  },
+                      { title: "The 720 Credit Score Blueprint",               type: "PDF Guide",    free: false },
+                      { title: "How to Handle Debt Collectors",                type: "E-Book",       free: false },
+                      { title: "609 & 623 Dispute Letter Templates",           type: "Templates",    free: false },
+                      { title: "Building Positive Credit History",             type: "Action Plan",  free: false },
+                    ].map((r, i) => {
+                      const unlocked = r.free || canAccess(profile?.plan, "all_guides");
+                      return (
+                        <div key={i} className={`flex items-center justify-between p-4 rounded-xl border transition-all group ${unlocked ? "border-zinc-200 hover:border-emerald-500 cursor-pointer" : "border-zinc-100 bg-zinc-50 cursor-not-allowed opacity-60"}`}>
+                          <div className="flex items-center gap-4">
+                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-colors ${unlocked ? "bg-zinc-50 text-zinc-400 group-hover:bg-emerald-50 group-hover:text-emerald-600" : "bg-zinc-100 text-zinc-300"}`}>
+                              {unlocked ? <BookOpen className="h-6 w-6" /> : <Lock className="h-5 w-5" />}
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-zinc-900 text-sm">{r.title}</h3>
+                              <p className="text-xs font-medium text-zinc-500 mt-0.5">{r.type}</p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-bold text-zinc-900 text-sm">{r.title}</h3>
-                            <p className="text-xs font-medium text-zinc-500 mt-0.5">{r.type}</p>
-                          </div>
+                          {unlocked ? (
+                            <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-full bg-white hover:bg-zinc-50 border-zinc-200">
+                              <Download className="h-4 w-4 text-zinc-500" />
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-zinc-400 shrink-0">Upgrade</span>
+                          )}
                         </div>
-                        <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-full bg-white hover:bg-zinc-50 border-zinc-200">
-                          <Download className="h-4 w-4 text-zinc-500" />
-                        </Button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+                  {!canAccess(profile?.plan, "all_guides") && (
+                    <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-4 flex items-center justify-between gap-4">
+                      <p className="text-sm font-medium text-emerald-800">Unlock all 6 resources + dispute templates</p>
+                      <a href="https://form.cleanpathcredit.com" className="shrink-0 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">
+                        See Plans →
+                      </a>
+                    </div>
+                  )}
                 </section>
               </motion.div>
             )}
@@ -244,28 +282,33 @@ export function Dashboard() {
             {/* ── VAULT ── */}
             {activeTab === "vault" && (
               <motion.div key="vault" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <DocumentVault />
+                <PlanGate feature="document_vault" plan={profile?.plan} blurChildren={false}>
+                  <DocumentVault />
+                </PlanGate>
               </motion.div>
             )}
 
             {/* ── MASTER LIST ── */}
             {activeTab === "masterlist" && (
               <motion.div key="masterlist" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
-                  <h2 className="text-xl font-bold text-zinc-900 mb-2 tracking-tight">The Master Financial List</h2>
-                  <p className="text-sm text-zinc-500 mb-6">Your curated list of credit-building tools, secured cards, and financial resources.</p>
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
-                    <FileText className="h-8 w-8 text-amber-400 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-amber-800">Coming soon</p>
-                    <p className="text-xs text-amber-700 mt-1">Your specialist will share your personalised list once your audit is complete.</p>
-                  </div>
-                </section>
+                <PlanGate feature="master_list" plan={profile?.plan} blurChildren={false}>
+                  <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
+                    <h2 className="text-xl font-bold text-zinc-900 mb-2 tracking-tight">The Master Financial List</h2>
+                    <p className="text-sm text-zinc-500 mb-6">Your curated list of credit-building tools, secured cards, and financial resources.</p>
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
+                      <FileText className="h-8 w-8 text-amber-400 mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-amber-800">Coming soon</p>
+                      <p className="text-xs text-amber-700 mt-1">Your specialist will share your personalised list once your audit is complete.</p>
+                    </div>
+                  </section>
+                </PlanGate>
               </motion.div>
             )}
 
             {/* ── SUPPORT ── */}
             {activeTab === "support" && (
               <motion.div key="support" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <PlanGate feature="support_chat" plan={profile?.plan} blurChildren={false}>
                 <ChatPanel
                   messages={messages}
                   newMessage={newMessage}
@@ -273,18 +316,19 @@ export function Dashboard() {
                   onSend={sendMessage}
                   endRef={messagesEndRef}
                 />
+                </PlanGate>
               </motion.div>
             )}
           </AnimatePresence>
         </main>
       </div>
 
-      {/* Floating chat button */}
-      <button onClick={() => setIsChatOpen(true)}
+      {/* Floating chat button — standard/premium only */}
+      {canAccess(profile?.plan, "support_chat") && <button onClick={() => setIsChatOpen(true)}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-[#111111] text-white shadow-xl hover:shadow-2xl flex items-center justify-center z-30 hover:scale-105 transition-all"
         aria-label="Open support chat">
         <MessageSquare className="h-6 w-6" />
-      </button>
+      </button>}
 
       {/* Chat slide-over */}
       <AnimatePresence>
