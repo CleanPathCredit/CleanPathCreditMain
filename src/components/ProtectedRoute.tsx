@@ -1,33 +1,25 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * Route guard that enforces Clerk authentication and optional role checks.
+ * Authorization source: Clerk session (is the user signed in?) +
+ * Supabase profile.role (are they an admin?).
+ * Never trusts router state or URL params for role determination.
  */
 
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Role = "admin" | "client";
-
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  /** Require the user to hold this role. Omit to allow any authenticated user. */
-  role?: Role;
-  /** Require the user's email to be verified. Defaults to true. */
-  requireVerified?: boolean;
+  /** Require this role. Omit to allow any authenticated user. */
+  role?: "admin" | "client";
 }
 
-/**
- * Route guard that enforces authentication and (optionally) role + email
- * verification. Authorization is derived exclusively from Firebase Auth state
- * and Firestore-backed `userData` — never from router state or URL params.
- */
-export function ProtectedRoute({
-  children,
-  role,
-  requireVerified = true,
-}: ProtectedRouteProps) {
-  const { user, userData, loading, isAdmin } = useAuth();
+export function ProtectedRoute({ children, role }: ProtectedRouteProps) {
+  const { clerkUser, profile, loading, isAdmin } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -38,15 +30,13 @@ export function ProtectedRoute({
     );
   }
 
-  if (!user) {
+  // Not signed in → redirect to login, preserving intended destination
+  if (!clerkUser) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  if (requireVerified && !user.emailVerified) {
-    return <Navigate to="/login" replace state={{ unverified: true }} />;
-  }
-
-  if (role === "admin" && !(isAdmin && userData?.role === "admin")) {
+  // Admin-only route: user must have role=admin in the Supabase profiles table
+  if (role === "admin" && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 

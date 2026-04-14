@@ -5,8 +5,11 @@
 
 import React, { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ClerkProvider } from "@clerk/clerk-react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 
 const Landing = lazy(() => import("@/pages/Landing").then(m => ({ default: m.Landing })));
 const Login = lazy(() => import("@/pages/Login").then(m => ({ default: m.Login })));
@@ -28,33 +31,35 @@ function LoadingFallback() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/how-it-works" element={<Methodology />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute role="admin">
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </Suspense>
-      </Router>
-    </AuthProvider>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+      <AuthProvider>
+        <Router>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/how-it-works" element={<Methodology />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute role="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </Router>
+      </AuthProvider>
+    </ClerkProvider>
   );
 }
