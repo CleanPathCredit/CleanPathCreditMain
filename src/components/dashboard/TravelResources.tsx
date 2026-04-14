@@ -112,7 +112,10 @@ export function TravelResources({ hasAccess }: TravelResourcesProps) {
                   {r.category}
                 </span>
               </div>
-              <h3 className="text-sm font-bold text-zinc-900 leading-snug">{r.title}</h3>
+              <h3
+                className="text-sm font-bold text-zinc-900 leading-snug select-none"
+                style={!hasAccess ? { filter: "blur(5px)", userSelect: "none" } : undefined}
+              >{r.title}</h3>
               <p className="text-xs text-zinc-500 mt-0.5">{r.subtitle}</p>
 
               {/* Details — only shown when unlocked */}
