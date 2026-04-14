@@ -94,6 +94,7 @@ export default async function handler(req: Request): Promise<Response> {
       email:              primaryEmail,
       full_name:          fullName,
       phone,
+      role:               process.env.ADMIN_EMAIL?.toLowerCase() === primaryEmail.toLowerCase() ? "admin" : "client",
       plan:               plan as "free" | "diy" | "standard" | "premium",
       stripe_session_id:  meta.stripe_session_id ?? null,
       stripe_customer_id: meta.stripe_customer_id ?? null,
