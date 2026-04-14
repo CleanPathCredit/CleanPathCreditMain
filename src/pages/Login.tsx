@@ -12,8 +12,7 @@ export function Login() {
       </ClerkLoading>
       <ClerkLoaded>
         <SignIn
-          routing="path"
-          path="/login"
+          routing="hash"
           signUpUrl="/register"
           forceRedirectUrl="/dashboard"
           appearance={{

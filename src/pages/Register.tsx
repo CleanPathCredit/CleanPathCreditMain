@@ -32,8 +32,7 @@ export function Register() {
       </ClerkLoading>
       <ClerkLoaded>
       <SignUp
-        routing="path"
-        path="/register"
+        routing="hash"
         signInUrl="/login"
         forceRedirectUrl="/dashboard"
         initialValues={initialValues}
