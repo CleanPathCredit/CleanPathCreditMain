@@ -32,14 +32,9 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           <Link to="/login" className="hidden text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 md:block">Log in</Link>
-          <a href="#quiz-funnel" className="hidden sm:block" onClick={(e) => {
-            if (location.pathname === '/') {
-              e.preventDefault();
-              document.getElementById('quiz-funnel')?.scrollIntoView({ behavior: 'smooth' });
-            }
-          }}>
-            <Button variant="primary" className="h-9 px-4 text-xs">Find out if this will work for you</Button>
-          </a>
+          <Link to="/register" className="hidden md:block">
+            <Button variant="primary" className="h-9 px-4 text-sm">Sign up</Button>
+          </Link>
 
           {/* Mobile hamburger */}
           <button
@@ -85,21 +80,15 @@ export function Navbar() {
               >
                 Log in
               </Link>
-              <a
-                href="#quiz-funnel"
-                onClick={(e) => {
-                  setMobileOpen(false);
-                  if (location.pathname === '/') {
-                    e.preventDefault();
-                    document.getElementById('quiz-funnel')?.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
+              <Link
+                to="/register"
+                onClick={() => setMobileOpen(false)}
                 className="mt-2"
               >
                 <Button variant="primary" className="w-full h-11 text-sm">
-                  Start Your Free Analysis
+                  Sign up
                 </Button>
-              </a>
+              </Link>
             </div>
           </motion.div>
         )}
