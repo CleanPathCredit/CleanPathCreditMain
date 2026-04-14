@@ -83,20 +83,15 @@ export function Welcome() {
   const sessionId = searchParams.get("session_id");
   const copy      = PLAN_COPY[plan] ?? PLAN_COPY.free;
 
-  // Already signed in → go straight to dashboard
+  // Already signed in → go straight to dashboard (only when Clerk loads)
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       navigate("/dashboard", { replace: true });
     }
   }, [isLoaded, isSignedIn, navigate]);
 
-  if (!isLoaded) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
-      </div>
-    );
-  }
+  // Don't block rendering on Clerk — show content immediately.
+  // If Clerk fails to load (DNS/CORS issues), the page still works.
 
   if (showAuth) {
     return (
