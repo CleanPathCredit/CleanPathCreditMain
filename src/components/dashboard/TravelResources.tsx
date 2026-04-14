@@ -15,6 +15,7 @@ interface TravelResource {
   icon: React.ReactNode;
   iconBg: string;
   details: string;
+  alwaysShowTitle?: boolean;
 }
 
 const TRAVEL_RESOURCES: TravelResource[] = [
@@ -67,6 +68,7 @@ const TRAVEL_RESOURCES: TravelResource[] = [
     icon: <BookOpen className="h-6 w-6" />,
     iconBg: "bg-amber-50 text-amber-500",
     details: "Complete walkthrough: set up AAdvantage + IHG accounts, hit minimum spend requirements, book award flights via NARITA/HANEDA, pay zero for hotels with IHG points, and cover taxes with Capital One Venture miles.",
+    alwaysShowTitle: true,
   },
 ];
 
@@ -114,7 +116,7 @@ export function TravelResources({ hasAccess }: TravelResourcesProps) {
               </div>
               <h3
                 className="text-sm font-bold text-zinc-900 leading-snug select-none"
-                style={!hasAccess ? { filter: "blur(5px)", userSelect: "none" } : undefined}
+                style={(!hasAccess && !r.alwaysShowTitle) ? { filter: "blur(5px)", userSelect: "none" } : undefined}
               >{r.title}</h3>
               <p className="text-xs text-zinc-500 mt-0.5">{r.subtitle}</p>
 
