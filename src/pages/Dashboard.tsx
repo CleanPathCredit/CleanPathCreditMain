@@ -9,6 +9,7 @@ import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
 import { MasterList } from "@/components/dashboard/MasterList";
+import { TravelResources } from "@/components/dashboard/TravelResources";
 import { PlanGate } from "@/components/dashboard/PlanGate";
 import { CreditScoreWidget } from "@/components/dashboard/CreditScoreWidget";
 import { canAccess, PLAN_LABEL } from "@/lib/planAccess";
@@ -292,9 +293,15 @@ export function Dashboard() {
             {/* ── MASTER LIST ── */}
             {activeTab === "masterlist" && (
               <motion.div key="masterlist" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                {/* Section header always visible — never blurred */}
+                <div className="mb-4 px-1">
+                  <h2 className="text-xl font-bold text-zinc-900 tracking-tight">The Master Financial List</h2>
+                  <p className="text-sm text-zinc-500 mt-1">10 curated resources our clients use to rebuild credit fast — secured cards, legal tools, and insider strategies.</p>
+                </div>
                 <PlanGate feature="master_list" plan={profile?.plan} blurChildren={true}>
                   <MasterList />
                 </PlanGate>
+                <TravelResources hasAccess={canAccess(profile?.plan, "master_list")} />
               </motion.div>
             )}
 

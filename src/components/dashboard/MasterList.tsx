@@ -124,11 +124,6 @@ const CATEGORY_COLORS: Record<ResourceCategory, string> = {
 export function MasterList() {
   return (
     <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
-      <h2 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">The Master Financial List</h2>
-      <p className="text-sm text-zinc-500 mb-6">
-        10 curated resources our clients use to rebuild credit fast — secured cards, legal tools, and insider strategies.
-      </p>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {RESOURCES.map((r) => (
           <div
