@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -49,35 +49,42 @@ export function QuizFunnel() {
   // only the inline Calendly widget; after booking they see the confirmation
   // and the create-account CTA.
   const [bookedEvent, setBookedEvent] = useState<unknown>(null);
-  const calendlyRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize Calendly inline widget when step 5 mounts.
+  // Callback ref instead of useRef: fires synchronously when Framer Motion
+  // finally inserts the div into the DOM (which is deferred ~300ms by
+  // AnimatePresence mode="wait"). This triggers the init effect below.
+  const [calHost, setCalHost] = useState<HTMLDivElement | null>(null);
+
+  // Initialize Calendly inline widget once the host div is actually in the DOM.
   //
-  // Why explicit initInlineWidget() instead of relying on the widget.js
-  // auto-scan: React mounts the host <div> AFTER widget.js runs its
-  // one-time DOM scan, so auto-init misses our element. We call
-  // Calendly.initInlineWidget() ourselves as soon as both the script is
-  // loaded and the ref is attached.
+  // Why explicit initInlineWidget() instead of relying on widget.js auto-scan:
+  // React mounts the host <div> AFTER widget.js has already done its one-time
+  // DOM scan, so auto-init misses our element. We call initInlineWidget()
+  // ourselves as soon as both the script is loaded AND calHost is set.
+  //
+  // Why calHost instead of a plain useRef: AnimatePresence mode="wait" defers
+  // mounting the step-5 content until the step-4 exit animation completes
+  // (~300ms). By that time the useEffect with [step] deps has already run and
+  // bailed out because the ref was null. Using state for the callback ref means
+  // React re-renders (and re-runs this effect) the moment the div mounts.
   useEffect(() => {
-    if (step !== 5) return;
-    if (bookedEvent) return; // Already booked — widget is unmounted
-    const host = calendlyRef.current;
-    if (!host) return;
+    if (!calHost) return;
+    if (bookedEvent) return;
 
     let cancelled = false;
 
     function initWidget() {
-      if (cancelled || !host) return;
+      if (cancelled || !calHost) return;
       if (!window.Calendly?.initInlineWidget) {
-        // Script loaded but global not ready yet — retry on next tick.
+        // Script not ready yet — retry until it appears.
         setTimeout(initWidget, 50);
         return;
       }
-      // Clear any prior content (idempotent re-runs during dev HMR)
-      host.innerHTML = "";
+      // Clear any prior content (idempotent for dev HMR re-runs)
+      calHost.innerHTML = "";
       window.Calendly.initInlineWidget({
         url:           CALENDLY_EMBED_URL,
-        parentElement: host,
+        parentElement: calHost,
       });
     }
 
@@ -88,12 +95,23 @@ export function QuizFunnel() {
         `script[src="${CALENDLY_SCRIPT_SRC}"]`,
       );
       if (existing) {
-        existing.addEventListener('load', initWidget, { once: true });
+        // Script tag exists but may still be loading
+        if (existing.getAttribute('data-loaded') === 'true') {
+          initWidget();
+        } else {
+          existing.addEventListener('load', () => {
+            existing.setAttribute('data-loaded', 'true');
+            initWidget();
+          }, { once: true });
+        }
       } else {
         const script = document.createElement('script');
         script.src   = CALENDLY_SCRIPT_SRC;
         script.async = true;
-        script.addEventListener('load', initWidget, { once: true });
+        script.addEventListener('load', () => {
+          script.setAttribute('data-loaded', 'true');
+          initWidget();
+        }, { once: true });
         document.body.appendChild(script);
       }
     }
@@ -101,11 +119,12 @@ export function QuizFunnel() {
     return () => {
       cancelled = true;
     };
-  }, [step, bookedEvent]);
+  }, [calHost, bookedEvent]);
 
-  // Listen for Calendly's postMessage booking confirmation (scoped to step 5).
+  // Listen for Calendly's postMessage booking confirmation.
+  // Only attach the listener once the widget is actually in the DOM (calHost set).
   useEffect(() => {
-    if (step !== 5) return;
+    if (!calHost) return;
     function handleMessage(e: MessageEvent) {
       if (typeof e.origin !== 'string' || !e.origin.includes('calendly.com')) return;
       const data = e.data as { event?: string; payload?: unknown };
@@ -115,7 +134,7 @@ export function QuizFunnel() {
     }
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [step]);
+  }, [calHost]);
 
   const [formData, setFormData] = useState({
     creditScore: '',
@@ -575,12 +594,12 @@ export function QuizFunnel() {
                     </p>
                   </div>
 
-                  {/* Calendly inline widget — initialized explicitly via
-                      window.Calendly.initInlineWidget() in the effect above.
-                      We don't set data-url here because React mounts this div
-                      after widget.js's auto-scan has already run. */}
+                  {/* Calendly inline widget — initialized via initInlineWidget()
+                      once this div mounts (calHost callback ref triggers the
+                      effect). We don't rely on widget.js auto-scan because that
+                      runs before React inserts this element. */}
                   <div
-                    ref={calendlyRef}
+                    ref={setCalHost}
                     className="w-full rounded-xl overflow-hidden border border-zinc-200"
                     style={{ minWidth: '320px', height: '700px' }}
                   />
