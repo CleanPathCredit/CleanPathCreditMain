@@ -5,11 +5,12 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSession } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/Button";
 import type { ClientRecord, Message, ClientStatus, Document as DocRow } from "@/types/database";
 import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
-  Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X
+  Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -31,6 +32,7 @@ function statusLabel(v?: string) {
 
 export function AdminDashboard() {
   const { clerkUser, logout, supabase } = useAuth();
+  const { session } = useSession();
 
   const [clients, setClients]             = useState<ClientRecord[]>([]);
   const [loading, setLoading]             = useState(true);
@@ -39,6 +41,9 @@ export function AdminDashboard() {
   const [documents, setDocuments]         = useState<DocRow[]>([]);
   const [newMessage, setNewMessage]       = useState("");
   const [sidebarOpen, setSidebarOpen]     = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<ClientRecord | null>(null);
+  const [deleting, setDeleting]           = useState(false);
+  const [deleteError, setDeleteError]     = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load client list with real-time updates.
@@ -103,6 +108,35 @@ export function AdminDashboard() {
   const getDocumentUrl = async (path: string) => {
     const { data } = await supabase.storage.from("documents").createSignedUrl(path, 900); // 15-min URL
     if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+  };
+
+  const deleteClient = async () => {
+    if (!confirmDelete || !session) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const token = await session.getToken();
+      const res = await fetch("/api/admin/delete-client", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ clientId: confirmDelete.id }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload?.error ?? `Request failed (${res.status})`);
+      }
+      // Optimistic removal — Realtime will also fire but this is instant.
+      setClients((prev) => prev.filter((c) => c.id !== confirmDelete.id));
+      if (selected?.id === confirmDelete.id) setSelected(null);
+      setConfirmDelete(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete client");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 text-zinc-500">Loading Admin Portal…</div>;
@@ -198,9 +232,18 @@ export function AdminDashboard() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <Button variant="outline" className="h-9 px-4 text-sm bg-white hover:bg-zinc-50 shadow-sm" onClick={() => setSelected(c)}>
-                              Manage
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button variant="outline" className="h-9 px-4 text-sm bg-white hover:bg-zinc-50 shadow-sm" onClick={() => setSelected(c)}>
+                                Manage
+                              </Button>
+                              <button
+                                onClick={() => { setDeleteError(null); setConfirmDelete(c); }}
+                                aria-label={`Delete ${c.full_name ?? c.email}`}
+                                title="Delete client"
+                                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors shadow-sm">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -354,6 +397,51 @@ export function AdminDashboard() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* ── Delete confirmation modal ── */}
+      <AnimatePresence>
+        {confirmDelete && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4"
+            onClick={() => !deleting && setConfirmDelete(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.15 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-xl border border-zinc-200 max-w-md w-full p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-full bg-red-50 text-red-600 shrink-0">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-zinc-900">Delete this client?</h3>
+                  <p className="text-sm text-zinc-600 mt-1.5 leading-relaxed">
+                    This will permanently delete{" "}
+                    <span className="font-medium text-zinc-900">{confirmDelete.full_name ?? confirmDelete.email}</span>{" "}
+                    and all of their messages, documents, and uploaded files. Their login will also be removed. This cannot be undone.
+                  </p>
+                  {deleteError && (
+                    <div className="mt-3 p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+                      {deleteError}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline" onClick={() => setConfirmDelete(null)} disabled={deleting}
+                  className="h-10 px-4 text-sm">
+                  Cancel
+                </Button>
+                <Button onClick={deleteClient} disabled={deleting}
+                  className="h-10 px-4 text-sm bg-red-600 hover:bg-red-700 text-white">
+                  {deleting ? "Deleting…" : "Delete client"}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
