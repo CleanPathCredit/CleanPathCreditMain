@@ -601,7 +601,7 @@ export function QuizFunnel() {
                   <div
                     ref={setCalHost}
                     className="w-full rounded-xl overflow-hidden border border-zinc-200"
-                    style={{ minWidth: '320px', height: '700px' }}
+                    style={{ minWidth: '320px', height: '580px' }}
                   />
 
                   {/* Trust signals below the widget — keep these after the calendar
