@@ -74,7 +74,11 @@ export function AdminDashboard() {
       if (res.ok) {
         const data = (await res.json()) as ClientRecord[];
         setClients(data);
+      } else {
+        console.error("[admin] /api/admin/clients returned", res.status, await res.text());
       }
+    } catch (err) {
+      console.error("[admin] fetchClients error:", err);
     } finally {
       setLoading(false);
     }
