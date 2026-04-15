@@ -97,5 +97,15 @@ export const UPGRADE_BUY_BUTTONS: Partial<Record<Plan, string>> = {
   premium:  "buy_btn_1TKCDdCRvEfUoJHHwJwoLyj9",
 };
 
+// Read from Vite env so rotation doesn't require a code change.
+// pk_live_ / pk_test_ keys are designed to be public-safe, but keeping them
+// out of source keeps rotation, staging/prod splits, and audit trails clean.
 export const STRIPE_PUBLISHABLE_KEY =
-  "pk_live_51TK8cGCRvEfUoJHHxzULDJMLLDiw259orwvPXmQf5RpGAS79VUphUPSRo8hRVf6qnHGNQEqAaHs03krBlWD6Hnw200I1GroJ9F";
+  (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined) ?? "";
+
+if (!STRIPE_PUBLISHABLE_KEY && import.meta.env.PROD) {
+  // Fail loud in production so a misconfigured deploy can't silently ship a
+  // broken Stripe Buy Button.
+  // eslint-disable-next-line no-console
+  console.error("VITE_STRIPE_PUBLISHABLE_KEY is not set — Stripe buy buttons will not render.");
+}

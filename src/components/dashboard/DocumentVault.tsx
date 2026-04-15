@@ -218,8 +218,10 @@ export function DocumentVault() {
           status:       "pending",
         });
 
-        // Log audit event
-        await supabase.rpc("log_audit_event", { p_action: "document.upload", p_target: clerkUser.id, p_metadata: { category: slot.category } });
+        // Audit logging moved server-side (migration 002 revoked client RPC
+        // access to log_audit_event to prevent audit trail poisoning). The
+        // upcoming /api/me/documents/upload endpoint will log these events
+        // from the server using the service-role key.
       }
 
       // Update profile flags

@@ -101,16 +101,17 @@ export default async function handler(req: Request): Promise<Response> {
     .eq("id", clientId);
 
   if (profileError) {
-    return json({ error: `Failed to delete profile: ${profileError.message}` }, 500);
+    console.error("[/api/admin/delete-client] profile delete error:", profileError);
+    return json({ error: "Failed to delete client" }, 500);
   }
 
   // 6. Delete the Clerk user — if this fails, the Supabase data is already gone,
   //    which is the safer direction (no orphaned access to deleted data).
   const clerkResult = await deleteClerkUser(clientId);
   if (!clerkResult.ok) {
+    console.error("[/api/admin/delete-client] clerk delete error:", clerkResult.error);
     return json({
       warning: "Supabase data deleted, but Clerk user removal failed.",
-      error: clerkResult.error,
     }, 207); // 207 Multi-Status — partial success
   }
 

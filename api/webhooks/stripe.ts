@@ -152,7 +152,7 @@ export default async function handler(req: Request): Promise<Response> {
   await notifyOwner({ email, name, plan, sessionId: session.id });
 
   // The /welcome page reads the token from the redirect URL
-  console.log(`Purchase processed: ${email} → ${plan} | token: ${signInToken.token}`);
+  console.log(`Purchase processed: ${email} → ${plan} (user ${clerkUserId})`);
 
   return new Response(JSON.stringify({
     ok:    true,

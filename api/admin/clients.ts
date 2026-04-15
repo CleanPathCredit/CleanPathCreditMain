@@ -53,7 +53,10 @@ export default async function handler(req: Request): Promise<Response> {
     .eq("role", "client")
     .order("created_at", { ascending: false });
 
-  if (error) return json({ error: error.message }, 500);
+  if (error) {
+    console.error("[/api/admin/clients] supabase error:", error);
+    return json({ error: "Failed to fetch clients" }, 500);
+  }
 
   return json(data ?? []);
 }
