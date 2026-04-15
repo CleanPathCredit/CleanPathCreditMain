@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1ECBA1"/>
+      <stop offset="55%" stop-color="#17BED4"/>
+      <stop offset="100%" stop-color="#29A8E8"/>
+    </linearGradient>
+  </defs>
+  <!-- Zigzag uptrend line -->
+  <polyline
+    points="8,85 24,56 37,68 55,36 65,47 84,10"
+    fill="none"
+    stroke="url(#grad)"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Arrowhead pointing upper-right (direction of last segment) -->
+  <polygon
+    points="84,10 85,33 65,23"
+    fill="#29A8E8"
+  />
+</svg>

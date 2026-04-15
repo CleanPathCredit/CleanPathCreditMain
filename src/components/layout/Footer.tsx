@@ -7,7 +7,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl grid gap-8 md:grid-cols-4">
         <div className="col-span-2">
           <a href="/" className="mb-4 flex w-fit items-center gap-2 transition-opacity hover:opacity-80">
-            <img src="/logo.png" alt="Clean Path Credit" className="h-9 w-9 object-contain" />
+            <img src="/favicon.svg" alt="Clean Path Credit" className="h-9 w-9 object-contain" />
             <div className="flex flex-col">
               <span className="font-semibold tracking-tight text-white leading-tight">Clean Path Credit</span>
               <span className="text-[9px] font-medium text-zinc-500 tracking-widest uppercase leading-tight">Powered by AI</span>
