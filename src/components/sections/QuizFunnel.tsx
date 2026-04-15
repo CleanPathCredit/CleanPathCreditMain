@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -6,8 +6,19 @@ import { Link } from 'react-router-dom';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
-const CALENDLY_URL = "https://calendly.com/perfectcredit780/30min";
-const CALENDLY_EMBED_URL = `${CALENDLY_URL}?hide_gdpr_banner=1&primary_color=10b981`;
+const CALENDLY_URL = "https://calendly.com/alex-cleanpathcredit/onboarding";
+const CALENDLY_EMBED_URL = `${CALENDLY_URL}?hide_event_type_details=1&hide_gdpr_banner=1&primary_color=10b981`;
+const CALENDLY_SCRIPT_SRC = "https://assets.calendly.com/assets/external/widget.js";
+
+// Minimal typing for Calendly's global so we can call initInlineWidget
+// without pulling in the whole @types/calendly package.
+declare global {
+  interface Window {
+    Calendly?: {
+      initInlineWidget: (opts: { url: string; parentElement: HTMLElement }) => void;
+    };
+  }
+}
 
 const STEP_1_OPTIONS = [
   { id: 'home', label: 'Buy a Dream Home', fact: 'We specialize in removing derogatory marks to drop mortgage rates and get you clear to close.' },
@@ -38,24 +49,63 @@ export function QuizFunnel() {
   // only the inline Calendly widget; after booking they see the confirmation
   // and the create-account CTA.
   const [bookedEvent, setBookedEvent] = useState<unknown>(null);
+  const calendlyRef = useRef<HTMLDivElement | null>(null);
 
-  // Load Calendly widget.js the first time the user reaches step 5, and listen
-  // for their booking event. Script is loaded once; listener is scoped to step 5.
+  // Initialize Calendly inline widget when step 5 mounts.
+  //
+  // Why explicit initInlineWidget() instead of relying on the widget.js
+  // auto-scan: React mounts the host <div> AFTER widget.js runs its
+  // one-time DOM scan, so auto-init misses our element. We call
+  // Calendly.initInlineWidget() ourselves as soon as both the script is
+  // loaded and the ref is attached.
   useEffect(() => {
     if (step !== 5) return;
+    if (bookedEvent) return; // Already booked — widget is unmounted
+    const host = calendlyRef.current;
+    if (!host) return;
 
-    // Load Calendly widget script (idempotent — checks for existing tag first)
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[src="https://assets.calendly.com/assets/external/widget.js"]',
-    );
-    if (!existing) {
-      const script = document.createElement('script');
-      script.src   = 'https://assets.calendly.com/assets/external/widget.js';
-      script.async = true;
-      document.body.appendChild(script);
+    let cancelled = false;
+
+    function initWidget() {
+      if (cancelled || !host) return;
+      if (!window.Calendly?.initInlineWidget) {
+        // Script loaded but global not ready yet — retry on next tick.
+        setTimeout(initWidget, 50);
+        return;
+      }
+      // Clear any prior content (idempotent re-runs during dev HMR)
+      host.innerHTML = "";
+      window.Calendly.initInlineWidget({
+        url:           CALENDLY_EMBED_URL,
+        parentElement: host,
+      });
     }
 
-    // Listen for booking confirmation
+    if (window.Calendly?.initInlineWidget) {
+      initWidget();
+    } else {
+      const existing = document.querySelector<HTMLScriptElement>(
+        `script[src="${CALENDLY_SCRIPT_SRC}"]`,
+      );
+      if (existing) {
+        existing.addEventListener('load', initWidget, { once: true });
+      } else {
+        const script = document.createElement('script');
+        script.src   = CALENDLY_SCRIPT_SRC;
+        script.async = true;
+        script.addEventListener('load', initWidget, { once: true });
+        document.body.appendChild(script);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [step, bookedEvent]);
+
+  // Listen for Calendly's postMessage booking confirmation (scoped to step 5).
+  useEffect(() => {
+    if (step !== 5) return;
     function handleMessage(e: MessageEvent) {
       if (typeof e.origin !== 'string' || !e.origin.includes('calendly.com')) return;
       const data = e.data as { event?: string; payload?: unknown };
@@ -525,11 +575,13 @@ export function QuizFunnel() {
                     </p>
                   </div>
 
-                  {/* Calendly inline widget — full width, tall enough to show the
-                      day/time picker without internal scroll on desktop. */}
+                  {/* Calendly inline widget — initialized explicitly via
+                      window.Calendly.initInlineWidget() in the effect above.
+                      We don't set data-url here because React mounts this div
+                      after widget.js's auto-scan has already run. */}
                   <div
-                    className="calendly-inline-widget w-full rounded-xl overflow-hidden border border-zinc-200"
-                    data-url={CALENDLY_EMBED_URL}
+                    ref={calendlyRef}
+                    className="w-full rounded-xl overflow-hidden border border-zinc-200"
                     style={{ minWidth: '320px', height: '700px' }}
                   />
 
