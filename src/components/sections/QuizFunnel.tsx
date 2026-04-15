@@ -6,8 +6,11 @@ import { Link } from 'react-router-dom';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
-const CALENDLY_URL = "https://calendly.com/alex-cleanpathcredit/onboarding";
-const CALENDLY_EMBED_URL = `${CALENDLY_URL}?hide_event_type_details=1&hide_gdpr_banner=1&primary_color=10b981`;
+// Pre-purchase funnel event (free 15-min credit audit). A separate Calendly
+// event exists for post-purchase onboarding — that one lives in the Welcome /
+// dashboard flow, not this quiz.
+const CALENDLY_URL = "https://calendly.com/perfectcredit780/free-15-min-credit-audit-strategy-call";
+const CALENDLY_EMBED_URL = `${CALENDLY_URL}?hide_event_type_details=1&hide_gdpr_banner=1&primary_color=00bc7d`;
 const CALENDLY_SCRIPT_SRC = "https://assets.calendly.com/assets/external/widget.js";
 
 // Minimal typing for Calendly's global so we can call initInlineWidget
