@@ -46,28 +46,45 @@ export function AdminDashboard() {
   const [deleteError, setDeleteError]     = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load client list with real-time updates.
+  // Load client list via service-role API (bypasses Clerk→Supabase JWT/RLS).
   // ProtectedRoute already ensures role=admin before this component mounts.
   useEffect(() => {
-    supabase
-      .from("profiles")
-      .select("*")
-      .eq("role", "client")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => { setClients(data ?? []); setLoading(false); });
+    if (!session) return;
+    let cancelled = false;
 
+    const loadClients = async () => {
+      try {
+        const token = await session.getToken();
+        const res = await fetch("/api/admin/clients", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`Failed to load clients (${res.status})`);
+        const data = (await res.json()) as ClientRecord[];
+        if (!cancelled) setClients(data ?? []);
+      } catch (err) {
+        if (!cancelled) console.error("Failed to load clients:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadClients();
+
+    // Real-time: refetch the list whenever a client profile changes.
+    // Subscription is best-effort — if it fails, manual refresh still works.
     const channel = supabase
       .channel("profiles:clients")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles", filter: "role=eq.client" },
-        () => {
-          supabase.from("profiles").select("*").eq("role", "client").order("created_at", { ascending: false })
-            .then(({ data }) => setClients(data ?? []));
-        })
+      .on("postgres_changes",
+          { event: "*", schema: "public", table: "profiles", filter: "role=eq.client" },
+          () => { loadClients(); })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase]);
+  }, [session, supabase]);
 
   // When a client is selected — load their messages + documents
   useEffect(() => {
