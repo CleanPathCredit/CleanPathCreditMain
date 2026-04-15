@@ -38,6 +38,7 @@ export function AdminDashboard() {
 
   const [clients, setClients]             = useState<ClientRecord[]>([]);
   const [loading, setLoading]             = useState(true);
+  const [fetchError, setFetchError]       = useState<string | null>(null);
   const [selected, setSelected]           = useState<ClientRecord | null>(null);
   const [messages, setMessages]           = useState<Message[]>([]);
   const [documents, setDocuments]         = useState<DocRow[]>([]);
@@ -74,11 +75,15 @@ export function AdminDashboard() {
       if (res.ok) {
         const data = (await res.json()) as ClientRecord[];
         setClients(data);
+        setFetchError(null);
       } else {
-        console.error("[admin] /api/admin/clients returned", res.status, await res.text());
+        const text = await res.text();
+        console.error("[admin] /api/admin/clients returned", res.status, text);
+        setFetchError(`API error ${res.status}: ${text}`);
       }
     } catch (err) {
       console.error("[admin] fetchClients error:", err);
+      setFetchError(String(err));
     } finally {
       setLoading(false);
     }
@@ -216,6 +221,12 @@ export function AdminDashboard() {
                     <Users className="h-4 w-4 text-zinc-400" /> {clients.length} Clients
                   </div>
                 </div>
+
+                {fetchError && (
+                  <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 font-mono break-all">
+                    {fetchError}
+                  </div>
+                )}
 
                 <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-x-auto">
                   <table className="w-full text-left text-sm min-w-[600px]">
