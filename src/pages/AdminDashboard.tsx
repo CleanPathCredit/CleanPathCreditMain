@@ -5,8 +5,6 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import type { ClientRecord, Message, ClientStatus, Document as DocRow } from "@/types/database";
 import {
@@ -32,9 +30,7 @@ function statusLabel(v?: string) {
 }
 
 export function AdminDashboard() {
-  const { clerkUser, profile: adminProfile, logout } = useAuth();
-  const navigate = useNavigate();
-  const supabase = useSupabaseClient();
+  const { clerkUser, logout, supabase } = useAuth();
 
   const [clients, setClients]             = useState<ClientRecord[]>([]);
   const [loading, setLoading]             = useState(true);
@@ -45,17 +41,9 @@ export function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen]     = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Guard — only admins
+  // Load client list with real-time updates.
+  // ProtectedRoute already ensures role=admin before this component mounts.
   useEffect(() => {
-    if (!clerkUser || adminProfile?.role !== "admin") {
-      navigate("/login");
-    }
-  }, [clerkUser, adminProfile?.role, navigate]);
-
-  // Load client list with real-time updates
-  useEffect(() => {
-    if (adminProfile?.role !== "admin") return;
-
     supabase
       .from("profiles")
       .select("*")
@@ -73,7 +61,8 @@ export function AdminDashboard() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [adminProfile?.role]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
 
   // When a client is selected — load their messages + documents
   useEffect(() => {
@@ -92,7 +81,8 @@ export function AdminDashboard() {
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
-  }, [selected?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id, supabase]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
