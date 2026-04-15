@@ -58,24 +58,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profileLoading, setProfileLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
-    if (!clerkUser) {
+    if (!clerkUser || !session) {
       setProfile(null);
       setProfileLoading(false);
       return;
     }
     setProfileLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", clerkUser.id)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        // PGRST116 = row not found — expected on first login before webhook fires
-        devError("Error fetching profile:", error.message);
+      // Use the server-side /api/me endpoint (service-role key, no RLS JWT needed)
+      const token = await session.getToken();
+      if (!token) {
+        setProfile(null);
+        return;
       }
-      setProfile(data ?? null);
+      const res = await fetch("/api/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as Profile | null;
+        setProfile(data);
+      } else {
+        setProfile(null);
+      }
     } catch (err) {
       devError("Unexpected error fetching profile:", err);
     } finally {
