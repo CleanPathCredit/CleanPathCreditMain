@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Loader2, Calendar, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Link } from 'react-router-dom';
 
 type Step = 1 | 2 | 3 | 4 | 5;
+
+const CALENDLY_URL = "https://calendly.com/perfectcredit780/30min";
+const CALENDLY_EMBED_URL = `${CALENDLY_URL}?hide_gdpr_banner=1&primary_color=10b981`;
 
 const STEP_1_OPTIONS = [
   { id: 'home', label: 'Buy a Dream Home', fact: 'We specialize in removing derogatory marks to drop mortgage rates and get you clear to close.' },
@@ -30,35 +33,39 @@ export function QuizFunnel() {
   const [isFinalAnalyzing, setIsFinalAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
 
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
-    return tomorrow;
-  };
+  // Calendly booking state — set when Calendly fires event_scheduled postMessage.
+  // Drives the progressive disclosure on step 5: before booking the lead sees
+  // only the inline Calendly widget; after booking they see the confirmation
+  // and the create-account CTA.
+  const [bookedEvent, setBookedEvent] = useState<unknown>(null);
 
-  const getEndDate = (startDate: Date) => {
-    const endDate = new Date(startDate);
-    endDate.setMinutes(endDate.getMinutes() + 30);
-    return endDate;
-  };
+  // Load Calendly widget.js the first time the user reaches step 5, and listen
+  // for their booking event. Script is loaded once; listener is scoped to step 5.
+  useEffect(() => {
+    if (step !== 5) return;
 
-  const formatDateForCalendar = (date: Date) => {
-    return date.toISOString().replace(/-|:|\.\d+/g, '');
-  };
+    // Load Calendly widget script (idempotent — checks for existing tag first)
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://assets.calendly.com/assets/external/widget.js"]',
+    );
+    if (!existing) {
+      const script = document.createElement('script');
+      script.src   = 'https://assets.calendly.com/assets/external/widget.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
 
-  const generateGoogleCalendarLink = () => {
-    const start = formatDateForCalendar(getTomorrowDate());
-    const end = formatDateForCalendar(getEndDate(getTomorrowDate()));
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Credit+Strategy+Session&dates=${start}/${end}&details=Your+free+30-minute+Credit+Strategy+Session+with+Clean+Path+Credit.&location=Online`;
-  };
-
-  const generateIcsFile = () => {
-    const start = formatDateForCalendar(getTomorrowDate());
-    const end = formatDateForCalendar(getEndDate(getTomorrowDate()));
-    const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:Credit Strategy Session\nDESCRIPTION:Your free 30-minute Credit Strategy Session with Clean Path Credit.\\n\\nPlease update the time to match your Calendly booking.\nLOCATION:Online\nDTSTART:${start}\nDTEND:${end}\nEND:VEVENT\nEND:VCALENDAR`;
-    return `data:text/calendar;charset=utf8,${encodeURIComponent(icsContent)}`;
-  };
+    // Listen for booking confirmation
+    function handleMessage(e: MessageEvent) {
+      if (typeof e.origin !== 'string' || !e.origin.includes('calendly.com')) return;
+      const data = e.data as { event?: string; payload?: unknown };
+      if (data?.event === 'calendly.event_scheduled') {
+        setBookedEvent(data.payload ?? {});
+      }
+    }
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [step]);
 
   const [formData, setFormData] = useState({
     creditScore: '',
@@ -493,9 +500,74 @@ export function QuizFunnel() {
                 </motion.div>
               )}
 
-              {step === 5 && (
+              {step === 5 && !bookedEvent && (
                 <motion.div
-                  key="step5"
+                  key="step5-book"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4 }}
+                  className="flex flex-col h-full"
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+                      <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-3">
+                      You qualify for a free Credit Strategy Session
+                    </h3>
+                    <p className="text-base sm:text-lg text-zinc-600 mb-6 max-w-lg">
+                      On this 15-minute call we&apos;ll pop the hood on your 3-bureau report,
+                      pinpoint the exact negative items holding your score hostage, and show
+                      you the legal strategies we use to remove them.
+                    </p>
+                    <p className="text-sm font-medium text-emerald-600 mb-6">
+                      Pick a time that works for you ↓
+                    </p>
+                  </div>
+
+                  {/* Calendly inline widget — full width, tall enough to show the
+                      day/time picker without internal scroll on desktop. */}
+                  <div
+                    className="calendly-inline-widget w-full rounded-xl overflow-hidden border border-zinc-200"
+                    data-url={CALENDLY_EMBED_URL}
+                    style={{ minWidth: '320px', height: '700px' }}
+                  />
+
+                  {/* Trust signals below the widget — keep these after the calendar
+                      so the primary action (picking a time) wins the fold. */}
+                  <div className="mt-8 pt-8 border-t border-zinc-100 w-full max-w-xl mx-auto">
+                    <p className="text-sm font-semibold text-zinc-900 mb-4 text-center">
+                      What you&apos;ll get on the call:
+                    </p>
+                    <ul className="space-y-2.5 text-sm text-zinc-700">
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        Free review of all 3 bureau reports
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        AI-powered audit of your negative items
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        Custom game plan based on your profile — no script
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        Zero obligation to buy anything
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        Led by a certified credit specialist, not a call center
+                      </li>
+                    </ul>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 5 && bookedEvent && (
+                <motion.div
+                  key="step5-booked"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4 }}
@@ -504,78 +576,69 @@ export function QuizFunnel() {
                   <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
                     <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                   </div>
-                  <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-4">Application Received & Approved!</h3>
-                  <p className="text-base sm:text-lg text-zinc-600 mb-6 sm:mb-8 max-w-lg">
-                    Based on your profile, you qualify for a complete Credit Strategy Session. On this call, we will pop the hood on your 3-bureau report, pinpoint the exact negative items holding your score hostage, and show you the exact legal strategies we use to force them off your report.
+                  <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-3">
+                    You&apos;re booked!
+                  </h3>
+                  <p className="text-base sm:text-lg text-zinc-600 mb-8 max-w-lg">
+                    Check your email for the calendar invite and call link. See you then.
                   </p>
-                  
-                  <a 
-                    href="https://calendly.com/perfectcredit780/30min" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-full max-w-md"
-                  >
-                    <Button className="w-full h-16 text-xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all">
-                      Book Now
-                    </Button>
-                  </a>
 
-                  <div className="mt-8 pt-8 border-t border-zinc-100 w-full max-w-md text-left">
-                    <p className="text-sm font-medium text-zinc-900 mb-4 text-center">Don't forget your appointment! Add to your calendar:</p>
-                    <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-10">
-                      <a href={generateGoogleCalendarLink()} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" size="sm" className="gap-1.5 px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap">
-                          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Google
-                        </Button>
-                      </a>
-                      <a href={generateIcsFile()} download="credit-strategy-session.ics">
-                        <Button variant="outline" size="sm" className="gap-1.5 px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap">
-                          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Apple
-                        </Button>
-                      </a>
-                      <a href={generateIcsFile()} download="credit-strategy-session.ics">
-                        <Button variant="outline" size="sm" className="gap-1.5 px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap">
-                          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Outlook
-                        </Button>
-                      </a>
-                    </div>
-
-                    <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-200">
-                      <h4 className="text-xl font-semibold text-zinc-900 mb-3">Next Step: Create Your Clean Path Client Portal</h4>
-                      <p className="text-zinc-600 mb-4">Don't wait for your call to get started. Create your free client account now to:</p>
-                      <ul className="space-y-2 mb-6 text-zinc-700">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                          Access our dispute tracking tools.
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                          View your credit journey progress.
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                          Download your Master Financial List and premium credit resources.
-                        </li>
-                      </ul>
-                      <Link
-                        to="/register"
-                        onClick={() => {
-                          // Store lead data in sessionStorage so Register can pre-fill
-                          // the Clerk form without exposing PII in the URL (logs/history).
-                          try {
-                            sessionStorage.setItem("cpc_lead", JSON.stringify({
-                              name: formData.fullName,
-                              email: formData.email,
-                            }));
-                          } catch { /* sessionStorage unavailable — Register falls back gracefully */ }
-                        }}
-                      >
-                        <Button variant="primary" className="w-full h-12">
-                          Create My Free Account
-                        </Button>
-                      </Link>
-                    </div>
+                  <div className="w-full max-w-md bg-gradient-to-br from-emerald-50 to-sky-50 rounded-2xl p-6 border border-emerald-100 text-left">
+                    <h4 className="text-xl font-semibold text-zinc-900 mb-2">
+                      While you wait — get a head start
+                    </h4>
+                    <p className="text-zinc-600 mb-5">
+                      Create your free portal now and start reviewing your plan the
+                      moment we hang up the call.
+                    </p>
+                    <ul className="space-y-2.5 mb-6 text-sm text-zinc-700">
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        Track your dispute progress in real time
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        Download our complete Master Financial List
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        Access premium guides and dispute templates
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        Message your specialist directly
+                      </li>
+                    </ul>
+                    <Link
+                      to="/register"
+                      onClick={() => {
+                        // Store lead data in sessionStorage so Register can pre-fill
+                        // the Clerk form without exposing PII in the URL (logs/history).
+                        try {
+                          sessionStorage.setItem("cpc_lead", JSON.stringify({
+                            name:  formData.fullName,
+                            email: formData.email,
+                          }));
+                        } catch { /* sessionStorage unavailable — Register falls back gracefully */ }
+                      }}
+                    >
+                      <Button variant="primary" className="w-full h-12">
+                        Create My Free Account
+                      </Button>
+                    </Link>
                   </div>
+
+                  <p className="mt-6 text-xs text-zinc-400">
+                    Need to change your time?{" "}
+                    <a
+                      href={CALENDLY_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-600 hover:underline"
+                    >
+                      Reschedule here
+                    </a>
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>
