@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSession } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import type { ClientRecord, Message, ClientStatus, Document as DocRow } from "@/types/database";
 import {
@@ -33,8 +33,8 @@ function statusLabel(v?: string) {
 
 export function AdminDashboard() {
   const { clerkUser, profile: adminProfile, logout } = useAuth();
+  const { session } = useSession();
   const navigate = useNavigate();
-  const supabase = useSupabaseClient();
 
   const [clients, setClients]             = useState<ClientRecord[]>([]);
   const [loading, setLoading]             = useState(true);
@@ -45,6 +45,20 @@ export function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen]     = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  /** Authenticated fetch helper — attaches the admin's Clerk JWT. */
+  const adminFetch = useCallback(async (path: string, options?: RequestInit): Promise<Response> => {
+    const token = await session?.getToken();
+    if (!token) throw new Error("No auth token");
+    return fetch(path, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(options?.headers ?? {}),
+      },
+    });
+  }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Guard — only admins
   useEffect(() => {
     if (!clerkUser || adminProfile?.role !== "admin") {
@@ -52,67 +66,90 @@ export function AdminDashboard() {
     }
   }, [clerkUser, adminProfile?.role, navigate]);
 
-  // Load client list with real-time updates
+  // ── Client list ────────────────────────────────────────────────────────────
+  const fetchClients = useCallback(async () => {
+    if (adminProfile?.role !== "admin") return;
+    try {
+      const res = await adminFetch("/api/admin/clients");
+      if (res.ok) {
+        const data = (await res.json()) as ClientRecord[];
+        setClients(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [adminProfile?.role, adminFetch]);
+
   useEffect(() => {
     if (adminProfile?.role !== "admin") return;
+    fetchClients();
+    // Poll every 30 s so newly-signed-up clients appear without a page refresh
+    const interval = setInterval(fetchClients, 30_000);
+    return () => clearInterval(interval);
+  }, [adminProfile?.role, fetchClients]);
 
-    supabase
-      .from("profiles")
-      .select("*")
-      .eq("role", "client")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => { setClients(data ?? []); setLoading(false); });
+  // ── Messages + documents for the selected client ───────────────────────────
+  const fetchMessages = useCallback(async (profileId: string) => {
+    const res = await adminFetch(`/api/admin/messages?profileId=${profileId}`);
+    if (res.ok) setMessages((await res.json()) as Message[]);
+  }, [adminFetch]);
 
-    const channel = supabase
-      .channel("profiles:clients")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles", filter: "role=eq.client" },
-        () => {
-          supabase.from("profiles").select("*").eq("role", "client").order("created_at", { ascending: false })
-            .then(({ data }) => setClients(data ?? []));
-        })
-      .subscribe();
+  const fetchDocuments = useCallback(async (profileId: string) => {
+    const res = await adminFetch(`/api/admin/documents?profileId=${profileId}`);
+    if (res.ok) setDocuments((await res.json()) as DocRow[]);
+  }, [adminFetch]);
 
-    return () => { supabase.removeChannel(channel); };
-  }, [adminProfile?.role]);
-
-  // When a client is selected — load their messages + documents
   useEffect(() => {
     if (!selected) { setMessages([]); setDocuments([]); return; }
 
-    supabase.from("messages").select("*").eq("profile_id", selected.id).order("created_at", { ascending: true })
-      .then(({ data }) => setMessages(data ?? []));
+    fetchMessages(selected.id);
+    fetchDocuments(selected.id);
 
-    supabase.from("documents").select("*").eq("profile_id", selected.id).order("created_at", { ascending: false })
-      .then(({ data }) => setDocuments(data ?? []));
-
-    // Real-time messages for this thread
-    const ch = supabase.channel(`admin-messages:${selected.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `profile_id=eq.${selected.id}` },
-        (p) => setMessages((prev) => [...prev, p.new as Message]))
-      .subscribe();
-
-    return () => { supabase.removeChannel(ch); };
-  }, [selected?.id]);
+    // Poll messages every 10 s so incoming client replies appear in near-real-time
+    const interval = setInterval(() => fetchMessages(selected.id), 10_000);
+    return () => clearInterval(interval);
+  }, [selected?.id, fetchMessages, fetchDocuments]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
+  // ── Admin actions ──────────────────────────────────────────────────────────
   const updateClientStatus = async (clientId: string, status: ClientStatus) => {
     const progressMap: Partial<Record<ClientStatus, number>> = {
       missing_id: 10, ready_for_audit: 25, audit_complete: 50,
       disputes_sent: 75, waiting_on_bureau: 85, results_received: 100,
     };
-    await supabase.from("profiles").update({ status, progress: progressMap[status] ?? 0 }).eq("id", clientId);
+    const progress = progressMap[status] ?? 0;
+
+    await adminFetch("/api/admin/clients", {
+      method: "PATCH",
+      body: JSON.stringify({ id: clientId, status, progress }),
+    });
+
+    // Update local state immediately so the UI reflects the change
+    setClients((prev) => prev.map((c) => c.id === clientId ? { ...c, status, progress } : c));
+    setSelected((prev) => prev?.id === clientId ? { ...prev, status, progress } : prev);
   };
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selected) return;
-    await supabase.from("messages").insert({ profile_id: selected.id, sender: "admin", body: newMessage.trim() });
+    const body = newMessage.trim();
     setNewMessage("");
+
+    await adminFetch("/api/admin/messages", {
+      method: "POST",
+      body: JSON.stringify({ profileId: selected.id, body }),
+    });
+
+    // Refresh thread so the sent message appears with its real DB id
+    await fetchMessages(selected.id);
   };
 
   const getDocumentUrl = async (path: string) => {
-    const { data } = await supabase.storage.from("documents").createSignedUrl(path, 900); // 15-min URL
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    const res = await adminFetch(`/api/admin/documents?path=${encodeURIComponent(path)}`);
+    if (res.ok) {
+      const { url } = (await res.json()) as { url?: string };
+      if (url) window.open(url, "_blank");
+    }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 text-zinc-500">Loading Admin Portal…</div>;
