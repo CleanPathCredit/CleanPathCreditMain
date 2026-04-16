@@ -3,110 +3,94 @@
  *
  * GET /api/me
  *
- * Returns the caller's Supabase profile using the service-role key,
- * bypassing RLS entirely. Authenticates the caller by verifying their
- * standard Clerk JWT (RS256/ES256) against Clerk's JWKS endpoint.
+ * Returns the caller's Supabase `profiles` row using the service-role key
+ * (bypasses RLS). Authenticates by verifying the caller's Clerk session JWT
+ * with @clerk/backend's verifyToken(), which validates:
+ *   - signature (RS256 / ES256) against Clerk's JWKS
+ *   - iss  (Clerk instance derived from secretKey)
+ *   - exp / nbf with ~5s clock skew
+ *   - azp against an explicit authorized-parties allowlist
  *
- * This avoids the Clerk→Supabase JWT template mismatch problem.
+ * This replaces a previous hand-rolled JWKS + SubtleCrypto path that
+ * checked only signature + exp (audit finding C-2).
+ *
+ * Required env:
+ *   CLERK_SECRET_KEY              (Clerk Dashboard → API Keys → Secret keys)
+ *   SUPABASE_URL                  (Supabase Dashboard → Settings → API)
+ *   SUPABASE_SERVICE_ROLE_KEY     (same page → service_role key)
+ * Optional env:
+ *   CLERK_AUTHORIZED_PARTIES      comma-separated origin allowlist; falls
+ *                                 back to the two prod origins below
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { verifyToken } from "@clerk/backend";
 import type { Database } from "../src/types/database";
 
 export const config = { runtime: "edge" };
 
-const JWKS_URL = "https://clerk.cleanpathcredit.com/.well-known/jwks.json";
+// Origins whose Clerk session tokens we accept. Override in prod via
+// CLERK_AUTHORIZED_PARTIES="https://cleanpathcredit.com,https://app.example.com".
+const DEFAULT_AUTHORIZED_PARTIES = [
+  "https://cleanpathcredit.com",
+  "https://www.cleanpathcredit.com",
+];
 
-interface JWK {
-  kid: string;
-  kty: string;
-  alg: string;
-  n?: string;
-  e?: string;
-  crv?: string;
-  x?: string;
-  y?: string;
-}
-
-let cachedJwks: JWK[] | null = null;
-let jwksCachedAt = 0;
-
-async function getJwks(): Promise<JWK[]> {
-  const now = Date.now();
-  if (cachedJwks && now - jwksCachedAt < 3_600_000) return cachedJwks;
-  const res = await fetch(JWKS_URL);
-  const data = (await res.json()) as { keys: JWK[] };
-  cachedJwks = data.keys;
-  jwksCachedAt = now;
-  return data.keys;
-}
-
-function b64url(s: string): ArrayBuffer {
-  const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
-  const bin = atob(b64);
-  return Uint8Array.from(bin, (c) => c.charCodeAt(0)).buffer;
-}
-
-async function verifyJWT(token: string): Promise<string | null> {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-
-    const header  = JSON.parse(new TextDecoder().decode(b64url(parts[0])));
-    const payload = JSON.parse(new TextDecoder().decode(b64url(parts[1])));
-
-    // Reject expired tokens
-    if (payload.exp && payload.exp < Date.now() / 1000) return null;
-
-    // Find the matching JWK
-    const keys = await getJwks();
-    const jwk  = keys.find((k) => k.kid === header.kid) as JsonWebKey | undefined;
-    if (!jwk) return null;
-
-    const sigInput = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
-    const sig      = b64url(parts[2]);
-    let   valid    = false;
-
-    if (header.alg === "RS256") {
-      const key = await crypto.subtle.importKey(
-        "jwk", jwk,
-        { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-        false, ["verify"],
-      );
-      valid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sig, sigInput);
-    } else if (header.alg === "ES256") {
-      const key = await crypto.subtle.importKey(
-        "jwk", jwk,
-        { name: "ECDSA", namedCurve: "P-256" },
-        false, ["verify"],
-      );
-      valid = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, sig, sigInput);
-    }
-
-    return valid ? (payload.sub as string ?? null) : null;
-  } catch {
-    return null;
-  }
+function getAuthorizedParties(): string[] {
+  const raw = process.env.CLERK_AUTHORIZED_PARTIES;
+  if (!raw) return DEFAULT_AUTHORIZED_PARTIES;
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
 export default async function handler(req: Request): Promise<Response> {
-  const headers = { "Content-Type": "application/json" };
+  const jsonHeaders = { "Content-Type": "application/json" };
 
-  const auth = req.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify(null), { status: 401, headers });
+  // 1. Extract bearer token
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify(null), { status: 401, headers: jsonHeaders });
+  }
+  const token = authHeader.slice(7).trim();
+  if (!token) {
+    return new Response(JSON.stringify(null), { status: 401, headers: jsonHeaders });
   }
 
-  const userId = await verifyJWT(auth.slice(7));
-  if (!userId) {
-    return new Response(JSON.stringify(null), { status: 401, headers });
+  // 2. Validate env (fail closed)
+  const clerkSecretKey     = process.env.CLERK_SECRET_KEY;
+  const supabaseUrl        = process.env.SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!clerkSecretKey || !supabaseUrl || !supabaseServiceKey) {
+    console.error("[/api/me] server_misconfigured — missing env", {
+      CLERK_SECRET_KEY:          !!clerkSecretKey,
+      SUPABASE_URL:              !!supabaseUrl,
+      SUPABASE_SERVICE_ROLE_KEY: !!supabaseServiceKey,
+    });
+    return new Response(JSON.stringify({ error: "server_misconfigured" }), {
+      status: 500, headers: jsonHeaders,
+    });
   }
 
-  const supabase = createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  // 3. Verify JWT — checks signature, iss, exp, nbf, azp (with 5s skew)
+  let userId: string;
+  try {
+    const payload = await verifyToken(token, {
+      secretKey:         clerkSecretKey,
+      authorizedParties: getAuthorizedParties(),
+    });
+    if (typeof payload.sub !== "string" || !payload.sub) {
+      return new Response(JSON.stringify(null), { status: 401, headers: jsonHeaders });
+    }
+    userId = payload.sub;
+  } catch {
+    // Invalid signature, wrong iss/azp, expired, nbf-in-future, or malformed.
+    // Do not echo the reason — callers don't need to know why we rejected.
+    return new Response(JSON.stringify(null), { status: 401, headers: jsonHeaders });
+  }
+
+  // 4. Fetch profile with the service-role client (no RLS, scoped by userId)
+  const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
   const { data } = await supabase
     .from("profiles")
@@ -114,5 +98,5 @@ export default async function handler(req: Request): Promise<Response> {
     .eq("id", userId)
     .single();
 
-  return new Response(JSON.stringify(data ?? null), { headers });
+  return new Response(JSON.stringify(data ?? null), { headers: jsonHeaders });
 }
