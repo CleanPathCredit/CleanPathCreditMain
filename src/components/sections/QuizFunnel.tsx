@@ -251,20 +251,20 @@ export function QuizFunnel() {
                       return (
                         <motion.div
                           key={option.id}
-                          onClick={() => !showFact && handleOptionSelect(1, option.id)}
+                          onClick={() => handleOptionSelect(1, option.id)}
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              if (!showFact) handleOptionSelect(1, option.id);
+                              handleOptionSelect(1, option.id);
                             }
                           }}
                           className={`relative w-full rounded-xl border-2 p-4 sm:p-6 text-left transition-all duration-300 cursor-pointer ${
                             isSelected
                               ? 'border-emerald-500 bg-emerald-50'
                               : 'border-zinc-200 bg-white hover:border-emerald-200 hover:bg-zinc-50'
-                          } ${showFact && !isSelected ? 'opacity-50 pointer-events-none' : ''}`}
+                          } ${showFact && !isSelected ? 'opacity-40' : ''}`}
                           animate={isSelected && showFact ? { scale: 1.02 } : { scale: 1 }}
                         >
                           <AnimatePresence mode="wait">
@@ -324,20 +324,20 @@ export function QuizFunnel() {
                       return (
                         <motion.div
                           key={option.id}
-                          onClick={() => !showFact && handleOptionSelect(2, option.id)}
+                          onClick={() => handleOptionSelect(2, option.id)}
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              if (!showFact) handleOptionSelect(2, option.id);
+                              handleOptionSelect(2, option.id);
                             }
                           }}
                           className={`relative w-full rounded-xl border-2 p-6 text-left transition-all duration-300 cursor-pointer ${
                             isSelected
                               ? 'border-emerald-500 bg-emerald-50'
                               : 'border-zinc-200 bg-white hover:border-emerald-200 hover:bg-zinc-50'
-                          } ${showFact && !isSelected ? 'opacity-50 pointer-events-none' : ''}`}
+                          } ${showFact && !isSelected ? 'opacity-40' : ''}`}
                           animate={isSelected && showFact ? { scale: 1.02 } : { scale: 1 }}
                         >
                           <AnimatePresence mode="wait">
