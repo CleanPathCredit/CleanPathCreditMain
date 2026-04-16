@@ -24,7 +24,7 @@ type SidebarTab = "dashboard" | "vault" | "masterlist" | "support";
 
 const STATUS_STEPS = [
   { key: "deep_dive_audit",    label: "Deep-Dive Audit",             description: "Full analysis of all 3 bureau reports." },
-  { key: "aggressive_dispute", label: "Legal Challenge Strategy", description: "Custom credit interventions prepared." },
+  { key: "aggressive_dispute", label: "Credit Correction Strategy", description: "Custom credit corrections prepared." },
   { key: "bureau_processing",  label: "Bureau Processing — 30 Days", description: "Bureaus have 30 days to investigate." },
   { key: "results_update",     label: "Results & Score Update",      description: "Deletions and score changes reported." },
 ];
@@ -241,7 +241,7 @@ export function Dashboard() {
                       { title: "How Credit Scores Are Calculated",             type: "Free Guide",   free: true  },
                       { title: "The 720 Credit Score Blueprint",               type: "PDF Guide",    free: false },
                       { title: "How to Handle Debt Collectors",                type: "E-Book",       free: false },
-                      { title: "Legal Challenge Playbook",                      type: "Playbook",     free: false },
+                      { title: "Credit Correction Playbook",                     type: "Playbook",     free: false },
                       { title: "Building Positive Credit History",             type: "Action Plan",  free: false },
                     ].map((r, i) => {
                       const unlocked = r.free || canAccess(profile?.plan, "all_guides");
@@ -269,7 +269,7 @@ export function Dashboard() {
                   </div>
                   {!canAccess(profile?.plan, "all_guides") && (
                     <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-4 flex items-center justify-between gap-4">
-                      <p className="text-sm font-medium text-emerald-800">Unlock all 6 resources + legal challenge playbook</p>
+                      <p className="text-sm font-medium text-emerald-800">Unlock all 6 resources + Credit Correction Playbook</p>
                       <a href="https://form.cleanpathcredit.com" className="shrink-0 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">
                         See Plans →
                       </a>

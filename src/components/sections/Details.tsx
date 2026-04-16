@@ -14,7 +14,7 @@ export function Details() {
     },
     {
       title: "3. Video verify & mail",
-      description: "Schedule a quick video chat with our online notary. Once verified, we prepare, notarize, and submit your legally-grounded challenges to all 3 bureaus.",
+      description: "Schedule a quick video chat with our online notary. Once verified, we prepare, notarize, and submit your strategically crafted disputes across all 3 bureaus.",
     },
   ];
 
@@ -90,13 +90,13 @@ export function Details() {
                     <span className="text-rose-400">3</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Removal Probability:</span>
+                    <span>Estimated Removal Likelihood:</span>
                     <span className="text-emerald-400">High (94%)</span>
                   </div>
                   <div className="h-px w-full bg-zinc-800 my-4" />
                   <div className="flex items-center gap-2">
                     <span className="text-blue-400">❯</span>
-                    <span className="text-zinc-300">Preparing legal challenges...</span>
+                    <span className="text-zinc-300">Preparing your custom dispute strategy...</span>
                   </div>
                   <motion.div 
                     animate={{ width: ["0%", "100%"] }}
@@ -109,11 +109,11 @@ export function Details() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4">
                   <div className="text-xs text-zinc-500 mb-1">Equifax</div>
-                  <div className="text-emerald-400">Challenge Filed</div>
+                  <div className="text-emerald-400">Dispute Submitted</div>
                 </div>
                 <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4">
                   <div className="text-xs text-zinc-500 mb-1">TransUnion</div>
-                  <div className="text-emerald-400">Challenge Filed</div>
+                  <div className="text-emerald-400">Dispute Submitted</div>
                 </div>
               </div>
             </div>

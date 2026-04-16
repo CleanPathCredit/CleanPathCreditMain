@@ -16,7 +16,7 @@ const STEP_1_OPTIONS = [
 const STEP_2_OPTIONS = [
   { id: 'medical', label: 'Medical or Utility Collections', fact: "Fact: Paying a collection doesn't remove it. We use federal laws to legally challenge and delete them." },
   { id: 'late', label: 'Late Payments/ Collections', fact: 'One late payment/ collection can cost you 50+ points. We aggressively target these for removal.' },
-  { id: 'bankruptcies', label: 'Bankruptcies / Liens', fact: 'Yes, even public records can be challenged using our advanced AI-powered legal strategies.' },
+  { id: 'bankruptcies', label: 'Bankruptcies / Liens', fact: 'Yes, even public records can be challenged using our advanced AI-powered credit correction strategies.' },
   { id: 'balances', label: 'High Credit Card Balances', fact: "We will build you a custom 'Master Financial List' to optimize your credit utilization." },
   { id: 'unsure', label: "I'm Not Sure", fact: "That's exactly what our free deep-dive audit is for. We'll find the hidden errors." },
 ];
@@ -171,7 +171,7 @@ export function QuizFunnel() {
                   className="flex flex-col h-full"
                 >
                   <h3 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-2">What is your primary financial goal right now?</h3>
-                  <p className="text-sm sm:text-base text-zinc-500 mb-6 sm:mb-8">We customize our approach based on exactly what you are trying to achieve.</p>
+                  <p className="text-sm sm:text-base text-zinc-500 mb-6 sm:mb-8">We customize your personalized credit strategy based on exactly what you are trying to achieve.</p>
                   
                   <div className="grid gap-4 flex-grow">
                     {STEP_1_OPTIONS.map((option) => {
@@ -506,7 +506,7 @@ export function QuizFunnel() {
                   </div>
                   <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-4">Application Received & Approved!</h3>
                   <p className="text-base sm:text-lg text-zinc-600 mb-6 sm:mb-8 max-w-lg">
-                    Based on your profile, you qualify for a complete Credit Strategy Session. On this call, we will pop the hood on your 3-bureau report, pinpoint the exact negative items holding your score hostage, and show you the exact legal strategies we use to force them off your report.
+                    Based on your profile, you qualify for a complete Credit Strategy Session. On this call, we will pop the hood on your 3-bureau report, pinpoint the exact negative items holding your score hostage, and show you the exact credit correction strategies we use to force them off your report.
                   </p>
                   
                   <a 

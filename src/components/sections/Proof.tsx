@@ -32,7 +32,7 @@ export function Proof() {
     {
       name: "Vanessa B.",
       title: "Marketing Manager — Houston, TX",
-      quote: "I tried two other credit repair companies. Both used the same generic approach month after month. Clean Path actually looked at my reports, told me exactly what to fight and why. Night and day.",
+      quote: "I tried two other credit repair companies. Both used the same generic dispute methods most companies use. Clean Path actually looked at my reports, told me exactly what to fight and why. Night and day.",
       rating: 5,
     },
     {

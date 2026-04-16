@@ -53,7 +53,7 @@ export const UPGRADE_TARGET: Record<Plan, Plan | null> = {
 export const UPGRADE_COPY: Record<Feature, { heading: string; body: string; cta: string }> = {
   dispute_tracker: {
     heading: "We handle every step for you",
-    body:    "Upgrade to Accelerated Audit and we'll manage all 4 rounds of credit corrections — you don't lift a finger.",
+    body:    "Upgrade to Accelerated Audit and we'll manage all 4 rounds of the done-for-you dispute process — you don't lift a finger.",
     cta:     "Get Done-For-You Results →",
   },
   document_vault: {
@@ -72,7 +72,7 @@ export const UPGRADE_COPY: Record<Feature, { heading: string; body: string; cta:
     cta:     "Unlock Specialist Chat →",
   },
   diy_templates: {
-    heading: "Legal challenge playbook",
+    heading: "Credit Correction Playbook",
     body:    "Unlock the professional playbook used to remove collections, late payments, and more.",
     cta:     "Get the Playbook →",
   },

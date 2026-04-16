@@ -13,7 +13,7 @@ export function ValueProp() {
     {
       icon: ShieldCheck,
       title: "Specialists Fight to Remove Them",
-      description: "Our certified specialists craft custom removal strategies — personalized to your file, never cookie-cutter — and use federal law to force bureaus to delete negative items from your report.",
+      description: "Our certified specialists craft custom credit correction strategies — built specifically for your credit profile, never one-size-fits-all — and use federal law to force bureaus to delete negative items from your report.",
     },
     {
       icon: Activity,
@@ -30,7 +30,7 @@ export function ValueProp() {
             The smarter way to repair credit.
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-zinc-600">
-            Most credit repair companies use the same one-size-fits-all approach and hope something sticks. We use AI to find the exact items to target, then our specialists execute the legal strategies to remove them.
+            Most credit repair companies use generic, mass-produced methods that fail most people. We use AI to find the exact items to target, then our specialists execute the strategies to remove them.
           </p>
         </div>
 

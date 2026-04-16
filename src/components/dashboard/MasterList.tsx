@@ -78,7 +78,7 @@ const RESOURCES: Resource[] = [
   {
     id: "fcra-legal-glossary",
     title: "Legal/Lawsuit Glossary",
-    description: "Complete FCRA, FDCPA, and FCBA violation reference. Lists exact fines ($100–$1,000 per violation) and case citations you can use when challenging inaccurate items.",
+    description: "Complete FCRA, FDCPA, and FCBA violation reference. Lists exact fines ($100–$1,000 per violation) and case citations you can use when disputing inaccurate, unverifiable, or outdated items.",
     category: "Legal Guide",
     icon: <Scale className="h-8 w-8" />,
     iconBg: "bg-red-50 text-red-500",

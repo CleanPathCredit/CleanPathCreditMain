@@ -28,7 +28,7 @@ export function Methodology() {
               </span>
             </h1>
             <p className="text-lg font-medium text-zinc-900 md:text-xl max-w-3xl mx-auto">
-              This isn’t basic credit repair. This is a strategic, AI-assisted audit and removal system designed to eliminate inaccurate, unverifiable, and outdated items—fast.
+              This isn’t basic credit repair. This is a strategic, AI-assisted audit and credit correction system designed to eliminate inaccurate, unverifiable, and outdated items—fast.
             </p>
           </motion.div>
         </section>
@@ -43,7 +43,7 @@ export function Methodology() {
               </h3>
               <ul className="space-y-4">
                 {[
-                  "Send the same generic requests to every bureau.",
+                  "Use generic dispute tactics that rarely work long-term.",
                   "Hope something randomly gets removed.",
                   "Keep you paying month-to-month for years."
                 ].map((item, i) => (
@@ -63,7 +63,7 @@ export function Methodology() {
               <ul className="space-y-4">
                 {[
                   "Use AI to identify weak, inaccurate, or unverifiable accounts.",
-                  "Apply legally backed challenge strategies using federal consumer protection law.",
+                  "Apply strategically crafted credit correction methods backed by federal consumer protection law.",
                   "Target high-impact deletions first for fast score movement."
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3 text-zinc-700">
@@ -108,7 +108,7 @@ export function Methodology() {
               </div>
               <h3 className="text-2xl font-semibold mb-4 text-zinc-900">Step 2: Aggressive Legal Execution</h3>
               <p className="text-zinc-600 leading-relaxed">
-                We don't just ask nicely. We deploy aggressive, legally backed challenge strategies using federal consumer protection law to force deletions.
+                We don't just ask nicely. We deploy aggressive, strategically crafted credit correction methods backed by federal consumer protection law to force deletions.
               </p>
             </motion.div>
 

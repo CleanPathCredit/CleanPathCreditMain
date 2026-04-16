@@ -168,7 +168,7 @@ export function AdminDashboard() {
                     </button>
                     <div>
                       <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">Client Management</h2>
-                      <p className="text-zinc-500 mt-1 text-sm">Manage active clients, documents, and cases.</p>
+                      <p className="text-zinc-500 mt-1 text-sm">Manage active clients, documents, and client files.</p>
                     </div>
                   </div>
                   <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm flex items-center gap-2">

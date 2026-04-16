@@ -39,7 +39,7 @@ const PLAN_COPY: Record<Plan, {
     icon: <Zap className="h-8 w-8" />,
     color: "text-emerald-600",
     features: [
-      "Proven legal challenge playbook",
+      "Proven Credit Correction Playbook",
       "Round-by-round action guide",
       "Downloadable tracking spreadsheet",
       "Lifetime access",
