@@ -14,7 +14,7 @@ export function Footer() {
             </div>
           </a>
           <p className="max-w-xs text-sm text-zinc-500">
-            Developer-grade credit repair powered by artificial intelligence. Faster, smarter, and more transparent.
+            Developer-grade credit optimization powered by artificial intelligence. Faster, smarter, and more transparent.
           </p>
         </div>
         

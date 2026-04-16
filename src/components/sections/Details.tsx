@@ -32,7 +32,7 @@ export function Details() {
               How our system works
             </h2>
             <p className="mb-12 text-lg text-zinc-600">
-              We've engineered a platform that handles the complexities of credit repair so you don't have to. It's fast, transparent, and built for results.
+              We've engineered a system that handles the complexities of credit correction so you don't have to. It's fast, transparent, and structured for results.
             </p>
 
             <div className="space-y-8">

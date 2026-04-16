@@ -139,9 +139,29 @@ export function QuizFunnel() {
   return (
     <section id="quiz-funnel" className="py-24 bg-zinc-50">
       <div className="mx-auto max-w-3xl px-6">
+        {/* Who This Is For / Not For — pre-qualification filter */}
+        <div className="mb-16 grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-6">
+            <h3 className="text-base font-semibold text-zinc-900 mb-4">This is for you if you're:</h3>
+            <ul className="space-y-3 text-sm text-zinc-700">
+              <li className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span>Serious about improving your credit</span></li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span>Ready to follow a structured system</span></li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span>Looking for real results — not shortcuts</span></li>
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-red-100 bg-red-50/50 p-6">
+            <h3 className="text-base font-semibold text-zinc-900 mb-4">This is not for you if you're:</h3>
+            <ul className="space-y-3 text-sm text-zinc-700">
+              <li className="flex items-start gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-red-400 font-bold">&#x2715;</span><span>Looking for instant overnight fixes</span></li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-red-400 font-bold">&#x2715;</span><span>Not willing to follow guidance</span></li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-red-400 font-bold">&#x2715;</span><span>Just curious with no intention to act</span></li>
+            </ul>
+          </div>
+        </div>
+
         <div className="mb-12 text-center">
           <h2 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl md:text-4xl">
-            Find out if this will work for you
+            See what's possible for your credit profile
           </h2>
           <p className="mt-4 text-lg text-zinc-600">
             Take our free 60-second analysis to see exactly how we can help you reach your goals.

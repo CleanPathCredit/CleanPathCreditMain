@@ -35,7 +35,7 @@ const PLAN_COPY: Record<Plan, {
   },
   diy: {
     title: "DIY Blueprint — Activated!",
-    subtitle: "You now have everything you need to challenge and remove negative items yourself.",
+    subtitle: "You've unlocked the tools and strategy to correct and remove negative items yourself.",
     icon: <Zap className="h-8 w-8" />,
     color: "text-emerald-600",
     features: [
@@ -46,8 +46,8 @@ const PLAN_COPY: Record<Plan, {
     ],
   },
   standard: {
-    title: "Accelerated Audit — Let's Go!",
-    subtitle: "Your credit repair journey starts now. We handle everything.",
+    title: "You've Unlocked the Clean Path Credit System",
+    subtitle: "Your credit correction journey starts now. We handle everything.",
     icon: <Star className="h-8 w-8" />,
     color: "text-emerald-600",
     features: [
@@ -59,7 +59,7 @@ const PLAN_COPY: Record<Plan, {
     ],
   },
   premium: {
-    title: "Executive Funding Audit — Welcome to the Top!",
+    title: "Executive System — Welcome to the Top!",
     subtitle: "Priority handling, monthly strategy calls, and business credit positioning.",
     icon: <Star className="h-8 w-8 text-yellow-500" />,
     color: "text-yellow-600",

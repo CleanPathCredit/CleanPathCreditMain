@@ -30,7 +30,7 @@ export function ValueProp() {
             The smarter way to repair credit.
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-zinc-600">
-            Most credit repair companies use generic, mass-produced methods that fail most people. We use AI to find the exact items to target, then our specialists execute the strategies to remove them.
+            Most credit companies use generic, mass-produced methods that fail most people. We use AI to find the exact items to target, then our specialists execute a structured strategy to remove them.
           </p>
         </div>
 

@@ -2,7 +2,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { QuizFunnel } from "@/components/sections/QuizFunnel";
 import { motion } from "motion/react";
-import { CheckCircle2, Search, TrendingUp, XCircle, Check, Scale } from "lucide-react";
+import { CheckCircle2, Search, TrendingUp, XCircle, Check, Scale, ShieldCheck } from "lucide-react";
 import React, { useEffect } from "react";
 
 export function Methodology() {
@@ -28,7 +28,7 @@ export function Methodology() {
               </span>
             </h1>
             <p className="text-lg font-medium text-zinc-900 md:text-xl max-w-3xl mx-auto">
-              This isn’t basic credit repair. This is a strategic, AI-assisted audit and credit correction system designed to eliminate inaccurate, unverifiable, and outdated items—fast.
+              This isn’t a basic credit service. This is a strategic, AI-assisted audit and credit correction system designed to eliminate inaccurate, unverifiable, and outdated items—fast.
             </p>
           </motion.div>
         </section>
@@ -76,11 +76,26 @@ export function Methodology() {
           </div>
         </section>
 
-        {/* 3. The "3-Step Framework" (The Core System) */}
+        {/* 3. The 4-Step Credit Correction System */}
         <section className="px-6 max-w-6xl mx-auto mb-24">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="text-center mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-800 mb-6">
+                Our Proprietary Process
+              </span>
+              <h2 className="font-display text-3xl font-semibold tracking-tight text-zinc-900 md:text-5xl">
+                The 4-Step Credit Correction System
+              </h2>
+            </motion.div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
             {/* Step 1 */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -89,14 +104,14 @@ export function Methodology() {
               <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
                 <Search className="h-7 w-7" />
               </div>
-              <h3 className="text-2xl font-semibold mb-4 text-zinc-900">Step 1: Deep-Dive Profile Audit</h3>
+              <h3 className="text-2xl font-semibold mb-4 text-zinc-900">Step 1: Deep Credit Audit</h3>
               <p className="text-zinc-600 leading-relaxed">
-                We scan your entire credit profile to identify inaccurate reporting, unverified medical collections, and high-impact negative items holding your score down.
+                We analyze your full credit profile across all 3 bureaus to identify inaccurate items, unverifiable accounts, and strategic removal opportunities that are holding your score down.
               </p>
             </motion.div>
 
             {/* Step 2 */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -106,26 +121,43 @@ export function Methodology() {
               <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6">
                 <Scale className="h-7 w-7" />
               </div>
-              <h3 className="text-2xl font-semibold mb-4 text-zinc-900">Step 2: Aggressive Legal Execution</h3>
+              <h3 className="text-2xl font-semibold mb-4 text-zinc-900">Step 2: Custom Correction Strategy</h3>
               <p className="text-zinc-600 leading-relaxed">
-                We don't just ask nicely. We deploy aggressive, strategically crafted credit correction methods backed by federal consumer protection law to force deletions.
+                Every action is based on your specific accounts, bureau behavior patterns, and federal consumer reporting laws. Strategic, not generic — built around your profile.
               </p>
             </motion.div>
 
             {/* Step 3 */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
               className="bg-white p-8 rounded-3xl border border-zinc-100 shadow-sm"
             >
+              <div className="w-14 h-14 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center mb-6">
+                <ShieldCheck className="h-7 w-7" />
+              </div>
+              <h3 className="text-2xl font-semibold mb-4 text-zinc-900">Step 3: Strategic Execution</h3>
+              <p className="text-zinc-600 leading-relaxed">
+                We initiate structured corrections across all 3 bureaus using factual-based challenges, layered correction rounds, and timing and sequencing most companies ignore.
+              </p>
+            </motion.div>
+
+            {/* Step 4 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="bg-white p-8 rounded-3xl border border-zinc-100 shadow-sm"
+            >
               <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
                 <TrendingUp className="h-7 w-7" />
               </div>
-              <h3 className="text-2xl font-semibold mb-4 text-zinc-900">Step 3: Score Optimization & Funding Prep</h3>
+              <h3 className="text-2xl font-semibold mb-4 text-zinc-900">Step 4: Optimization & Positioning</h3>
               <p className="text-zinc-600 leading-relaxed">
-                We position your profile for approvals by optimizing your credit utilization, providing your Master Financial List, and prepping you for lenders.
+                We don't just remove negatives. We guide you on what to do (and not do), how to build positive accounts, and how to position yourself for approvals.
               </p>
             </motion.div>
           </div>

@@ -25,7 +25,7 @@ export function Hero() {
           className="mb-8 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-800"
         >
           <Sparkles className="h-4 w-4" />
-          <span>Introducing AI-Powered Credit Repair</span>
+          <span>Introducing the AI-Powered Credit Correction System</span>
         </motion.div>
 
         <h1 className="mb-8 font-display text-5xl font-semibold tracking-tight text-zinc-900 md:text-6xl lg:text-7xl">
@@ -37,7 +37,7 @@ export function Hero() {
         </h1>
 
         <p className="mx-auto mb-6 max-w-3xl text-lg font-medium text-zinc-900 md:text-xl">
-          We combine AI-powered audits with proven credit correction strategies backed by federal consumer laws to remove the negative items keeping you from getting approved — so you can qualify for homes, funding, and better rates faster.
+          Not generic methods. Not guesswork. A structured, AI-powered credit correction system designed to remove negative items and position you for approvals, lower rates, and real opportunities.
         </p>
         
         <div className="mb-10 inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 border border-emerald-200">
