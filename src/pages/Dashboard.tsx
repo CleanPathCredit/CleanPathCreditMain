@@ -24,7 +24,7 @@ type SidebarTab = "dashboard" | "vault" | "masterlist" | "support";
 
 const STATUS_STEPS = [
   { key: "deep_dive_audit",    label: "Deep-Dive Audit",             description: "Full analysis of all 3 bureau reports." },
-  { key: "aggressive_dispute", label: "Aggressive Dispute Strategy", description: "Custom dispute letters crafted." },
+  { key: "aggressive_dispute", label: "Legal Challenge Strategy", description: "Custom credit interventions prepared." },
   { key: "bureau_processing",  label: "Bureau Processing — 30 Days", description: "Bureaus have 30 days to investigate." },
   { key: "results_update",     label: "Results & Score Update",      description: "Deletions and score changes reported." },
 ];
@@ -205,7 +205,7 @@ export function Dashboard() {
                 {/* Dispute Tracker */}
                 <PlanGate feature="dispute_tracker" plan={profile?.plan} lightBlur={true}>
                 <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
-                  <h2 className="text-xl font-bold text-zinc-900 mb-6 tracking-tight">Dispute Tracker</h2>
+                  <h2 className="text-xl font-bold text-zinc-900 mb-6 tracking-tight">Progress Tracker</h2>
                   <div className="space-y-6">
                     {STATUS_STEPS.map((step) => {
                       const status = getStepStatus(profile?.status ?? "pending_connection", step.key);
@@ -241,7 +241,7 @@ export function Dashboard() {
                       { title: "How Credit Scores Are Calculated",             type: "Free Guide",   free: true  },
                       { title: "The 720 Credit Score Blueprint",               type: "PDF Guide",    free: false },
                       { title: "How to Handle Debt Collectors",                type: "E-Book",       free: false },
-                      { title: "609 & 623 Dispute Letter Templates",           type: "Templates",    free: false },
+                      { title: "Legal Challenge Playbook",                      type: "Playbook",     free: false },
                       { title: "Building Positive Credit History",             type: "Action Plan",  free: false },
                     ].map((r, i) => {
                       const unlocked = r.free || canAccess(profile?.plan, "all_guides");
@@ -269,7 +269,7 @@ export function Dashboard() {
                   </div>
                   {!canAccess(profile?.plan, "all_guides") && (
                     <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-4 flex items-center justify-between gap-4">
-                      <p className="text-sm font-medium text-emerald-800">Unlock all 6 resources + dispute templates</p>
+                      <p className="text-sm font-medium text-emerald-800">Unlock all 6 resources + legal challenge playbook</p>
                       <a href="https://form.cleanpathcredit.com" className="shrink-0 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">
                         See Plans →
                       </a>

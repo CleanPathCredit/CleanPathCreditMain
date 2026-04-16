@@ -20,7 +20,7 @@ export function Proof() {
     {
       name: "Aisha R.",
       title: "Registered Nurse — Atlanta, GA",
-      quote: "I paid off a medical collection thinking it would help my score. It didn't move at all. Clean Path explained why — then disputed it off completely. Up 67 points in 45 days.",
+      quote: "I paid off a medical collection thinking it would help my score. It didn't move at all. Clean Path explained why — then got it removed completely. Up 67 points in 45 days.",
       rating: 5,
     },
     {
@@ -32,7 +32,7 @@ export function Proof() {
     {
       name: "Vanessa B.",
       title: "Marketing Manager — Houston, TX",
-      quote: "I tried two other credit repair companies. Both sent the same generic letters month after month. Clean Path actually looked at my reports, told me exactly what to fight and why. Night and day.",
+      quote: "I tried two other credit repair companies. Both used the same generic approach month after month. Clean Path actually looked at my reports, told me exactly what to fight and why. Night and day.",
       rating: 5,
     },
     {

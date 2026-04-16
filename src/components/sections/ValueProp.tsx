@@ -13,12 +13,12 @@ export function ValueProp() {
     {
       icon: ShieldCheck,
       title: "Specialists Fight to Remove Them",
-      description: "Our FCRA-certified specialists craft custom dispute strategies — not copy-paste templates — and use federal law to force bureaus to delete negative items from your report.",
+      description: "Our certified specialists craft custom removal strategies — personalized to your file, never cookie-cutter — and use federal law to force bureaus to delete negative items from your report.",
     },
     {
       icon: Activity,
       title: "You Watch the Score Go Up",
-      description: "Track every dispute, deletion, and score change in your private client portal. Full transparency, no guessing, and a specialist in your corner every step of the way.",
+      description: "Track every challenge, deletion, and score change in your private client portal. Full transparency, no guessing, and a specialist in your corner every step of the way.",
     },
   ];
 
@@ -30,7 +30,7 @@ export function ValueProp() {
             The smarter way to repair credit.
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-zinc-600">
-            Most credit repair companies send the same letters and hope something sticks. We use AI to find the exact items to target, then our specialists execute the legal strategies to remove them.
+            Most credit repair companies use the same one-size-fits-all approach and hope something sticks. We use AI to find the exact items to target, then our specialists execute the legal strategies to remove them.
           </p>
         </div>
 

@@ -69,7 +69,7 @@ const RESOURCES: Resource[] = [
   {
     id: "tax-lien-guide",
     title: "How to Remove a Tax Lien",
-    description: "Step-by-step IRS Form 12277 process. Includes exact language for the withdrawal request and how to dispute the removed lien from all 3 credit bureaus.",
+    description: "Step-by-step IRS Form 12277 process. Includes exact language for the withdrawal request and how to get the removed lien cleared from all 3 credit bureaus.",
     category: "PDF Guide",
     icon: <Landmark className="h-8 w-8" />,
     iconBg: "bg-amber-50 text-amber-500",
@@ -78,7 +78,7 @@ const RESOURCES: Resource[] = [
   {
     id: "fcra-legal-glossary",
     title: "Legal/Lawsuit Glossary",
-    description: "Complete FCRA, FDCPA, and FCBA violation reference. Lists exact fines ($100–$1,000 per violation) and case citations you can use in dispute letters.",
+    description: "Complete FCRA, FDCPA, and FCBA violation reference. Lists exact fines ($100–$1,000 per violation) and case citations you can use when challenging inaccurate items.",
     category: "Legal Guide",
     icon: <Scale className="h-8 w-8" />,
     iconBg: "bg-red-50 text-red-500",
@@ -95,8 +95,8 @@ const RESOURCES: Resource[] = [
   },
   {
     id: "dispute-tracker-preview",
-    title: "Dispute Round Tracker",
-    description: "Printable and digital tracker for all 4 dispute rounds. Logs bureau responses, deletion confirmations, and certified mail tracking numbers.",
+    title: "Credit Correction Tracker",
+    description: "Printable and digital tracker for all 4 rounds of your credit correction process. Logs bureau responses, deletion confirmations, and submission tracking numbers.",
     category: "PDF Guide",
     icon: <FileSearch className="h-8 w-8" />,
     iconBg: "bg-teal-50 text-teal-500",

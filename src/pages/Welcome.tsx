@@ -35,12 +35,12 @@ const PLAN_COPY: Record<Plan, {
   },
   diy: {
     title: "DIY Blueprint — Activated!",
-    subtitle: "You now have everything you need to dispute negative items yourself.",
+    subtitle: "You now have everything you need to challenge and remove negative items yourself.",
     icon: <Zap className="h-8 w-8" />,
     color: "text-emerald-600",
     features: [
-      "609 & 623 dispute letter templates",
-      "Round-by-round mailing guide",
+      "Proven legal challenge playbook",
+      "Round-by-round action guide",
       "Downloadable tracking spreadsheet",
       "Lifetime access",
     ],
@@ -51,8 +51,8 @@ const PLAN_COPY: Record<Plan, {
     icon: <Star className="h-8 w-8" />,
     color: "text-emerald-600",
     features: [
-      "Done-for-you 4-round dispute system",
-      "Certified mail included",
+      "Done-for-you 4-round credit correction system",
+      "Full submission handling included",
       "Document vault access",
       "Direct messaging with your advisor",
       "120-day money-back guarantee",

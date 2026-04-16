@@ -22,7 +22,7 @@ export function Footer() {
           <h4 className="mb-4 font-medium text-white">Platform</h4>
           <ul className="space-y-2 text-sm">
             <li><a href="#" className="transition-colors hover:text-white">AI Engine</a></li>
-            <li><a href="#" className="transition-colors hover:text-white">Dispute Generator</a></li>
+            <li><a href="#" className="transition-colors hover:text-white">Credit Correction Engine</a></li>
             <li><a href="#" className="transition-colors hover:text-white">Credit Monitoring</a></li>
             <li><a href="#" className="transition-colors hover:text-white">API Access</a></li>
           </ul>

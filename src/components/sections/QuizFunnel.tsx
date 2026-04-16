@@ -16,7 +16,7 @@ const STEP_1_OPTIONS = [
 const STEP_2_OPTIONS = [
   { id: 'medical', label: 'Medical or Utility Collections', fact: "Fact: Paying a collection doesn't remove it. We use federal laws to legally challenge and delete them." },
   { id: 'late', label: 'Late Payments/ Collections', fact: 'One late payment/ collection can cost you 50+ points. We aggressively target these for removal.' },
-  { id: 'bankruptcies', label: 'Bankruptcies / Liens', fact: 'Yes, even public records can be challenged using our advanced Section 609 AI-powered dispute strategies.' },
+  { id: 'bankruptcies', label: 'Bankruptcies / Liens', fact: 'Yes, even public records can be challenged using our advanced AI-powered legal strategies.' },
   { id: 'balances', label: 'High Credit Card Balances', fact: "We will build you a custom 'Master Financial List' to optimize your credit utilization." },
   { id: 'unsure', label: "I'm Not Sure", fact: "That's exactly what our free deep-dive audit is for. We'll find the hidden errors." },
 ];
@@ -171,7 +171,7 @@ export function QuizFunnel() {
                   className="flex flex-col h-full"
                 >
                   <h3 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-2">What is your primary financial goal right now?</h3>
-                  <p className="text-sm sm:text-base text-zinc-500 mb-6 sm:mb-8">We customize our dispute strategies based on exactly what you are trying to achieve.</p>
+                  <p className="text-sm sm:text-base text-zinc-500 mb-6 sm:mb-8">We customize our approach based on exactly what you are trying to achieve.</p>
                   
                   <div className="grid gap-4 flex-grow">
                     {STEP_1_OPTIONS.map((option) => {
@@ -323,7 +323,7 @@ export function QuizFunnel() {
                     <div className="flex flex-col items-center justify-center flex-grow py-12">
                       <Loader2 className="h-12 w-12 animate-spin text-emerald-500 mb-4" />
                       <p className="text-lg font-medium text-zinc-900">Analyzing Profile...</p>
-                      <p className="text-zinc-500">Matching with optimal dispute strategies</p>
+                      <p className="text-zinc-500">Matching with the optimal removal strategy</p>
                     </div>
                   ) : (
                     <div className="space-y-6 flex-grow">
@@ -510,7 +510,7 @@ export function QuizFunnel() {
                   </p>
                   
                   <a 
-                    href="https://calendly.com/perfectcredit780/30min" 
+                    href="https://calendly.com/cleanpathcredit/free-15-min-credit-audit-strategy-call"
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="w-full max-w-md"
@@ -546,7 +546,7 @@ export function QuizFunnel() {
                       <ul className="space-y-2 mb-6 text-zinc-700">
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                          Access our dispute tracking tools.
+                          Access your credit correction tracking tools.
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
