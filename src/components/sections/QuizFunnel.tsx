@@ -137,7 +137,7 @@ export function QuizFunnel() {
   };
 
   return (
-    <section id="quiz-funnel" className="py-24 bg-zinc-50">
+    <section className="py-24 bg-zinc-50">
       <div className="mx-auto max-w-3xl px-6">
         {/* Who This Is For / Not For — pre-qualification filter */}
         <div className="mb-16 grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
@@ -159,7 +159,7 @@ export function QuizFunnel() {
           </div>
         </div>
 
-        <div className="mb-12 text-center">
+        <div id="quiz-funnel" className="mb-12 text-center scroll-mt-24">
           <h2 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl md:text-4xl">
             See what's possible for your credit profile
           </h2>
