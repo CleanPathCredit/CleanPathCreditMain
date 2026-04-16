@@ -1,8 +1,45 @@
 import React from "react";
-import { motion } from "motion/react";
+import { motion, useInView } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
+import { useRef } from "react";
+
+/** Animated counter — counts from 0 to `target` when in view */
+function Counter({ target, suffix = "", className }: { target: number; suffix?: string; className?: string }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+  const [count, setCount] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!isInView) return;
+    let frame: number;
+    const duration = 1200;
+    const start = performance.now();
+    function tick(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(eased * target));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    }
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [isInView, target]);
+
+  return <span ref={ref} className={className}>{count}{suffix}</span>;
+}
+
+/** Bureau brand colors (for indicator dots) */
+const BUREAUS = [
+  { name: "Equifax",    color: "#d9534f", delay: 0   },
+  { name: "TransUnion", color: "#00a0df", delay: 0.6 },
+  { name: "Experian",   color: "#1d4f91", delay: 1.2 },
+];
 
 export function Details() {
+  const terminalRef = useRef(null);
+  const terminalInView = useInView(terminalRef, { once: true, margin: "-100px" });
+
   const steps = [
     {
       title: "1. Connect your credit profile",
@@ -13,8 +50,8 @@ export function Details() {
       description: "Upload your valid driver's license or passport and social security card. We use bank-level encryption to keep your data safe.",
     },
     {
-      title: "3. Video verify & mail",
-      description: "Schedule a quick video chat with our online notary. Once verified, we prepare, notarize, and submit your strategically crafted disputes across all 3 bureaus.",
+      title: "3. Video verify & submit",
+      description: "Schedule a quick video chat with our online notary. Once verified, we prepare, notarize, and submit your strategically crafted corrections across all 3 bureaus.",
     },
   ];
 
@@ -59,26 +96,35 @@ export function Details() {
 
           {/* Abstract UI Representation */}
           <motion.div
+            ref={terminalRef}
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
-            className="relative h-[600px] w-full rounded-3xl border border-zinc-200 bg-zinc-950 p-8 shadow-2xl overflow-hidden"
+            className="relative h-[650px] w-full rounded-3xl border border-zinc-200 bg-zinc-950 p-8 shadow-2xl overflow-hidden"
           >
-            {/* Window Controls */}
+            {/* Window Controls — colored */}
             <div className="absolute top-4 left-4 flex gap-2">
-              <div className="h-3 w-3 rounded-full bg-zinc-700" />
-              <div className="h-3 w-3 rounded-full bg-zinc-700" />
-              <div className="h-3 w-3 rounded-full bg-zinc-700" />
+              <div className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+              <div className="h-3 w-3 rounded-full bg-[#febc2e]" />
+              <div className="h-3 w-3 rounded-full bg-[#28c840]" />
             </div>
 
             {/* Mock UI elements */}
             <div className="relative z-10 mt-8 flex flex-col gap-6 font-mono text-sm text-zinc-400">
+              {/* Command line */}
               <div className="flex items-center gap-2">
                 <span className="text-emerald-400">~</span>
                 <span className="text-zinc-300">cleanpath analyze --report=latest</span>
+                {/* Blinking cursor */}
+                <motion.span
+                  animate={{ opacity: [1, 0] }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: "steps(1)" }}
+                  className="inline-block w-2 h-4 bg-emerald-400 ml-0.5"
+                />
               </div>
-              
+
+              {/* Analysis results panel */}
               <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-zinc-300">Analysis Complete</span>
@@ -87,18 +133,43 @@ export function Details() {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span>Negative Items Found:</span>
-                    <span className="text-rose-400">3</span>
+                    <span className="text-rose-400 font-semibold">
+                      {terminalInView ? <Counter target={3} /> : "0"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Estimated Removal Likelihood:</span>
-                    <span className="text-emerald-400">High (94%)</span>
+                    <span className="text-emerald-400 font-semibold">
+                      High ({terminalInView ? <Counter target={94} suffix="%" /> : "0%"})
+                    </span>
                   </div>
                   <div className="h-px w-full bg-zinc-800 my-4" />
+
+                  {/* Score projection */}
+                  <div className="flex justify-between items-center">
+                    <span>Score Projection:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-rose-400">
+                        {terminalInView ? <Counter target={583} /> : "0"}
+                      </span>
+                      <motion.span
+                        animate={{ opacity: [0.4, 1, 0.4] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="text-zinc-500"
+                      >→</motion.span>
+                      <span className="text-emerald-400 font-bold">
+                        {terminalInView ? <Counter target={720} /> : "0"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="h-px w-full bg-zinc-800 my-4" />
+
                   <div className="flex items-center gap-2">
                     <span className="text-blue-400">❯</span>
-                    <span className="text-zinc-300">Preparing your custom dispute strategy...</span>
+                    <span className="text-zinc-300">Preparing your custom correction strategy...</span>
                   </div>
-                  <motion.div 
+                  <motion.div
                     animate={{ width: ["0%", "100%"] }}
                     transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                     className="h-1 bg-emerald-500 rounded-full mt-2"
@@ -106,18 +177,52 @@ export function Details() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4">
-                  <div className="text-xs text-zinc-500 mb-1">Equifax</div>
-                  <div className="text-emerald-400">Dispute Submitted</div>
-                </div>
-                <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4">
-                  <div className="text-xs text-zinc-500 mb-1">TransUnion</div>
-                  <div className="text-emerald-400">Dispute Submitted</div>
-                </div>
+              {/* Bureau cards — staggered reveal with brand colors + logos */}
+              <div className="grid grid-cols-3 gap-3">
+                {BUREAUS.map((bureau) => (
+                  <motion.div
+                    key={bureau.name}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={terminalInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ delay: 1.5 + bureau.delay, duration: 0.5, ease: "easeOut" }}
+                    className="rounded-xl bg-zinc-900 border border-zinc-800 p-4"
+                  >
+                    {/* Bureau indicator */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: bureau.color }} />
+                      <span className="text-xs text-zinc-500">{bureau.name}</span>
+                    </div>
+                    {/* Bureau "logo" — stylized text in brand color */}
+                    <div className="text-[10px] font-bold tracking-wider uppercase mb-2 opacity-60" style={{ color: bureau.color }}>
+                      {bureau.name === "Equifax" && (
+                        <svg viewBox="0 0 80 16" className="h-3 w-auto" fill={bureau.color}>
+                          <text x="0" y="13" fontSize="13" fontWeight="800" fontFamily="system-ui, sans-serif">equifax</text>
+                        </svg>
+                      )}
+                      {bureau.name === "TransUnion" && (
+                        <svg viewBox="0 0 100 16" className="h-3 w-auto" fill={bureau.color}>
+                          <text x="0" y="13" fontSize="13" fontWeight="800" fontFamily="system-ui, sans-serif">transunion</text>
+                        </svg>
+                      )}
+                      {bureau.name === "Experian" && (
+                        <svg viewBox="0 0 80 16" className="h-3 w-auto" fill={bureau.color}>
+                          <text x="0" y="13" fontSize="13" fontWeight="800" fontFamily="system-ui, sans-serif">experian</text>
+                        </svg>
+                      )}
+                    </div>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={terminalInView ? { opacity: 1 } : {}}
+                      transition={{ delay: 2.0 + bureau.delay, duration: 0.3 }}
+                      className="text-emerald-400 text-xs font-medium"
+                    >
+                      ✓ Submitted
+                    </motion.div>
+                  </motion.div>
+                ))}
               </div>
             </div>
-            
+
             {/* Scanning beam effect */}
             <motion.div
               animate={{ top: ["0%", "100%", "0%"] }}
