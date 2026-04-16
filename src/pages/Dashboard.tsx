@@ -112,7 +112,7 @@ export function Dashboard() {
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
-            <img src="/logo-icon.svg" alt="Clean Path Credit" className="h-8 w-8 object-contain" />
+            <img src="/logo.png" alt="Clean Path Credit" className="h-10 w-10 object-contain" />
             <div className="flex flex-col">
               <span className="font-bold text-sm tracking-tight leading-tight">Clean Path Credit</span>
               <span className="text-[8px] font-medium text-zinc-400 tracking-widest uppercase leading-tight">Client Portal</span>
@@ -160,7 +160,7 @@ export function Dashboard() {
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 className="fixed inset-y-0 left-0 w-64 bg-[#111111] z-50 md:hidden p-4 flex flex-col gap-1">
                 <div className="flex items-center gap-2 mb-6 px-3">
-                  <img src="/logo-icon.svg" alt="Clean Path Credit" className="h-8 w-8 object-contain" />
+                  <img src="/logo.png" alt="Clean Path Credit" className="h-10 w-10 object-contain" />
                   <span className="font-bold text-white text-sm">Clean Path Credit</span>
                 </div>
                 {sidebarItems.map((item) => (
