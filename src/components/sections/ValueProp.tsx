@@ -18,7 +18,7 @@ export function ValueProp() {
     {
       icon: Activity,
       title: "You Watch the Score Go Up",
-      description: "Track every challenge, deletion, and score change in your private client portal. Full transparency, no guessing, and a specialist in your corner every step of the way.",
+      description: "Track every correction, deletion, and score change in your private client portal. Full transparency, no guessing, and a specialist in your corner every step of the way.",
     },
   ];
 
@@ -27,7 +27,7 @@ export function ValueProp() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-16 text-center">
           <h2 className="mb-4 font-display text-3xl font-semibold tracking-tight text-zinc-900 md:text-5xl">
-            The smarter way to repair credit.
+            The smarter way to correct credit.
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-zinc-600">
             Most credit companies use generic, mass-produced methods that fail most people. We use AI to find the exact items to target, then our specialists execute a structured strategy to remove them.
@@ -38,10 +38,21 @@ export function ValueProp() {
           {features.map((feature, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{
+                opacity: 1,
+                y: [0, -8, 0],
+                transition: {
+                  opacity: { duration: 0.5, delay: index * 0.15 },
+                  y: {
+                    duration: 3 + index * 0.4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: index * 0.15,
+                  },
+                },
+              }}
+              viewport={{ once: true, margin: "-80px" }}
             >
               <HoverCard className="group h-full">
                 <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 transition-colors duration-300 group-hover:bg-emerald-100 group-hover:text-emerald-700">

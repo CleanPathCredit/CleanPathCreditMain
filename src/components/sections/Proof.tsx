@@ -14,7 +14,7 @@ export function Proof() {
     {
       name: "Marcus T.",
       title: "Restaurant Owner — Chicago, IL",
-      quote: "My advisor found reporting errors I'd had for 8 years. Eight years. Gone in 5 weeks. I secured a $50k business line of credit the month after. This service pays for itself.",
+      quote: "My advisor found reporting errors I'd had for 8 years. Eight years. Gone in 5 weeks. I secured a $50k business line of credit the month after. This system pays for itself.",
       rating: 5,
     },
     {
@@ -59,10 +59,21 @@ export function Proof() {
           {testimonials.map((testimonial, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{
+                opacity: 1,
+                y: [0, -6, 0],
+                transition: {
+                  opacity: { duration: 0.5, delay: index * 0.1 },
+                  y: {
+                    duration: 3.5 + (index % 3) * 0.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: index * 0.2,
+                  },
+                },
+              }}
               viewport={{ once: true, margin: "-50px" }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
             >
               <HoverCard className="h-full p-8 flex flex-col">
                 <div className="mb-6 flex items-center gap-1">

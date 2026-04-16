@@ -30,18 +30,18 @@ export function CTA() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="mb-6 font-display text-4xl font-semibold tracking-tight md:text-6xl">
-            Ready to rebuild your credit?
+            Ready to take control of your credit?
           </h2>
           <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 md:text-xl">
-            Join thousands of users who have successfully repaired their credit using our AI-driven platform. Start your free analysis today.
+            Join thousands who have transformed their credit using our AI-powered correction system. Start your free analysis today.
           </p>
-          
+
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <a href="#quiz-funnel" onClick={(e) => {
               e.preventDefault();
               document.getElementById('quiz-funnel')?.scrollIntoView({ behavior: 'smooth' });
             }}>
-              <Button variant="primary" className="group h-14 px-10 text-lg">
+              <Button variant="primary" className="group h-14 px-10 text-lg !bg-emerald-600 hover:!bg-emerald-700 focus:!ring-emerald-600">
                 Get Started Now
                 <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
