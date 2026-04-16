@@ -154,18 +154,22 @@ export function Dashboard() {
   }, [calHostOnboarding, session]);
 
   // ── Fetch messages and subscribe to new ones ───────────────────────────────
+  // Uses /api/messages (service-role) instead of the direct Supabase client
+  // to avoid the Clerk→Supabase JWT mismatch that was causing 500 errors.
   useEffect(() => {
-    if (!clerkUser) return;
+    if (!clerkUser || !session) return;
 
-    // Initial fetch
-    supabase
-      .from("messages")
-      .select("*")
-      .eq("profile_id", clerkUser.id)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => setMessages(data ?? []));
+    // Initial fetch via service-role API
+    session.getToken().then((token) => {
+      if (!token) return;
+      fetch("/api/messages", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((data) => setMessages(Array.isArray(data) ? data : []))
+        .catch((err) => console.error("[Dashboard] fetch messages failed:", err));
+    });
 
-    // Real-time subscription
+    // Real-time subscription still uses the Supabase client for push updates —
+    // it only listens (SELECT) so RLS exposure is read-only and scoped to inserts.
     const channel = supabase
       .channel(`messages:${clerkUser.id}`)
       .on(
@@ -176,18 +180,20 @@ export function Dashboard() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [clerkUser?.id]);
+  }, [clerkUser?.id, session]);
 
   useEffect(() => {
     if (isChatOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isChatOpen]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !clerkUser) return;
-    await supabase.from("messages").insert({
-      profile_id: clerkUser.id,
-      sender: "client",
-      body: newMessage.trim(),
+    if (!newMessage.trim() || !session) return;
+    const token = await session.getToken();
+    if (!token) return;
+    await fetch("/api/messages", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ body: newMessage.trim() }),
     });
     setNewMessage("");
   };
@@ -452,6 +458,9 @@ export function Dashboard() {
         </main>
       </div>
 
+      {/* ElevenLabs AI voice widget — dashboard only, not on public/payment pages */}
+      <ElevenLabsWidget />
+
       {/* Floating chat button — standard/premium only */}
       {canAccess(profile?.plan, "support_chat") && <button onClick={() => setIsChatOpen(true)}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-[#111111] text-white shadow-xl hover:shadow-2xl flex items-center justify-center z-30 hover:scale-105 transition-all"
@@ -498,6 +507,36 @@ export function Dashboard() {
       </AnimatePresence>
     </div>
   );
+}
+
+// ── ElevenLabs AI widget — dashboard only ────────────────────────────────────
+// Loads the ConvAI script on demand when the dashboard mounts and renders the
+// custom element. Removed from index.html so it doesn't appear on marketing
+// pages, the checkout flow, or /register.
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "elevenlabs-convai": React.HTMLAttributes<HTMLElement> & { "agent-id": string };
+    }
+  }
+}
+
+const ELEVENLABS_AGENT_ID  = "agent_5401kp5w96nqf65rw5wd46np1p4d";
+const ELEVENLABS_SCRIPT    = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+
+function ElevenLabsWidget() {
+  useEffect(() => {
+    if (document.querySelector(`script[src="${ELEVENLABS_SCRIPT}"]`)) return;
+    const script    = document.createElement("script");
+    script.src      = ELEVENLABS_SCRIPT;
+    script.async    = true;
+    script.type     = "text/javascript";
+    document.body.appendChild(script);
+    return () => { /* leave script in DOM — re-mounts are free */ };
+  }, []);
+
+  return <elevenlabs-convai agent-id={ELEVENLABS_AGENT_ID} />;
 }
 
 // ── Shared chat panel ────────────────────────────────────────────────────────

@@ -108,6 +108,18 @@ export function Welcome() {
 
     let cancelled = false;
 
+    // Safety net: if auto-signin hasn't resolved in 14s, drop to error state
+    // so the user sees the fallback "Create My Account" button rather than
+    // spinning forever. Network hiccups and cold-start edge functions can
+    // occasionally take longer than expected.
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        cancelled = true;
+        setError("Sign-in took too long — please create your account below.");
+        setPhase("error");
+      }
+    }, 14_000);
+
     async function run() {
       setPhase("signing-in");
       try {
@@ -133,10 +145,12 @@ export function Welcome() {
         // 3. Activate the session and go to dashboard
         await setActive!({ session: attempt.createdSessionId });
         if (cancelled) return;
+        clearTimeout(timeout);
         setPhase("done");
         navigate("/dashboard", { replace: true });
       } catch (err) {
         if (cancelled) return;
+        clearTimeout(timeout);
         console.error("[/welcome] auto-signin failed:", err);
         setError(err instanceof Error ? err.message : "Sign-in failed");
         setPhase("error");
@@ -146,6 +160,7 @@ export function Welcome() {
     run();
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
     };
   }, [isLoaded, isSignedIn, signInLoaded, signIn, setActive, sessionId, phase, navigate]);
 
