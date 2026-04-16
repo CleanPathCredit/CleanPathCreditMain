@@ -18,7 +18,7 @@ export function Navbar() {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <img src="/logo.png" alt="Clean Path Credit" className="h-9 w-9 object-contain" />
+          <img src="/logo-icon.svg" alt="Clean Path Credit" className="h-9 w-9 object-contain" />
           <div className="flex flex-col">
             <span className="font-semibold tracking-tight text-zinc-900 leading-tight">Clean Path Credit</span>
             <span className="text-[9px] font-medium text-zinc-400 tracking-widest uppercase leading-tight">Powered by AI</span>
@@ -33,7 +33,7 @@ export function Navbar() {
         <div className="flex items-center gap-3">
           <Link to="/login" className="hidden text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 md:block">Log in</Link>
           <Link to="/register" className="hidden md:block">
-            <Button variant="primary" className="h-9 px-4 text-sm">Sign up</Button>
+            <Button variant="primary" className="h-9 px-4 text-sm">Create Free Account</Button>
           </Link>
 
           {/* Mobile hamburger */}
@@ -86,7 +86,7 @@ export function Navbar() {
                 className="mt-2"
               >
                 <Button variant="primary" className="w-full h-11 text-sm">
-                  Sign up
+                  Create Free Account
                 </Button>
               </Link>
             </div>

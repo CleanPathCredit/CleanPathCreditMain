@@ -29,10 +29,22 @@ export function Landing() {
         </div>
 
         <Hero />
+
+        {/* Gradient fade: hero → value prop */}
+        <div className="h-24 bg-gradient-to-b from-white via-zinc-50/50 to-transparent" />
+
         <ValueProp />
         <Details />
+
+        {/* Gradient fade: details → proof */}
+        <div className="h-16 bg-gradient-to-b from-zinc-50 to-white" />
+
         <Proof />
         <CTA />
+
+        {/* Gradient fade: CTA → quiz */}
+        <div className="h-16 bg-gradient-to-b from-zinc-900 to-zinc-50" />
+
         <QuizFunnel />
       </main>
 

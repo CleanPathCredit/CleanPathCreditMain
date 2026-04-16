@@ -13,7 +13,7 @@ export function Button({ children, variant = "primary", size = "md", className, 
   const baseStyles = "relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2";
   
   const variants = {
-    primary: "bg-black text-white hover:bg-zinc-800 focus:ring-black",
+    primary: "bg-black text-white hover:bg-zinc-800 focus:ring-black hover:shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-shadow duration-300",
     secondary: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 focus:ring-zinc-100",
     outline: "border border-zinc-200 bg-transparent text-zinc-900 hover:bg-zinc-50 focus:ring-zinc-200",
   };

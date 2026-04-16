@@ -15,7 +15,7 @@ export function HoverCard({ children, className }: { children: ReactNode; classN
   return (
     <motion.div
       className={cn(
-        "group relative rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md",
+        "group relative rounded-2xl border border-zinc-200 bg-white p-8 shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-xl",
         className
       )}
       onMouseMove={handleMouseMove}
