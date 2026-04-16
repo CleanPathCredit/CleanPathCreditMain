@@ -90,11 +90,45 @@ export function Welcome() {
     }
   }, [isLoaded, isSignedIn, navigate]);
 
-  // Don't block rendering on Clerk — show content immediately.
-  // If Clerk fails to load (DNS/CORS issues), the page still works.
+  /** Log consent server-side for Stripe dispute defense */
+  async function logConsent() {
+    const payload = {
+      email: searchParams.get("email") ?? "",
+      plan,
+      sessionId: sessionId ?? "",
+      consentTerms: true,
+      consentDispute: true,
+      userAgent: navigator.userAgent,
+      pageUrl: window.location.href,
+    };
 
-  // Redirect to Clerk's hosted sign-up page (served directly by Clerk,
-  // bypasses any local JS loading issues)
+    // Server-side log (primary — Stripe evidence)
+    try {
+      await fetch("/api/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      // Non-fatal — still allow account creation
+    }
+
+    // Local backup
+    try {
+      localStorage.setItem("cpc_consent", JSON.stringify({
+        ...payload,
+        timestamp: new Date().toISOString(),
+      }));
+    } catch { /* localStorage unavailable */ }
+  }
+
+  async function handleProceed() {
+    if (isPaidPlan && !bothChecked) return;
+    await logConsent();
+    setShowAuth(true);
+  }
+
+  // Redirect to Clerk's hosted sign-up page
   if (showAuth) {
     const redirectUrl = encodeURIComponent("https://cleanpathcredit.com/dashboard");
     window.location.href = `https://accounts.cleanpathcredit.com/sign-up?redirect_url=${redirectUrl}`;

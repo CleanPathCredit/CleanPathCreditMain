@@ -27,6 +27,7 @@
 import Stripe from "stripe";
 import { createClerkClient } from "@clerk/backend";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 import type { Database, Plan } from "../../src/types/database";
 
 // Buy Button ID → plan tier
@@ -148,6 +149,9 @@ export default async function handler(req: Request): Promise<Response> {
     expiresInSeconds:  86400,
   });
 
+  // Send purchase confirmation email to customer (Stripe defense evidence)
+  await sendPurchaseConfirmation({ email, name, plan });
+
   // Send internal notification (email + SMS via GoHighLevel or direct)
   await notifyOwner({ email, name, plan, sessionId: session.id });
 
@@ -163,6 +167,89 @@ export default async function handler(req: Request): Promise<Response> {
     status:  200,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+const PLAN_LABELS: Record<Plan, string> = {
+  free:     "Free",
+  diy:      "DIY Blueprint",
+  standard: "Credit Correction System",
+  premium:  "Executive System",
+};
+
+async function sendPurchaseConfirmation({ email, name, plan }: {
+  email: string; name: string; plan: Plan;
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from   = process.env.RESEND_FROM_EMAIL ?? "Clean Path Credit <noreply@cleanpathcredit.com>";
+  if (!apiKey) {
+    console.warn("RESEND_API_KEY not set — skipping purchase confirmation email");
+    return;
+  }
+
+  const resend    = new Resend(apiKey);
+  const planLabel = PLAN_LABELS[plan] ?? plan;
+  const firstName = name.split(" ")[0] || "there";
+
+  try {
+    await resend.emails.send({
+      from,
+      to: email,
+      subject: `Your ${planLabel} Is Ready — Welcome to Clean Path Credit`,
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f9fafb;">
+  <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <img src="https://cleanpathcredit.com/logo.png" alt="Clean Path Credit" width="48" height="48" style="border-radius:8px;"/>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:32px;border:1px solid #e5e7eb;">
+      <h1 style="margin:0 0 8px;font-size:22px;color:#18181b;">Hey ${firstName}, You're All Set!</h1>
+      <p style="margin:0 0 24px;color:#71717a;font-size:15px;line-height:1.6;">
+        Your <strong>${planLabel}</strong> purchase is confirmed. Your credit correction system is ready and waiting for you.
+      </p>
+
+      <div style="background:#f0fdf4;border-radius:8px;padding:16px;margin-bottom:24px;">
+        <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#166534;">What happens next:</p>
+        <ol style="margin:0;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
+          <li>Create your account (if you haven't already)</li>
+          <li>Access your personalized dashboard</li>
+          <li>Follow your step-by-step action plan</li>
+        </ol>
+      </div>
+
+      <div style="text-align:center;margin-bottom:24px;">
+        <a href="https://cleanpathcredit.com/dashboard"
+           style="display:inline-block;background:#18181b;color:#fff;padding:12px 32px;border-radius:999px;text-decoration:none;font-weight:600;font-size:15px;">
+          Access My Dashboard →
+        </a>
+      </div>
+
+      <p style="margin:0;color:#a1a1aa;font-size:12px;line-height:1.6;">
+        This email confirms your purchase and that digital product access has been delivered.
+        If you have any questions, reply to this email or contact
+        <a href="mailto:support@cleanpathcredit.com" style="color:#059669;">support@cleanpathcredit.com</a>.
+      </p>
+    </div>
+
+    <div style="text-align:center;margin-top:24px;">
+      <p style="color:#d4d4d8;font-size:11px;line-height:1.6;">
+        &copy; ${new Date().getFullYear()} Clean Path Credit. All rights reserved.<br/>
+        You received this email because you purchased the ${planLabel}.<br/>
+        <a href="https://cleanpathcredit.com/terms" style="color:#a1a1aa;">Terms</a> &middot;
+        <a href="https://cleanpathcredit.com/privacy" style="color:#a1a1aa;">Privacy</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>`.trim(),
+    });
+    console.log(`Purchase confirmation sent to ${email}`);
+  } catch (err) {
+    console.error("Failed to send purchase confirmation:", err);
+    // Non-fatal — purchase still processed
+  }
 }
 
 async function notifyOwner({ email, name, plan, sessionId }: {
