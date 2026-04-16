@@ -16,7 +16,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
-import { CheckCircle2, Star, Zap, Shield } from "lucide-react";
+import { CheckCircle2, Star, Zap, Shield, Lock } from "lucide-react";
 import type { Plan } from "@/types/database";
 
 const PLAN_COPY: Record<Plan, {
@@ -77,11 +77,17 @@ export function Welcome() {
   const [searchParams] = useSearchParams();
   const navigate       = useNavigate();
   const { isSignedIn, isLoaded } = useUser();
-  const [showAuth, setShowAuth] = useState(false);
+  const [showAuth, setShowAuth]           = useState(false);
+  const [consentTerms, setConsentTerms]   = useState(false);
+  const [consentDispute, setConsentDispute] = useState(false);
 
   const plan      = (searchParams.get("plan") ?? "free") as Plan;
   const sessionId = searchParams.get("session_id");
+  const email     = searchParams.get("email");
   const copy      = PLAN_COPY[plan] ?? PLAN_COPY.free;
+
+  const bothChecked = consentTerms && consentDispute;
+  const isPaidPlan  = plan !== "free";
 
   // Already signed in → go straight to dashboard (only when Clerk loads)
   useEffect(() => {
@@ -128,8 +134,17 @@ export function Welcome() {
     setShowAuth(true);
   }
 
-  // Redirect to Clerk's hosted sign-up page
+  // Redirect to agreement signing page (paid plans) or Clerk sign-up (free)
   if (showAuth) {
+    if (isPaidPlan) {
+      const params = new URLSearchParams({
+        plan,
+        ...(email ? { email } : {}),
+        ...(sessionId ? { session_id: sessionId } : {}),
+      });
+      navigate(`/agreement?${params.toString()}`, { replace: true });
+      return null;
+    }
     const redirectUrl = encodeURIComponent("https://cleanpathcredit.com/dashboard");
     window.location.href = `https://accounts.cleanpathcredit.com/sign-up?redirect_url=${redirectUrl}`;
     return null;
@@ -152,8 +167,8 @@ export function Welcome() {
         <p className="mt-3 max-w-md text-base text-zinc-500">{copy.subtitle}</p>
       </div>
 
-      {/* Feature list */}
-      <div className="mb-10 w-full max-w-sm rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
+      {/* What's unlocked */}
+      <div className="mb-6 w-full max-w-sm rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
         <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-zinc-400">
           What&apos;s unlocked
         </p>
@@ -165,26 +180,90 @@ export function Welcome() {
             </li>
           ))}
         </ul>
+        {isPaidPlan && (
+          <p className="mt-4 text-xs text-zinc-400 leading-relaxed">
+            Delivery is considered complete upon account access. You will receive instant dashboard access, your personalized strategy, and a step-by-step action plan.
+          </p>
+        )}
       </div>
+
+      {/* Consent checkboxes — only for paid plans */}
+      {isPaidPlan && (
+        <div className="mb-6 w-full max-w-sm space-y-4">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={consentTerms}
+              onChange={(e) => setConsentTerms(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+            />
+            <span className="text-xs text-zinc-600 leading-relaxed group-hover:text-zinc-900 transition-colors">
+              I agree to the{" "}
+              <a href="/terms" target="_blank" className="text-emerald-600 underline hover:text-emerald-700">
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a href="/privacy" target="_blank" className="text-emerald-600 underline hover:text-emerald-700">
+                Privacy Policy
+              </a>.
+              I understand this is a digital product with immediate access and that results are not guaranteed.
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={consentDispute}
+              onChange={(e) => setConsentDispute(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+            />
+            <span className="text-xs text-zinc-600 leading-relaxed group-hover:text-zinc-900 transition-colors">
+              I agree to contact support before filing any payment dispute and understand that system access constitutes product delivery.
+            </span>
+          </label>
+        </div>
+      )}
 
       {/* CTA */}
       <div className="flex w-full max-w-sm flex-col gap-3">
         <button
-          onClick={() => setShowAuth(true)}
-          className="h-12 w-full rounded-full bg-zinc-900 font-semibold text-white transition-colors hover:bg-zinc-800"
+          onClick={handleProceed}
+          disabled={isPaidPlan && !bothChecked}
+          className={`h-12 w-full rounded-full font-semibold text-white transition-all flex items-center justify-center gap-2 ${
+            !isPaidPlan || bothChecked
+              ? "bg-zinc-900 hover:bg-zinc-800 cursor-pointer"
+              : "bg-zinc-300 cursor-not-allowed"
+          }`}
         >
+          {isPaidPlan && !bothChecked && <Lock className="h-4 w-4" />}
           Create My Account &amp; Access Dashboard →
         </button>
+
         <p className="text-center text-xs text-zinc-400">
           Already have an account?{" "}
           <a href="/login" className="text-emerald-600 hover:underline">Sign in</a>
         </p>
+
         {sessionId && (
           <p className="text-center text-xs text-zinc-300">
             Order #{sessionId.slice(-8).toUpperCase()}
           </p>
         )}
       </div>
+
+      {/* CROA disclosure */}
+      {isPaidPlan && (
+        <div className="mt-8 w-full max-w-sm">
+          <p className="text-[10px] text-zinc-400 leading-relaxed text-center">
+            You have the right to dispute inaccurate information on your credit report on your own at no cost.
+            Clean Path Credit does not guarantee specific results and does not provide legal advice.
+            By completing this purchase, you agree to the{" "}
+            <a href="/terms" target="_blank" className="underline">Terms of Service</a>,{" "}
+            <a href="/privacy" target="_blank" className="underline">Privacy Policy</a>, and refund policy.
+            This is a digital product — no physical item will be shipped.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
