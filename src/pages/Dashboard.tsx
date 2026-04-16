@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSession } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/Button";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
 import { MasterList } from "@/components/dashboard/MasterList";
@@ -15,10 +16,23 @@ import { canAccess, PLAN_LABEL } from "@/lib/planAccess";
 import type { Message } from "@/types/database";
 import {
   CheckCircle2, LogOut, Shield, FileText, Download,
-  MessageSquare, BookOpen, X, Send, Lock,
+  MessageSquare, BookOpen, X, Send, Lock, Phone,
   LayoutDashboard, FolderLock, List, LifeBuoy, Menu
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+
+// Post-purchase onboarding call (30-min success call)
+const ONBOARDING_CALENDLY_URL = "https://calendly.com/cleanpathcredit/30minutesuccesscall";
+const ONBOARDING_CALENDLY_EMBED_URL = `${ONBOARDING_CALENDLY_URL}?hide_event_type_details=1&hide_gdpr_banner=1&primary_color=00bc7d`;
+const CALENDLY_SCRIPT_SRC = "https://assets.calendly.com/assets/external/widget.js";
+
+declare global {
+  interface Window {
+    Calendly?: {
+      initInlineWidget: (opts: { url: string; parentElement: HTMLElement }) => void;
+    };
+  }
+}
 
 type SidebarTab = "dashboard" | "vault" | "masterlist" | "support";
 
@@ -47,6 +61,7 @@ function getStepStatus(profileStatus: string, stepKey: string): "completed" | "a
 
 export function Dashboard() {
   const { clerkUser, profile, logout, supabase } = useAuth();
+  const { session } = useSession();
 
   const [messages, setMessages]               = useState<Message[]>([]);
   const [newMessage, setNewMessage]           = useState("");
@@ -54,6 +69,89 @@ export function Dashboard() {
   const [isChatOpen, setIsChatOpen]           = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // ── Onboarding call card ──────────────────────────────────────────────────
+  // Shown at the top of the dashboard for paid users who haven't booked their
+  // 30-min success call yet. Hidden permanently once booked (DB flag).
+  //
+  // calHostOnboarding: callback ref — fires when Framer Motion mounts the div,
+  // triggering the Calendly init effect (same pattern as QuizFunnel step 5).
+  const [calHostOnboarding, setCalHostOnboarding] = useState<HTMLDivElement | null>(null);
+  // Optimistic local flag: set to true immediately after the API call succeeds
+  // so the card hides without waiting for a profile refetch.
+  const [onboardingBookedLocal, setOnboardingBookedLocal] = useState(false);
+
+  const isPaidPlan = profile?.plan === "standard" || profile?.plan === "premium" || profile?.plan === "diy";
+  const showOnboardingCard = isPaidPlan && !profile?.onboarding_call_booked && !onboardingBookedLocal;
+
+  // Initialize inline Calendly widget once the host div is in the DOM.
+  useEffect(() => {
+    if (!calHostOnboarding) return;
+
+    let cancelled = false;
+
+    function initWidget() {
+      if (cancelled || !calHostOnboarding) return;
+      if (!window.Calendly?.initInlineWidget) {
+        setTimeout(initWidget, 50);
+        return;
+      }
+      calHostOnboarding.innerHTML = "";
+      window.Calendly.initInlineWidget({
+        url:           ONBOARDING_CALENDLY_EMBED_URL,
+        parentElement: calHostOnboarding,
+      });
+    }
+
+    if (window.Calendly?.initInlineWidget) {
+      initWidget();
+    } else {
+      const existing = document.querySelector<HTMLScriptElement>(`script[src="${CALENDLY_SCRIPT_SRC}"]`);
+      if (existing) {
+        if (existing.getAttribute("data-loaded") === "true") {
+          initWidget();
+        } else {
+          existing.addEventListener("load", () => { existing.setAttribute("data-loaded", "true"); initWidget(); }, { once: true });
+        }
+      } else {
+        const script = document.createElement("script");
+        script.src   = CALENDLY_SCRIPT_SRC;
+        script.async = true;
+        script.addEventListener("load", () => { script.setAttribute("data-loaded", "true"); initWidget(); }, { once: true });
+        document.body.appendChild(script);
+      }
+    }
+
+    return () => { cancelled = true; };
+  }, [calHostOnboarding]);
+
+  // Listen for Calendly booking confirmation on the onboarding widget.
+  useEffect(() => {
+    if (!calHostOnboarding) return;
+    async function handleMessage(e: MessageEvent) {
+      if (typeof e.origin !== "string" || !e.origin.includes("calendly.com")) return;
+      const data = e.data as { event?: string };
+      if (data?.event !== "calendly.event_scheduled") return;
+
+      // Optimistically hide the card
+      setOnboardingBookedLocal(true);
+
+      // Persist to DB so it's hidden on other devices too
+      try {
+        const token = await session?.getToken();
+        if (!token) return;
+        await fetch("/api/profile/mark-onboarding-booked", {
+          method:  "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (err) {
+        console.error("[Dashboard] mark-onboarding-booked failed:", err);
+        // Non-fatal: card stays hidden locally via onboardingBookedLocal
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [calHostOnboarding, session]);
 
   // ── Fetch messages and subscribe to new ones ───────────────────────────────
   useEffect(() => {
@@ -185,6 +283,39 @@ export function Dashboard() {
             {/* ── DASHBOARD ── */}
             {activeTab === "dashboard" && (
               <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
+
+                {/* ── Onboarding call card (paid users only, until booked) ── */}
+                <AnimatePresence>
+                  {showOnboardingCard && (
+                    <motion.div
+                      key="onboarding-card"
+                      initial={{ opacity: 0, y: -12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.97 }}
+                      transition={{ duration: 0.35 }}
+                      className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-sky-50 overflow-hidden shadow-sm"
+                    >
+                      <div className="p-6 pb-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                            <Phone className="h-5 w-5 text-emerald-600" />
+                          </div>
+                          <div>
+                            <h2 className="text-lg font-bold text-zinc-900">Book your 30-min kickoff call</h2>
+                            <p className="text-sm text-zinc-500">Lock in your slot — your specialist is ready to get started.</p>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Calendly inline widget */}
+                      <div
+                        ref={setCalHostOnboarding}
+                        className="w-full"
+                        style={{ minWidth: "320px", height: "580px" }}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Onboarding nudge */}
                 {!profile?.id_uploaded && (
                   <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-4">

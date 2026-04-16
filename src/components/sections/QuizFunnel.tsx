@@ -177,23 +177,16 @@ export function QuizFunnel() {
     setIsFinalAnalyzing(true);
     setAnalysisProgress(0);
 
-    // Send lead data to the CRM via a same-origin backend proxy. Never embed
-    // raw webhook URLs (or secrets) in client code — anyone could replay or
-    // spam them. The proxy is expected to validate + forward server-side.
-    // Configure the endpoint with VITE_LEAD_WEBHOOK_URL (e.g. "/api/lead").
-    const leadEndpoint = import.meta.env.VITE_LEAD_WEBHOOK_URL;
-    if (leadEndpoint) {
-      fetch(leadEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      }).catch((error) => {
-        if (import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
-          console.error("Error sending lead data:", error);
-        }
-      });
-    }
+    // Send lead data to the server-side CRM proxy. /api/lead forwards to
+    // GoHighLevel using a secret env var — the GHL webhook URL is never
+    // exposed in the browser bundle.
+    fetch("/api/lead", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...formData, source: "cleanpathcredit.com/quiz" }),
+    }).catch((err) => {
+      if (import.meta.env.DEV) console.error("[QuizFunnel] lead submit failed:", err);
+    });
     
     const interval = setInterval(() => {
       setAnalysisProgress(prev => {

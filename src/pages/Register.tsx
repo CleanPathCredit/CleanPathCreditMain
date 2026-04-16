@@ -7,9 +7,31 @@ import React from "react";
 import { SignUp, ClerkLoading, ClerkLoaded } from "@clerk/clerk-react";
 
 export function Register() {
-  // Pre-fill from quiz funnel lead stored in sessionStorage (no PII in URL)
+  // Pre-fill from two possible sources (highest priority first):
+  //
+  //   1. URL query params (?email=X&name=Y) — sent by form.cleanpathcredit.com
+  //      after a lead books a free audit call. We read them once, move them to
+  //      sessionStorage, and strip them from the URL so PII doesn't sit in
+  //      browser history or server logs.
+  //
+  //   2. sessionStorage key "cpc_lead" — written by the main-site QuizFunnel
+  //      (step 5 progressive disclosure) to pass email + name without PII in URL.
   const initialValues: Record<string, string> = {};
   try {
+    // Source 1: URL params from form site
+    const params = new URLSearchParams(window.location.search);
+    const urlEmail = params.get("email");
+    const urlName  = params.get("name");
+    if (urlEmail || urlName) {
+      // Move to sessionStorage and clean the URL in one shot
+      const lead = { email: urlEmail ?? "", name: urlName ?? "" };
+      sessionStorage.setItem("cpc_lead", JSON.stringify(lead));
+      // Replace URL without the PII params (no extra history entry)
+      const clean = window.location.pathname;
+      window.history.replaceState(null, "", clean);
+    }
+
+    // Source 2: sessionStorage (main-site quiz OR just-migrated URL params)
     const raw = sessionStorage.getItem("cpc_lead");
     if (raw) {
       const lead = JSON.parse(raw) as { name?: string; email?: string };
@@ -20,7 +42,7 @@ export function Register() {
       if (lead.email) initialValues.emailAddress = lead.email;
       sessionStorage.removeItem("cpc_lead"); // consume once
     }
-  } catch { /* sessionStorage unavailable — form starts empty */ }
+  } catch { /* sessionStorage / history API unavailable — form starts empty */ }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12">

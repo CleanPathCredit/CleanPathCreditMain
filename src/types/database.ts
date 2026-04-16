@@ -51,6 +51,7 @@ export interface Database {
           ssn_secret_id: string | null;
           negative_items: number | null;
           dispute_probability: number | null;
+          onboarding_call_booked: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -71,6 +72,7 @@ export interface Database {
           progress?: number;
           id_uploaded?: boolean;
           ssn_uploaded?: boolean;
+          onboarding_call_booked?: boolean;
           video_verified?: boolean;
           ssn_secret_id?: string | null;
           negative_items?: number | null;
