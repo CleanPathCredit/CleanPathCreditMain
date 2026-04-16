@@ -7,9 +7,9 @@ import { Link } from 'react-router-dom';
 type Step = 1 | 2 | 3 | 4 | 5;
 
 // Pre-purchase funnel event (free 15-min credit audit). A separate Calendly
-// event exists for post-purchase onboarding — that one lives in the Welcome /
-// dashboard flow, not this quiz.
-const CALENDLY_URL = "https://calendly.com/perfectcredit780/free-15-min-credit-audit-strategy-call";
+// event exists for post-purchase onboarding (cleanpathcredit/30minutesuccesscall)
+// — that one lives in the Dashboard flow, not this quiz.
+const CALENDLY_URL = "https://calendly.com/cleanpathcredit/free-15-min-credit-audit-strategy-call";
 const CALENDLY_EMBED_URL = `${CALENDLY_URL}?hide_event_type_details=1&hide_gdpr_banner=1&primary_color=00bc7d`;
 const CALENDLY_SCRIPT_SRC = "https://assets.calendly.com/assets/external/widget.js";
 
