@@ -19,6 +19,7 @@ const AdminDashboard = lazy(() => import("@/pages/AdminDashboard").then(m => ({ 
 const Methodology = lazy(() => import("@/pages/Methodology").then(m => ({ default: m.Methodology })));
 const Welcome     = lazy(() => import("@/pages/Welcome").then(m => ({ default: m.Welcome })));
 const Terms       = lazy(() => import("@/pages/Terms").then(m => ({ default: m.Terms })));
+const Privacy     = lazy(() => import("@/pages/Privacy").then(m => ({ default: m.Privacy })));
 
 function LoadingFallback() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/welcome" element={<Welcome />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route
                 path="/dashboard"
                 element={
