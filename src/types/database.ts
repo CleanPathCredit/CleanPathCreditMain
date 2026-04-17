@@ -141,10 +141,26 @@ export interface Database {
         Update: Record<string, never>;
         Relationships: [];
       };
+      stripe_webhook_events: {
+        Row: {
+          id: string;
+          event_type: string;
+          received_at: string;
+        };
+        Insert: {
+          id: string;
+          event_type: string;
+          received_at?: string;
+        };
+        // Immutable audit record — no valid update columns
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       clerk_user_id: { Args: Record<string, never>; Returns: string };
+      is_admin:      { Args: Record<string, never>; Returns: boolean };
       log_audit_event: {
         Args: { p_action: string; p_target?: string; p_metadata?: Record<string, unknown> };
         Returns: void;
@@ -160,6 +176,7 @@ export type Profile  = Database["public"]["Tables"]["profiles"]["Row"];
 export type Message  = Database["public"]["Tables"]["messages"]["Row"];
 export type Document = Database["public"]["Tables"]["documents"]["Row"];
 export type AuditLog = Database["public"]["Tables"]["audit_log"]["Row"];
+export type StripeWebhookEvent = Database["public"]["Tables"]["stripe_webhook_events"]["Row"];
 
 /** Profile with its Supabase row id — used in admin list views */
 export type ClientRecord = Profile;
