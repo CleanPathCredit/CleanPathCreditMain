@@ -14,6 +14,11 @@
  * This replaces a previous hand-rolled JWKS + SubtleCrypto path that
  * checked only signature + exp (audit finding C-2).
  *
+ * Runs on Node.js serverless runtime because @clerk/backend depends on
+ * @clerk/shared modules that Vercel's Edge runtime cannot resolve. Cold
+ * starts are ~150ms higher than Edge — acceptable for a low-volume
+ * authenticated endpoint.
+ *
  * Required env:
  *   CLERK_SECRET_KEY              (Clerk Dashboard → API Keys → Secret keys)
  *   SUPABASE_URL                  (Supabase Dashboard → Settings → API)
@@ -23,11 +28,10 @@
  *                                 back to the two prod origins below
  */
 
+import type { IncomingMessage, ServerResponse } from "http";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "@clerk/backend";
 import type { Database } from "../src/types/database";
-
-export const config = { runtime: "edge" };
 
 // Origins whose Clerk session tokens we accept. Override in prod via
 // CLERK_AUTHORIZED_PARTIES="https://cleanpathcredit.com,https://app.example.com".
@@ -42,17 +46,24 @@ function getAuthorizedParties(): string[] {
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  const jsonHeaders = { "Content-Type": "application/json" };
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json");
+  res.end(JSON.stringify(body));
+}
 
+export default async function handler(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   // 1. Extract bearer token
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify(null), { status: 401, headers: jsonHeaders });
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return sendJson(res, 401, null);
   }
   const token = authHeader.slice(7).trim();
   if (!token) {
-    return new Response(JSON.stringify(null), { status: 401, headers: jsonHeaders });
+    return sendJson(res, 401, null);
   }
 
   // 2. Validate env (fail closed)
@@ -65,9 +76,7 @@ export default async function handler(req: Request): Promise<Response> {
       SUPABASE_URL:              !!supabaseUrl,
       SUPABASE_SERVICE_ROLE_KEY: !!supabaseServiceKey,
     });
-    return new Response(JSON.stringify({ error: "server_misconfigured" }), {
-      status: 500, headers: jsonHeaders,
-    });
+    return sendJson(res, 500, { error: "server_misconfigured" });
   }
 
   // 3. Verify JWT — checks signature, iss, exp, nbf, azp (with 5s skew)
@@ -78,13 +87,13 @@ export default async function handler(req: Request): Promise<Response> {
       authorizedParties: getAuthorizedParties(),
     });
     if (typeof payload.sub !== "string" || !payload.sub) {
-      return new Response(JSON.stringify(null), { status: 401, headers: jsonHeaders });
+      return sendJson(res, 401, null);
     }
     userId = payload.sub;
   } catch {
     // Invalid signature, wrong iss/azp, expired, nbf-in-future, or malformed.
     // Do not echo the reason — callers don't need to know why we rejected.
-    return new Response(JSON.stringify(null), { status: 401, headers: jsonHeaders });
+    return sendJson(res, 401, null);
   }
 
   // 4. Fetch profile with the service-role client (no RLS, scoped by userId)
@@ -98,5 +107,5 @@ export default async function handler(req: Request): Promise<Response> {
     .eq("id", userId)
     .single();
 
-  return new Response(JSON.stringify(data ?? null), { headers: jsonHeaders });
+  return sendJson(res, 200, data ?? null);
 }
