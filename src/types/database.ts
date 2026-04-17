@@ -76,6 +76,11 @@ export interface Database {
           negative_items?: number | null;
           dispute_probability?: number | null;
         };
+        // Broad Update shape is retained so admin code (which writes via the
+        // "profiles: admin full access" RLS policy) continues to type-check.
+        // Non-admin client code should use `ClientProfileUpdate` below; RLS on
+        // profiles (migrations/002) rejects any non-admin write that targets
+        // columns outside the allowlist.
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
         Relationships: [];
       };
@@ -158,3 +163,24 @@ export type AuditLog = Database["public"]["Tables"]["audit_log"]["Row"];
 
 /** Profile with its Supabase row id — used in admin list views */
 export type ClientRecord = Profile;
+
+/**
+ * Columns a non-admin caller is permitted to mutate on their OWN profile row.
+ * Mirrors the allowlist enforced at the DB layer by RLS (see
+ * supabase/migrations/002_fix_profiles_rls_privilege_escalation.sql).
+ *
+ * Prefer this type at client-side call sites (e.g. DocumentVault) so a typo
+ * that adds `plan` or `status` to the update payload is caught at compile
+ * time rather than silently rejected by RLS at runtime.
+ */
+export type ClientProfileUpdate = Partial<Pick<
+  Database["public"]["Tables"]["profiles"]["Insert"],
+  | "full_name"
+  | "phone"
+  | "address"
+  | "goal"
+  | "challenge"
+  | "quiz_data"
+  | "id_uploaded"
+  | "ssn_uploaded"
+>>;
