@@ -1141,32 +1141,44 @@ export function QuizFunnel() {
                         style={{ minWidth: '320px', height: '680px' }}
                       />
                       {/* Fallbacks — reCAPTCHA can fail inside the embed for
-                          users with strict ad-blockers; new-tab link always
-                          works. Account-first link preserves the lead if
-                          they're not ready to book. */}
-                      <div className="flex flex-col items-center gap-2 mt-4 text-center">
-                        <a
-                          href={`${CALENDLY_URL}?name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2 font-medium"
-                        >
-                          Trouble booking? Open Calendly in a new tab ↗
-                        </a>
-                        <Link
-                          to="/register"
-                          onClick={() => {
-                            try {
-                              sessionStorage.setItem('cpc_lead', JSON.stringify({
-                                name:  formData.fullName,
-                                email: formData.email,
-                              }));
-                            } catch { /* sessionStorage unavailable — Register handles the empty case */ }
-                          }}
-                          className="text-xs text-zinc-500 hover:text-zinc-800 underline underline-offset-2"
-                        >
-                          Prefer to create your account first? You can book from your dashboard.
-                        </Link>
+                          users with strict ad-blockers or 3rd-party-cookie
+                          blocking (common on Firefox strict mode, uBlock,
+                          Privacy Badger). The new-tab link works in those
+                          cases because Calendly's reCAPTCHA runs first-party
+                          on calendly.com. Account-first link preserves the
+                          lead if they're not ready to book. */}
+                      <div className="mt-5 space-y-4">
+                        <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3">
+                          <p className="text-sm text-zinc-800">
+                            <span className="font-semibold">Seeing a "Could not connect to reCAPTCHA" error?</span>{' '}
+                            That usually means a browser extension or strict privacy setting is blocking the embedded booking form.{' '}
+                            <a
+                              href={`${CALENDLY_URL}?name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline underline-offset-2 font-medium whitespace-nowrap"
+                            >
+                              Open Calendly in a new tab ↗
+                            </a>{' '}
+                            to book without the embed.
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <Link
+                            to="/register"
+                            onClick={() => {
+                              try {
+                                sessionStorage.setItem('cpc_lead', JSON.stringify({
+                                  name:  formData.fullName,
+                                  email: formData.email,
+                                }));
+                              } catch { /* sessionStorage unavailable — Register handles the empty case */ }
+                            }}
+                            className="text-xs text-zinc-500 hover:text-zinc-800 underline underline-offset-2"
+                          >
+                            Prefer to create your account first? You can book from your dashboard.
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -1185,27 +1197,27 @@ export function QuizFunnel() {
                     <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                   </div>
                   <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-3">Your call is booked.</h3>
-                  <p className="text-base text-zinc-600 mb-2 max-w-lg">
+                  <p className="text-base text-zinc-600 mb-6 max-w-lg">
                     Check your inbox — Calendly just sent a confirmation with the date, time, and calendar invite.
                   </p>
-                  <p className="text-sm text-zinc-500 mb-8 max-w-lg">
-                    Want to hit the ground running? Set up your free client portal now so we can review your 3-bureau report <em>before</em> the call — you'll get twice as much out of it.
+                  <p className="text-base sm:text-lg font-medium text-zinc-800 mb-6 max-w-lg">
+                    Before your call, we'll already have clarity on what's holding your score back.
                   </p>
 
                   <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-zinc-50 p-6 text-left">
-                    <h4 className="text-lg font-semibold text-zinc-900 mb-3">Your free client portal includes:</h4>
+                    <h4 className="text-lg font-semibold text-zinc-900 mb-3">Inside your client portal:</h4>
                     <ul className="space-y-2 mb-6 text-sm text-zinc-700">
                       <li className="flex items-start gap-2">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>Upload your 3-bureau report so we can pre-audit it</span>
+                        <span>Pre-audit of your 3-bureau credit report</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>Track progress on every disputed item, per bureau</span>
+                        <span>Live tracking of every correction across all bureaus</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>Access the Master Financial List — credit-builder tools we actually use</span>
+                        <span>Access to our private credit-building systems</span>
                       </li>
                     </ul>
                     <Link
