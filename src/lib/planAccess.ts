@@ -90,12 +90,21 @@ export const UPGRADE_COPY: Record<Feature, { heading: string; body: string; cta:
   basic_guides:  { heading: "", body: "", cta: "" },
 };
 
-/** Stripe Buy Button IDs — used in upgrade CTAs */
-export const UPGRADE_BUY_BUTTONS: Partial<Record<Plan, string>> = {
-  diy:      "buy_btn_1TKC9sCRvEfUoJHH2j25qlzl",
-  standard: "buy_btn_1TKCHQCRvEfUoJHHRsYycHRA",
-  premium:  "buy_btn_1TKCDdCRvEfUoJHHwJwoLyj9",
+// Stripe client-side identifiers (audit finding C-5). These are all safe to
+// expose — publishable keys and Buy Button IDs are public by design — but
+// hardcoding them ties the repo to one Stripe account and blocks test-mode
+// previews. Driven by Vite env vars so prod/preview can swap without code
+// changes; consumers must handle missing values (PlanGate falls back to a
+// plain CTA link when a Buy Button ID is absent).
+export const STRIPE_PUBLISHABLE_KEY: string =
+  (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined) ?? "";
+
+const BUY_BUTTON_ENV: Record<"diy" | "standard" | "premium", string | undefined> = {
+  diy:      import.meta.env.VITE_STRIPE_BUY_BUTTON_DIY      as string | undefined,
+  standard: import.meta.env.VITE_STRIPE_BUY_BUTTON_STANDARD as string | undefined,
+  premium:  import.meta.env.VITE_STRIPE_BUY_BUTTON_PREMIUM  as string | undefined,
 };
 
-export const STRIPE_PUBLISHABLE_KEY =
-  "pk_live_51TK8cGCRvEfUoJHHxzULDJMLLDiw259orwvPXmQf5RpGAS79VUphUPSRo8hRVf6qnHGNQEqAaHs03krBlWD6Hnw200I1GroJ9F";
+export const UPGRADE_BUY_BUTTONS: Partial<Record<Plan, string>> = Object.fromEntries(
+  Object.entries(BUY_BUTTON_ENV).filter(([, id]) => Boolean(id)),
+) as Partial<Record<Plan, string>>;

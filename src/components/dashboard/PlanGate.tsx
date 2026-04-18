@@ -30,6 +30,9 @@ export function PlanGate({ feature, plan, children, blurChildren = true, lightBl
   const copy          = UPGRADE_COPY[feature];
   const upgradePlan   = UPGRADE_TARGET[currentPlan];
   const buyButtonId   = upgradePlan ? UPGRADE_BUY_BUTTONS[upgradePlan] : null;
+  // Fall back to the generic CTA link when Stripe env is incomplete — prevents
+  // a half-wired <stripe-buy-button> from rendering in previews or local dev.
+  const canRenderBuyButton = Boolean(buyButtonId && STRIPE_PUBLISHABLE_KEY);
 
   if (hasAccess) return <>{children}</>;
 
@@ -57,7 +60,7 @@ export function PlanGate({ feature, plan, children, blurChildren = true, lightBl
         <h3 className="text-lg font-bold text-zinc-900 mb-2">{copy.heading}</h3>
         <p className="text-sm text-zinc-500 max-w-xs mb-6">{copy.body}</p>
 
-        {buyButtonId ? (
+        {canRenderBuyButton ? (
           <div className="flex flex-col items-center gap-3">
             {/* Stripe Buy Button — rendered via createElement so no type declaration is needed
                 for the custom element, and no dangerouslySetInnerHTML is required. */}
