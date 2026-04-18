@@ -4,14 +4,24 @@
  * POST /api/lead
  *
  * Same-origin proxy that accepts quiz submissions from the marketing site,
- * verifies bot-protection signals server-side, then forwards the sanitized
- * payload to the GoHighLevel inbound webhook (GHL_WEBHOOK_URL). Exists so the
- * real GHL URL is never embedded in the client bundle — anyone with DevTools
- * could otherwise spam it directly.
+ * verifies bot-protection signals server-side, then delivers the lead to
+ * GoHighLevel. Exists so no GHL credential ever ships to the client bundle —
+ * anyone with DevTools could otherwise replay the upstream URL directly.
+ *
+ * Delivery paths (in priority order):
+ *   1. GHL Contacts API (via Private Integration Token) — PRIMARY. Upserts
+ *      the contact with standard fields, tags, and a formatted note. Gives
+ *      us real HTTP errors + the contact ID back for attribution.
+ *   2. GHL Inbound Webhook (GHL_WEBHOOK_URL) — FIRE-AND-FORGET co-send, so
+ *      any existing "Inbound Webhook"-triggered workflows (SMS automations,
+ *      pipeline entries, etc.) keep firing exactly as they did before.
+ *   3. Webhook-only FALLBACK when the PIT + locationId aren't configured OR
+ *      the API call fails. Preserves revert safety: unset the PIT env var
+ *      and behavior reverts to the prior webhook-only flow.
  *
  * Bot protection (audit finding C-4):
  *   - Honeypot field `website` — if non-empty we silently 200 so bots think
- *     the submission succeeded and don't adapt. Nothing is forwarded to GHL.
+ *     the submission succeeded and don't adapt. Nothing is forwarded.
  *   - Cloudflare Turnstile — if TURNSTILE_SECRET_KEY is configured, we verify
  *     the `cf_turnstile_token` with Cloudflare's siteverify API before
  *     forwarding. Missing / invalid token returns 400 so the client UI stays
@@ -22,10 +32,15 @@
  *   - 4xx/5xx → client blocks the redirect and shows a retry prompt
  *   - Honeypot hit → 200 (intentional — looks identical to a real success)
  *
- * Required env:
- *   GHL_WEBHOOK_URL               GoHighLevel inbound webhook URL
+ * Required env (pick one delivery path; both preferred):
+ *   GHL_PRIVATE_INTEGRATION_TOKEN   PIT from GHL → Settings → Private
+ *                                   Integrations (starts with "pit-")
+ *   GHL_LOCATION_ID                 Sub-account location ID
+ *   GHL_WEBHOOK_URL                 Legacy inbound webhook URL (for existing
+ *                                   workflow automations — co-sent alongside
+ *                                   the API call)
  * Optional env:
- *   TURNSTILE_SECRET_KEY          Cloudflare Turnstile secret (enables verify)
+ *   TURNSTILE_SECRET_KEY            Cloudflare Turnstile secret (enables verify)
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
@@ -39,20 +54,41 @@ const MAX_BODY_BYTES = 16 * 1024;
 const TURNSTILE_VERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
+const GHL_API_BASE = "https://services.leadconnectorhq.com";
+const GHL_API_VERSION = "2021-07-28";
+
 interface LeadPayload {
-  fullName?: unknown;
-  email?: unknown;
-  phone?: unknown;
-  consent?: unknown;
-  creditScore?: unknown;
-  income?: unknown;
-  idealScore?: unknown;
-  timeline?: unknown;
-  goal?: unknown;
-  obstacle?: unknown;   // legacy/compat: comma-joined string
-  obstacles?: unknown;  // current: string[] (multi-select)
-  website?: unknown;
+  fullName?:           unknown;
+  email?:              unknown;
+  phone?:              unknown;
+  consent?:            unknown;
+  creditScore?:        unknown;
+  income?:             unknown;
+  idealScore?:         unknown;
+  timeline?:           unknown;
+  goal?:               unknown;
+  obstacle?:           unknown;  // legacy/compat: comma-joined string
+  obstacles?:          unknown;  // current: string[] (multi-select)
+  readinessScore?:     unknown;  // client-computed 0–100; logged for triage
+  website?:            unknown;  // honeypot
   cf_turnstile_token?: unknown;
+}
+
+interface SanitizedLead {
+  fullName:       string;
+  email:          string;
+  phone:          string;
+  consent:        boolean;
+  creditScore:    string;
+  income:         string;
+  idealScore:     string;
+  timeline:       string;
+  goal:           string;
+  obstacle:       string;
+  obstacles:      string[];
+  readinessScore: number | null;
+  source:         string;
+  submittedAt:    string;
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -133,6 +169,155 @@ async function verifyTurnstile(
   }
 }
 
+function splitName(full: string): { firstName?: string; lastName?: string } {
+  const parts = full.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return {};
+  if (parts.length === 1) return { firstName: parts[0] };
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+}
+
+function buildNoteBody(lead: SanitizedLead): string {
+  const when = new Date(lead.submittedAt).toISOString();
+  const lines: string[] = [
+    `Clean Path quiz submission (${when} UTC)`,
+    `• Goal: ${lead.goal || "—"}`,
+    `• Obstacles: ${lead.obstacles.length ? lead.obstacles.join(", ") : "—"}`,
+    `• Credit score range: ${lead.creditScore || "—"}`,
+    `• Annual income range: ${lead.income || "—"}`,
+    `• Ideal credit score: ${lead.idealScore || "—"}`,
+    `• Timeline: ${lead.timeline || "—"}`,
+    `• Readiness score: ${lead.readinessScore !== null ? `${lead.readinessScore}/100` : "—"}`,
+    `• Consent to contact: ${lead.consent ? "yes" : "no"}`,
+  ];
+  return lines.join("\n");
+}
+
+/**
+ * Upsert a contact via the GHL v2 Contacts API. Dedupes by email/phone at
+ * the location level per the account's "Allow Duplicate Contact" setting.
+ * Returns the contact ID on success for downstream note posting.
+ */
+async function upsertGHLContact(
+  token: string,
+  locationId: string,
+  lead: SanitizedLead,
+): Promise<{ ok: boolean; contactId?: string; status?: number; errorText?: string }> {
+  const { firstName, lastName } = splitName(lead.fullName);
+
+  // Tags drive workflow automations. Prefix-namespaced so sales can filter
+  // quiz leads + build funnel-stage segments without custom fields.
+  const tags: string[] = ["cpc_quiz_lead"];
+  if (lead.goal)      tags.push(`goal:${lead.goal}`);
+  for (const o of lead.obstacles) tags.push(`obstacle:${o}`);
+  if (lead.timeline)  tags.push(`timeline:${lead.timeline}`);
+  if (lead.readinessScore !== null) {
+    // Bucketed so tag sprawl stays manageable — ~5 unique values instead of 100.
+    const bucket =
+      lead.readinessScore >= 70 ? "strong" :
+      lead.readinessScore >= 50 ? "promising" :
+      lead.readinessScore >= 30 ? "priority" : "urgent";
+    tags.push(`readiness:${bucket}`);
+  }
+
+  const payload: Record<string, unknown> = {
+    locationId,
+    email:  lead.email,
+    phone:  lead.phone,
+    source: "Clean Path Quiz",
+    tags,
+  };
+  if (firstName) payload.firstName = firstName;
+  if (lastName)  payload.lastName  = lastName;
+
+  try {
+    const resp = await fetch(`${GHL_API_BASE}/contacts/upsert`, {
+      method: "POST",
+      headers: {
+        Authorization:  `Bearer ${token}`,
+        Version:        GHL_API_VERSION,
+        Accept:         "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const errorText = await resp.text().catch(() => "");
+      console.error(
+        "[/api/lead] ghl_upsert_failed status=%d body=%s",
+        resp.status,
+        errorText.slice(0, 500),
+      );
+      return { ok: false, status: resp.status, errorText: errorText.slice(0, 500) };
+    }
+    const data = (await resp.json().catch(() => ({}))) as {
+      contact?: { id?: string };
+      id?: string;
+    };
+    const contactId = data.contact?.id ?? data.id;
+    return { ok: true, contactId };
+  } catch (err) {
+    console.error("[/api/lead] ghl_upsert_error:", err);
+    return { ok: false };
+  }
+}
+
+/**
+ * Post a note with the full quiz answers to the contact. Best-effort — the
+ * contact exists whether this succeeds or not, so a failure here only loses
+ * the audit log, not the lead.
+ */
+async function postGHLNote(
+  token: string,
+  contactId: string,
+  body: string,
+): Promise<void> {
+  try {
+    const resp = await fetch(`${GHL_API_BASE}/contacts/${contactId}/notes`, {
+      method: "POST",
+      headers: {
+        Authorization:  `Bearer ${token}`,
+        Version:        GHL_API_VERSION,
+        Accept:         "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ body }),
+    });
+    if (!resp.ok) {
+      const errorText = await resp.text().catch(() => "");
+      console.error(
+        "[/api/lead] ghl_note_failed status=%d body=%s",
+        resp.status,
+        errorText.slice(0, 300),
+      );
+    }
+  } catch (err) {
+    console.error("[/api/lead] ghl_note_error:", err);
+  }
+}
+
+/**
+ * Co-send to the legacy inbound webhook so existing workflow automations
+ * (SMS drips, pipeline stage moves, etc.) keep firing. Fire-and-forget —
+ * we don't fail the lead submission if the webhook is slow or down.
+ */
+async function coSendWebhook(webhookUrl: string, lead: SanitizedLead): Promise<boolean> {
+  try {
+    const resp = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lead),
+    });
+    if (!resp.ok) {
+      console.error("[/api/lead] ghl_webhook_failed status=%d", resp.status);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[/api/lead] ghl_webhook_error:", err);
+    return false;
+  }
+}
+
 export default async function handler(
   req: IncomingMessage,
   res: ServerResponse,
@@ -178,19 +363,8 @@ export default async function handler(
     }
   }
 
-  // 4. Forward sanitized payload to GHL. We deliberately re-build the object
-  // from known keys so we never forward the honeypot, the Turnstile token,
-  // or anything else the caller tried to smuggle through.
-  const ghlUrl = process.env.GHL_WEBHOOK_URL;
-  if (!ghlUrl) {
-    console.error("[/api/lead] server_misconfigured — GHL_WEBHOOK_URL unset");
-    return sendJson(res, 500, { error: "server_misconfigured" });
-  }
-
-  // Obstacles may arrive as an array (multi-select quiz) or a comma-joined
-  // string (legacy single-select). Accept both, cap size + entry length so
-  // a malicious caller can't stuff megabytes of attacker-controlled text
-  // into the downstream CRM.
+  // 4. Sanitize. Rebuild from known keys only — no honeypot, no token, no
+  // smuggled fields make it into the downstream payload.
   const obstaclesArr: string[] = Array.isArray(body.obstacles)
     ? body.obstacles
         .filter((x): x is string => typeof x === "string")
@@ -199,37 +373,73 @@ export default async function handler(
         .slice(0, 10)
     : [];
   const obstacleStr = obstaclesArr.length > 0 ? obstaclesArr.join(", ") : str(body.obstacle);
+  const readinessRaw = typeof body.readinessScore === "number" ? body.readinessScore : null;
+  const readinessScore = readinessRaw !== null && Number.isFinite(readinessRaw)
+    ? Math.max(0, Math.min(100, Math.round(readinessRaw)))
+    : null;
 
-  const sanitized = {
-    fullName:    str(body.fullName),
+  const lead: SanitizedLead = {
+    fullName:       str(body.fullName),
     email,
     phone,
     consent,
-    creditScore: str(body.creditScore),
-    income:      str(body.income),
-    idealScore:  str(body.idealScore),
-    timeline:    str(body.timeline),
-    goal:        str(body.goal),
-    obstacle:    obstacleStr,
-    obstacles:   obstaclesArr,
-    source:      "quiz_funnel",
-    submittedAt: new Date().toISOString(),
+    creditScore:    str(body.creditScore),
+    income:         str(body.income),
+    idealScore:     str(body.idealScore),
+    timeline:       str(body.timeline),
+    goal:           str(body.goal),
+    obstacle:       obstacleStr,
+    obstacles:      obstaclesArr,
+    readinessScore,
+    source:         "quiz_funnel",
+    submittedAt:    new Date().toISOString(),
   };
 
-  try {
-    const forward = await fetch(ghlUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(sanitized),
-    });
-    if (!forward.ok) {
-      console.error("[/api/lead] ghl_forward_failed status=%d", forward.status);
-      return sendJson(res, 502, { error: "upstream_failed" });
-    }
-  } catch (err) {
-    console.error("[/api/lead] ghl_forward_error:", err);
-    return sendJson(res, 502, { error: "upstream_unreachable" });
+  // 5. Deliver. API upsert is primary; webhook co-send preserves existing
+  // automations; webhook-only fallback kicks in if the API route isn't
+  // configured or fails.
+  const pit         = process.env.GHL_PRIVATE_INTEGRATION_TOKEN;
+  const locationId  = process.env.GHL_LOCATION_ID;
+  const webhookUrl  = process.env.GHL_WEBHOOK_URL;
+  const hasApi      = Boolean(pit && locationId);
+
+  if (!hasApi && !webhookUrl) {
+    console.error("[/api/lead] server_misconfigured — no GHL route configured");
+    return sendJson(res, 500, { error: "server_misconfigured" });
   }
 
-  return sendJson(res, 200, { ok: true });
+  let apiResult: Awaited<ReturnType<typeof upsertGHLContact>> | null = null;
+  if (hasApi) {
+    apiResult = await upsertGHLContact(pit!, locationId!, lead);
+    if (apiResult.ok && apiResult.contactId) {
+      // Post the detailed note in the background so the user's submission
+      // doesn't block on GHL's second call. If it fails, the contact is
+      // still there — we just lose the structured audit trail.
+      postGHLNote(pit!, apiResult.contactId, buildNoteBody(lead)).catch(() => { /* already logged */ });
+    }
+  }
+
+  // Co-send or fallback to webhook.
+  let webhookOk = false;
+  if (webhookUrl) {
+    webhookOk = await coSendWebhook(webhookUrl, lead);
+  }
+
+  // Success if ANY delivery channel confirmed. Only fail the request when
+  // every configured channel failed — otherwise the lead would bounce in
+  // the UI despite having landed somewhere.
+  const delivered = (apiResult?.ok === true) || webhookOk;
+  if (!delivered) {
+    return sendJson(res, 502, {
+      error: "upstream_failed",
+      // Surface the GHL status so front-end debugging in DevTools shows
+      // the specific reason without having to dig through Vercel logs.
+      ghl_status: apiResult?.status,
+    });
+  }
+
+  return sendJson(res, 200, {
+    ok: true,
+    contactId: apiResult?.contactId,
+  });
 }

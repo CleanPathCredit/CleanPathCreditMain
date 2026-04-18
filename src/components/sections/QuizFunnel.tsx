@@ -468,6 +468,12 @@ export function QuizFunnel() {
     setIsFinalAnalyzing(true);
     setAnalysisProgress(0);
 
+    // Compute the readiness score up front so we can ship it with the
+    // payload — /api/lead tags the GHL contact with a readiness bucket for
+    // sales triage, and the admin dashboard reads it back later. Frozen
+    // into state below on success so the results page doesn't re-compute.
+    const readinessNow = computeReadiness(formData.creditScore, selectedObstacles, formData.timeline);
+
     const progressInterval = setInterval(() => {
       setAnalysisProgress(prev => {
         if (prev >= 95) return 95;
@@ -494,6 +500,7 @@ export function QuizFunnel() {
           // fields are typically strings, not arrays — keep both so whichever
           // side of the integration consumes the payload, it works).
           obstacle: selectedObstacles.join(', '),
+          readinessScore: readinessNow,
           // C-4 bot protection — server verifies both.
           website: honeypotRef.current?.value || '',
           cf_turnstile_token: turnstileToken,
@@ -526,9 +533,9 @@ export function QuizFunnel() {
       return;
     }
 
-    // Freeze the readiness score for the results page now — computing it
-    // inline during render would recompute on every keystroke + re-render.
-    setReadiness(computeReadiness(formData.creditScore, selectedObstacles, formData.timeline));
+    // Freeze the readiness score for the results page — computed up front
+    // before the fetch so the server sees the same number the UI will render.
+    setReadiness(readinessNow);
 
     setAnalysisProgress(100);
     setTimeout(() => {
