@@ -1178,25 +1178,39 @@ export function QuizFunnel() {
                       {/* Fallbacks — reCAPTCHA can fail inside the embed for
                           users with strict ad-blockers or 3rd-party-cookie
                           blocking (common on Firefox strict mode, uBlock,
-                          Privacy Badger). The new-tab link works in those
-                          cases because Calendly's reCAPTCHA runs first-party
-                          on calendly.com. Account-first link preserves the
-                          lead if they're not ready to book. */}
-                      <div className="mt-5 space-y-4">
-                        <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3">
-                          <p className="text-sm text-zinc-800">
-                            <span className="font-semibold">Seeing a "Could not connect to reCAPTCHA" error?</span>{' '}
-                            That usually means a browser extension or strict privacy setting is blocking the embedded booking form.{' '}
-                            <a
-                              href={`${CALENDLY_URL}?name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline underline-offset-2 font-medium whitespace-nowrap"
-                            >
-                              Open Calendly in a new tab ↗
-                            </a>{' '}
-                            to book without the embed.
-                          </p>
+                          Privacy Badger). We can't detect the failure from
+                          outside Calendly's iframe (cross-origin policy
+                          hides the iframe state), so the amber "reCAPTCHA
+                          broken?" callout used to show for everyone —
+                          including users who never hit the problem. That
+                          was the wrong default.
+                          Now: a small inline <details> whose <summary> is
+                          the one-line "Trouble booking?" link. Closed by
+                          default; users who need the explanation click to
+                          expand. Users who book successfully never see the
+                          callout copy at all. */}
+                      <div className="mt-5 space-y-3">
+                        <div className="text-center">
+                          <details className="inline-block text-left">
+                            <summary className="cursor-pointer list-none text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2 font-medium">
+                              Trouble booking? ↗
+                            </summary>
+                            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3 max-w-lg">
+                              <p className="text-sm text-zinc-800">
+                                <span className="font-semibold">Seeing a "Could not connect to reCAPTCHA" error?</span>{' '}
+                                That usually means a browser extension or strict privacy setting is blocking the embedded booking form.{' '}
+                                <a
+                                  href={`${CALENDLY_URL}?name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 underline underline-offset-2 font-medium whitespace-nowrap"
+                                >
+                                  Open Calendly in a new tab
+                                </a>{' '}
+                                to book without the embed.
+                              </p>
+                            </div>
+                          </details>
                         </div>
                         <div className="text-center">
                           <Link
