@@ -14,9 +14,10 @@ import type {
 } from "@/types/database";
 import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
-  Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Flame,
+  Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Flame, Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { AddLeadModal } from "@/components/admin/AddLeadModal";
 
 const STATUS_OPTIONS: { value: ClientStatus; label: string; color: string }[] = [
   { value: "missing_id",       label: "Missing ID",         color: "bg-red-50 text-red-700 border-red-200" },
@@ -77,6 +78,7 @@ export function AdminDashboard() {
   const [newMessage, setNewMessage]       = useState("");
   const [sidebarOpen, setSidebarOpen]     = useState(false);
   const [view, setView]                   = useState<"clients" | "leads">("clients");
+  const [addLeadOpen, setAddLeadOpen]     = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Guard — only admins
@@ -238,8 +240,19 @@ export function AdminDashboard() {
                       <p className="text-zinc-500 mt-1 text-sm">Manage active clients, documents, and client files.</p>
                     </div>
                   </div>
-                  <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm flex items-center gap-2">
-                    <Users className="h-4 w-4 text-zinc-400" /> {clients.length} Clients
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setAddLeadOpen(true)}
+                      title="Add lead manually"
+                      aria-label="Add lead manually"
+                      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Add Lead</span>
+                    </button>
+                    <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm flex items-center gap-2">
+                      <Users className="h-4 w-4 text-zinc-400" /> {clients.length} Clients
+                    </div>
                   </div>
                 </div>
 
@@ -331,8 +344,19 @@ export function AdminDashboard() {
                       <p className="text-zinc-500 mt-1 text-sm">Every quiz submission — registered or not — sorted newest first. Data flows directly from /api/lead.</p>
                     </div>
                   </div>
-                  <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm flex items-center gap-2">
-                    <Flame className="h-4 w-4 text-emerald-500" /> {leads.length} Leads
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setAddLeadOpen(true)}
+                      title="Add lead manually"
+                      aria-label="Add lead manually"
+                      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Add Lead</span>
+                    </button>
+                    <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm flex items-center gap-2">
+                      <Flame className="h-4 w-4 text-emerald-500" /> {leads.length} Leads
+                    </div>
                   </div>
                 </div>
 
@@ -551,6 +575,12 @@ export function AdminDashboard() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Manual-lead entry modal. Mounted at the dashboard root so it's not
+          clipped by the sidebar/main-column overflow:hidden. Closes itself
+          on success; the realtime INSERT subscription on lead_submissions
+          pushes the new row into the table with no explicit refetch. */}
+      <AddLeadModal open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
     </div>
   );
 }
