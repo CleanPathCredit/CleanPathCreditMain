@@ -8,6 +8,13 @@
  * get created programmatically after a Stripe purchase — gets a profile row
  * with the correct plan tier.
  *
+ * Also best-effort upserts the user into GoHighLevel (Contacts API) so
+ * direct-signup leads populate with name + phone, not just email. Runs
+ * alongside /api/lead's upsert — GHL dedupes by email so the second call
+ * merges into the existing contact record. Best-effort: if GHL is
+ * misconfigured or unreachable, the Supabase write still succeeds (Clerk
+ * webhook must return 2xx or Clerk will retry + eventually pause signups).
+ *
  * Setup (one-time):
  *   1. Clerk Dashboard → Webhooks → Add endpoint
  *      URL: https://cleanpathcredit.com/api/webhooks/clerk
@@ -16,6 +23,7 @@
  *      CLERK_WEBHOOK_SECRET=whsec_xxx
  *   3. Add to Vercel env:
  *      SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ *      GHL_PRIVATE_INTEGRATION_TOKEN, GHL_LOCATION_ID (for the GHL upsert)
  */
 
 import { Webhook } from "svix";
@@ -29,6 +37,64 @@ function getServiceClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
+}
+
+const GHL_API_BASE    = "https://services.leadconnectorhq.com";
+const GHL_API_VERSION = "2021-07-28";
+
+/**
+ * Best-effort upsert into GHL so direct-signup contacts (no prior quiz)
+ * land with real name + phone, not just email. Matches the /api/lead
+ * upsert shape so both paths merge into the same contact record per
+ * account-level dedup.
+ */
+async function upsertGHLFromClerk(input: {
+  email:     string;
+  fullName:  string | null;
+  phone:     string | null;
+  plan:      string;
+}): Promise<void> {
+  const token      = process.env.GHL_PRIVATE_INTEGRATION_TOKEN;
+  const locationId = process.env.GHL_LOCATION_ID;
+  if (!token || !locationId || !input.email) return;
+
+  const parts     = (input.fullName ?? "").split(/\s+/).filter(Boolean);
+  const firstName = parts[0];
+  const lastName  = parts.length > 1 ? parts.slice(1).join(" ") : undefined;
+
+  const tags: string[] = ["cpc_registered_user", `plan:${input.plan}`];
+
+  const payload: Record<string, unknown> = {
+    locationId,
+    email:  input.email,
+    source: "Clean Path Account Signup",
+    tags,
+  };
+  if (firstName)   payload.firstName = firstName;
+  if (lastName)    payload.lastName  = lastName;
+  if (input.phone) payload.phone     = input.phone;
+
+  try {
+    const resp = await fetch(`${GHL_API_BASE}/contacts/upsert`, {
+      method: "POST",
+      headers: {
+        Authorization:  `Bearer ${token}`,
+        Version:        GHL_API_VERSION,
+        Accept:         "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      console.error("[/api/webhooks/clerk] ghl_upsert_failed status=%d body=%s",
+        resp.status, text.slice(0, 300));
+    }
+  } catch (err) {
+    // Swallow — Clerk must get a 2xx or it retries endlessly. The user is
+    // still in our Supabase profiles table; sales can be reconciled later.
+    console.error("[/api/webhooks/clerk] ghl_upsert_error:", err);
+  }
 }
 
 export const config = { runtime: "edge" };
@@ -105,6 +171,18 @@ export default async function handler(req: Request): Promise<Response> {
       console.error("Failed to upsert profile:", error.message);
       return new Response("Database error", { status: 500 });
     }
+
+    // Mirror the signup into GHL so direct-signup leads (no prior quiz
+    // submission) land with name + phone populated. Awaited so the 2xx
+    // only fires after the GHL call settles — this is an edge fn with a
+    // ~25s budget, the upsert completes in <500ms. If GHL fails we still
+    // 200 to Clerk (the user exists in Supabase regardless).
+    await upsertGHLFromClerk({
+      email:    primaryEmail,
+      fullName,
+      phone,
+      plan,
+    });
   }
 
   if (event.type === "user.updated") {
