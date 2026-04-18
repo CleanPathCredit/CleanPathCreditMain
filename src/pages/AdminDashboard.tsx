@@ -10,7 +10,7 @@ import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import type {
   ClientRecord, Message, ClientStatus, Document as DocRow,
-  LeadSubmission, ReadinessTier,
+  LeadSubmission, UrgencyTier,
 } from "@/types/database";
 import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
@@ -35,19 +35,20 @@ function statusLabel(v?: string) {
   return STATUS_OPTIONS.find((s) => s.value === v)?.label ?? "Pending";
 }
 
-// Readiness tier badge colors — mirror the ring colors on the results page
-// so admin sees the same visual priority the lead saw.
-const TIER_BADGE: Record<ReadinessTier, string> = {
-  urgent:    "bg-red-50 text-red-700 border-red-200",
-  priority:  "bg-amber-50 text-amber-700 border-amber-200",
-  promising: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  strong:    "bg-emerald-50 text-emerald-700 border-emerald-200",
+// Urgency tier badge colors — mirror the ring colors on the results page
+// so admin sees the same visual priority the lead saw. Higher urgency =
+// warmer color = more attention needed.
+const TIER_BADGE: Record<UrgencyTier, string> = {
+  urgent:   "bg-red-50 text-red-700 border-red-200",
+  elevated: "bg-amber-50 text-amber-700 border-amber-200",
+  moderate: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  low:      "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
-const TIER_LABEL: Record<ReadinessTier, string> = {
-  urgent:    "Urgent",
-  priority:  "Priority",
-  promising: "Promising",
-  strong:    "Strong",
+const TIER_LABEL: Record<UrgencyTier, string> = {
+  urgent:   "Urgent",
+  elevated: "Elevated",
+  moderate: "Moderate",
+  low:      "Low",
 };
 
 // Compact time-ago for the leads list. Full dates would steal too much
@@ -261,7 +262,7 @@ export function AdminDashboard() {
                     <thead className="bg-zinc-50/50 border-b border-zinc-200 text-zinc-500">
                       <tr>
                         <th className="px-6 py-4 font-medium">Client</th>
-                        <th className="px-6 py-4 font-medium">Readiness</th>
+                        <th className="px-6 py-4 font-medium">Urgency</th>
                         <th className="px-6 py-4 font-medium">Status</th>
                         <th className="px-6 py-4 font-medium">Progress</th>
                         <th className="px-6 py-4 font-medium text-right">Actions</th>
@@ -273,7 +274,7 @@ export function AdminDashboard() {
                         // quiz submission by email (case-insensitive). Cheap
                         // client-side match — leads list is capped at 200.
                         const lead = leads.find(l => l.email.toLowerCase() === c.email.toLowerCase());
-                        const tier = lead?.readiness_tier as ReadinessTier | undefined;
+                        const tier = lead?.urgency_tier as UrgencyTier | undefined;
                         return (
                           <tr key={c.id} className="hover:bg-zinc-50/80 transition-colors group">
                             <td className="px-6 py-4">
@@ -282,10 +283,10 @@ export function AdminDashboard() {
                               {c.phone && <div className="text-zinc-400 text-xs mt-0.5">{c.phone}</div>}
                             </td>
                             <td className="px-6 py-4">
-                              {lead && lead.readiness_score !== null ? (
+                              {lead && lead.urgency_score !== null ? (
                                 <div className="flex flex-col gap-1">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-base font-semibold text-zinc-900">{lead.readiness_score}</span>
+                                    <span className="text-base font-semibold text-zinc-900">{lead.urgency_score}</span>
                                     <span className="text-[10px] text-zinc-400">/ 100</span>
                                   </div>
                                   {tier && (
@@ -365,7 +366,7 @@ export function AdminDashboard() {
                     <thead className="bg-zinc-50/50 border-b border-zinc-200 text-zinc-500">
                       <tr>
                         <th className="px-6 py-4 font-medium">Lead</th>
-                        <th className="px-6 py-4 font-medium">Readiness</th>
+                        <th className="px-6 py-4 font-medium">Urgency</th>
                         <th className="px-6 py-4 font-medium">Goal</th>
                         <th className="px-6 py-4 font-medium">Obstacles</th>
                         <th className="px-6 py-4 font-medium">Recommended</th>
@@ -375,7 +376,7 @@ export function AdminDashboard() {
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                       {leads.map((l) => {
-                        const tier = l.readiness_tier as ReadinessTier | null;
+                        const tier = l.urgency_tier as UrgencyTier | null;
                         const registered = clients.some(c => c.email.toLowerCase() === l.email.toLowerCase());
                         return (
                           <tr key={l.id} className="hover:bg-zinc-50/80 transition-colors">
@@ -385,10 +386,10 @@ export function AdminDashboard() {
                               {l.phone && <div className="text-zinc-400 text-xs mt-0.5">{l.phone}</div>}
                             </td>
                             <td className="px-6 py-4">
-                              {l.readiness_score !== null ? (
+                              {l.urgency_score !== null ? (
                                 <div className="flex flex-col gap-1">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-base font-semibold text-zinc-900">{l.readiness_score}</span>
+                                    <span className="text-base font-semibold text-zinc-900">{l.urgency_score}</span>
                                     <span className="text-[10px] text-zinc-400">/ 100</span>
                                   </div>
                                   {tier && (

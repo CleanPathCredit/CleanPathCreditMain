@@ -10,7 +10,7 @@
  *
  * Delivery matches /api/lead:
  *   - Upserts into GoHighLevel via the Contacts API (same standard fields,
- *     same tag scheme — minus the readiness-tier tag since manual leads
+ *     same tag scheme — minus the urgency-tier tag since manual leads
  *     typically won't have quiz answers)
  *   - Writes a row to public.lead_submissions so the lead surfaces on the
  *     admin dashboard's Leads tab alongside quiz-funnel leads
@@ -29,7 +29,7 @@
 import type { IncomingMessage, ServerResponse } from "http";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "@clerk/backend";
-import type { Database, ReadinessTier, RecommendedOffer, GHLDelivery } from "../../src/types/database";
+import type { Database, UrgencyTier, RecommendedOffer, GHLDelivery } from "../../src/types/database";
 
 export const config = { runtime: "nodejs" };
 
@@ -58,8 +58,8 @@ interface ManualLeadPayload {
   income?:      unknown;
   idealScore?:  unknown;
   timeline?:    unknown;
-  readinessScore?: unknown;
-  notes?:     unknown;  // free-text context from the admin (e.g. call notes)
+  urgencyScore?: unknown;
+  notes?:        unknown;  // free-text context from the admin (e.g. call notes)
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -104,19 +104,19 @@ function splitName(full: string): { firstName?: string; lastName?: string } {
 }
 
 // Mirrors /api/lead tier + recommendation derivation so manual leads show
-// the same UI state as quiz-funnel leads when readiness is provided.
-function tierFromScore(score: number | null): ReadinessTier | null {
+// the same UI state as quiz-funnel leads when urgency is provided.
+function tierFromScore(score: number | null): UrgencyTier | null {
   if (score === null) return null;
-  if (score >= 70) return "strong";
-  if (score >= 50) return "promising";
-  if (score >= 30) return "priority";
-  return "urgent";
+  if (score >= 70) return "urgent";
+  if (score >= 50) return "elevated";
+  if (score >= 30) return "moderate";
+  return "low";
 }
-function recommendedOfferFrom(readiness: number | null, obstacles: string[]): RecommendedOffer {
+function recommendedOfferFrom(urgency: number | null, obstacles: string[]): RecommendedOffer {
   const hasHeavy = obstacles.some((o) => o === "bankruptcies" || o === "late");
-  if ((readiness !== null && readiness >= 70) && obstacles.length >= 3) return "executive";
-  if (obstacles.length >= 3 && hasHeavy) return "executive";
-  if ((readiness !== null && readiness >= 70) && obstacles.length <= 1) return "diy";
+  if ((urgency !== null && urgency >= 70) && obstacles.length >= 2) return "executive";
+  if (obstacles.length >= 3 && hasHeavy)                            return "executive";
+  if (urgency !== null && urgency >= 80)                            return "executive";
   return "accelerated";
 }
 
@@ -137,7 +137,7 @@ async function upsertGHLContact(
     goal:      string;
     obstacles: string[];
     timeline:  string;
-    readinessScore: number | null;
+    urgencyScore: number | null;
   },
 ): Promise<{ ok: boolean; contactId?: string; status?: number }> {
   const { firstName, lastName } = splitName(lead.fullName);
@@ -146,13 +146,8 @@ async function upsertGHLContact(
   if (lead.goal)     tags.push(`goal:${lead.goal}`);
   for (const o of lead.obstacles) tags.push(`obstacle:${o}`);
   if (lead.timeline) tags.push(`timeline:${lead.timeline}`);
-  if (lead.readinessScore !== null) {
-    const bucket =
-      lead.readinessScore >= 70 ? "strong" :
-      lead.readinessScore >= 50 ? "promising" :
-      lead.readinessScore >= 30 ? "priority" : "urgent";
-    tags.push(`readiness:${bucket}`);
-  }
+  const urgencyBucket = tierFromScore(lead.urgencyScore);
+  if (urgencyBucket) tags.push(`urgency:${urgencyBucket}`);
 
   const payload: Record<string, unknown> = {
     locationId,
@@ -286,11 +281,11 @@ export default async function handler(
         .slice(0, 10)
     : [];
 
-  const readinessRaw =
-    typeof body.readinessScore === "number" ? body.readinessScore : null;
-  const readinessScore =
-    readinessRaw !== null && Number.isFinite(readinessRaw)
-      ? Math.max(0, Math.min(100, Math.round(readinessRaw)))
+  const urgencyRaw =
+    typeof body.urgencyScore === "number" ? body.urgencyScore : null;
+  const urgencyScore =
+    urgencyRaw !== null && Number.isFinite(urgencyRaw)
+      ? Math.max(0, Math.min(100, Math.round(urgencyRaw)))
       : null;
 
   const notes = str(body.notes);
@@ -303,7 +298,7 @@ export default async function handler(
 
   if (ghlToken && ghlLocation) {
     const result = await upsertGHLContact(ghlToken, ghlLocation, {
-      fullName, email, phone, goal, obstacles: obstaclesArr, timeline, readinessScore,
+      fullName, email, phone, goal, obstacles: obstaclesArr, timeline, urgencyScore,
     });
     if (result.ok) {
       ghlContactId = result.contactId;
@@ -319,7 +314,7 @@ export default async function handler(
           `• Annual income range: ${str(body.income) || "—"}`,
           `• Ideal credit score: ${str(body.idealScore) || "—"}`,
           `• Timeline: ${timeline || "—"}`,
-          `• Readiness score: ${readinessScore !== null ? `${readinessScore}/100` : "—"}`,
+          `• Urgency score: ${urgencyScore !== null ? `${urgencyScore}/100 (higher = hotter)` : "—"}`,
           notes ? `• Admin notes:\n${notes}` : undefined,
         ].filter(Boolean).join("\n");
         postGHLNote(ghlToken, ghlContactId, noteBody).catch(() => { /* already logged */ });
@@ -339,9 +334,9 @@ export default async function handler(
     income_range:       str(body.income)      || null,
     ideal_score:        str(body.idealScore)  || null,
     timeline:           timeline || null,
-    readiness_score:    readinessScore,
-    readiness_tier:     tierFromScore(readinessScore),
-    recommended_offer:  recommendedOfferFrom(readinessScore, obstaclesArr),
+    urgency_score:      urgencyScore,
+    urgency_tier:       tierFromScore(urgencyScore),
+    recommended_offer:  recommendedOfferFrom(urgencyScore, obstaclesArr),
     source:             "admin_manual",
     ghl_contact_id:     ghlContactId ?? null,
     ghl_delivery:       ghlDelivery,

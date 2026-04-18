@@ -45,7 +45,7 @@
 
 import type { IncomingMessage, ServerResponse } from "http";
 import { createClient } from "@supabase/supabase-js";
-import type { Database, ReadinessTier, RecommendedOffer, GHLDelivery } from "../src/types/database";
+import type { Database, UrgencyTier, RecommendedOffer, GHLDelivery } from "../src/types/database";
 
 export const config = { runtime: "nodejs" };
 
@@ -71,26 +71,27 @@ interface LeadPayload {
   goal?:               unknown;
   obstacle?:           unknown;  // legacy/compat: comma-joined string
   obstacles?:          unknown;  // current: string[] (multi-select)
-  readinessScore?:     unknown;  // client-computed 0–100; logged for triage
+  urgencyScore?:       unknown;  // client-computed 0–100, higher = hotter lead
+  readinessScore?:     unknown;  // legacy field from pre-flip clients; inverted if present
   website?:            unknown;  // honeypot
   cf_turnstile_token?: unknown;
 }
 
 interface SanitizedLead {
-  fullName:       string;
-  email:          string;
-  phone:          string;
-  consent:        boolean;
-  creditScore:    string;
-  income:         string;
-  idealScore:     string;
-  timeline:       string;
-  goal:           string;
-  obstacle:       string;
-  obstacles:      string[];
-  readinessScore: number | null;
-  source:         string;
-  submittedAt:    string;
+  fullName:      string;
+  email:         string;
+  phone:         string;
+  consent:       boolean;
+  creditScore:   string;
+  income:        string;
+  idealScore:    string;
+  timeline:      string;
+  goal:          string;
+  obstacle:      string;
+  obstacles:     string[];
+  urgencyScore:  number | null;
+  source:        string;
+  submittedAt:   string;
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -178,35 +179,33 @@ function splitName(full: string): { firstName?: string; lastName?: string } {
   return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
 }
 
-// Bucket the 0–100 readiness score into the same 4 tiers the results page
-// (QuizFunnel.tsx#readinessTier) renders, so admin dashboard tags match
-// exactly what the lead saw after submitting.
-function tierFromScore(score: number | null): ReadinessTier | null {
+// Bucket the 0–100 urgency score into the same 4 tiers the results page
+// (QuizFunnel.tsx#urgencyTier) renders, so admin dashboard tags match
+// exactly what the lead saw after submitting. Higher = more urgent.
+function tierFromScore(score: number | null): UrgencyTier | null {
   if (score === null) return null;
-  if (score >= 70) return "strong";
-  if (score >= 50) return "promising";
-  if (score >= 30) return "priority";
-  return "urgent";
+  if (score >= 70) return "urgent";
+  if (score >= 50) return "elevated";
+  if (score >= 30) return "moderate";
+  return "low";
 }
 
-// Derive which package to recommend from the readiness tier + obstacle
+// Derive which package to recommend from the urgency tier + obstacle
 // density. Kept server-side so admin and lead see the same recommendation,
-// and so the logic lives in one place (vs duplicating between client +
-// admin). Conservative fallback is "accelerated" — the middle tier is the
-// right default for most real leads.
+// and so the logic lives in one place. Per product decision, we never
+// recommend DIY — every lead gets Accelerated or Executive as the
+// default "right fit" offer; DIY stays in the catalog as an option
+// they can pick themselves but we don't steer them there.
 function recommendedOfferFrom(
-  readiness: number | null,
+  urgency:   number | null,
   obstacles: string[],
 ): RecommendedOffer {
   const hasHeavy = obstacles.some((o) => o === "bankruptcies" || o === "late");
-  // Executive tier: strong foundation + stacked/heavy obstacles (e.g. a
-  // business owner with late history wanting a full strategy) — or anyone
-  // picking 3+ obstacles, which signals they want full done-for-you depth.
-  if ((readiness !== null && readiness >= 70) && obstacles.length >= 3) return "executive";
-  if (obstacles.length >= 3 && hasHeavy) return "executive";
-  // DIY only for very clean profiles with 0–1 obstacles — these leads can
-  // genuinely execute on their own with the right playbook.
-  if ((readiness !== null && readiness >= 70) && obstacles.length <= 1) return "diy";
+  // Executive: the high-complexity profiles where done-for-you + business
+  // credit positioning pays for itself.
+  if ((urgency !== null && urgency >= 70) && obstacles.length >= 2) return "executive";
+  if (obstacles.length >= 3 && hasHeavy)                            return "executive";
+  if (urgency !== null && urgency >= 80)                            return "executive";
   return "accelerated";
 }
 
@@ -220,7 +219,7 @@ function buildNoteBody(lead: SanitizedLead): string {
     `• Annual income range: ${lead.income || "—"}`,
     `• Ideal credit score: ${lead.idealScore || "—"}`,
     `• Timeline: ${lead.timeline || "—"}`,
-    `• Readiness score: ${lead.readinessScore !== null ? `${lead.readinessScore}/100` : "—"}`,
+    `• Urgency score: ${lead.urgencyScore !== null ? `${lead.urgencyScore}/100 (higher = hotter)` : "—"}`,
     `• Consent to contact: ${lead.consent ? "yes" : "no"}`,
   ];
   return lines.join("\n");
@@ -244,14 +243,8 @@ async function upsertGHLContact(
   if (lead.goal)      tags.push(`goal:${lead.goal}`);
   for (const o of lead.obstacles) tags.push(`obstacle:${o}`);
   if (lead.timeline)  tags.push(`timeline:${lead.timeline}`);
-  if (lead.readinessScore !== null) {
-    // Bucketed so tag sprawl stays manageable — ~5 unique values instead of 100.
-    const bucket =
-      lead.readinessScore >= 70 ? "strong" :
-      lead.readinessScore >= 50 ? "promising" :
-      lead.readinessScore >= 30 ? "priority" : "urgent";
-    tags.push(`readiness:${bucket}`);
-  }
+  const urgencyBucket = tierFromScore(lead.urgencyScore);
+  if (urgencyBucket) tags.push(`urgency:${urgencyBucket}`);
 
   const payload: Record<string, unknown> = {
     locationId,
@@ -363,9 +356,9 @@ async function persistLeadSubmission(
       income_range:       lead.income      || null,
       ideal_score:        lead.idealScore  || null,
       timeline:           lead.timeline    || null,
-      readiness_score:    lead.readinessScore,
-      readiness_tier:     tierFromScore(lead.readinessScore),
-      recommended_offer:  recommendedOfferFrom(lead.readinessScore, lead.obstacles),
+      urgency_score:      lead.urgencyScore,
+      urgency_tier:       tierFromScore(lead.urgencyScore),
+      recommended_offer:  recommendedOfferFrom(lead.urgencyScore, lead.obstacles),
       source:             lead.source,
       ghl_contact_id:     ghlContactId ?? null,
       ghl_delivery:       ghlDelivery,
@@ -458,26 +451,37 @@ export default async function handler(
         .slice(0, 10)
     : [];
   const obstacleStr = obstaclesArr.length > 0 ? obstaclesArr.join(", ") : str(body.obstacle);
-  const readinessRaw = typeof body.readinessScore === "number" ? body.readinessScore : null;
-  const readinessScore = readinessRaw !== null && Number.isFinite(readinessRaw)
-    ? Math.max(0, Math.min(100, Math.round(readinessRaw)))
-    : null;
+
+  // Urgency score: higher = hotter lead. Accept either `urgencyScore`
+  // (current client) or `readinessScore` (legacy pre-flip client) — the
+  // latter is inverted via (100 - n) so data stays consistent in the
+  // rare window when an old cached tab hits the new server.
+  let urgencyScore: number | null = null;
+  const urgencyRaw = typeof body.urgencyScore === "number" ? body.urgencyScore : null;
+  if (urgencyRaw !== null && Number.isFinite(urgencyRaw)) {
+    urgencyScore = Math.max(0, Math.min(100, Math.round(urgencyRaw)));
+  } else {
+    const readinessRaw = typeof body.readinessScore === "number" ? body.readinessScore : null;
+    if (readinessRaw !== null && Number.isFinite(readinessRaw)) {
+      urgencyScore = Math.max(0, Math.min(100, Math.round(100 - readinessRaw)));
+    }
+  }
 
   const lead: SanitizedLead = {
-    fullName:       str(body.fullName),
+    fullName:      str(body.fullName),
     email,
     phone,
     consent,
-    creditScore:    str(body.creditScore),
-    income:         str(body.income),
-    idealScore:     str(body.idealScore),
-    timeline:       str(body.timeline),
-    goal:           str(body.goal),
-    obstacle:       obstacleStr,
-    obstacles:      obstaclesArr,
-    readinessScore,
-    source:         "quiz_funnel",
-    submittedAt:    new Date().toISOString(),
+    creditScore:   str(body.creditScore),
+    income:        str(body.income),
+    idealScore:    str(body.idealScore),
+    timeline:      str(body.timeline),
+    goal:          str(body.goal),
+    obstacle:      obstacleStr,
+    obstacles:     obstaclesArr,
+    urgencyScore,
+    source:        "quiz_funnel",
+    submittedAt:   new Date().toISOString(),
   };
 
   // 5. Deliver. API upsert is primary; webhook co-send preserves existing

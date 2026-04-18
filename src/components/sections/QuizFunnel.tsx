@@ -9,73 +9,77 @@ type Step = 1 | 2 | 3 | 4 | 5 | 6;
 const CALENDLY_URL =
   'https://calendly.com/cleanpathcredit/free-15-min-credit-audit-strategy-call';
 
-// Approval readiness model. Deliberately conservative — FCRA/CROA prohibits
-// promising specific score outcomes, so this is framed as "readiness for your
-// goal" (0-95), not "you will hit 750". Replace with real client outcome data
-// once the dashboard pulls bureau pulls and tracks point deltas per package.
-const SCORE_BASE: Record<string, number> = {
-  'below-550': 25,
-  '550-619':   42,
-  '620-679':   60,
-  '680+':      78,
+// Urgency model — higher = more action needed = hotter lead. Flipped from
+// the earlier "readiness" direction so the number matches sales intuition
+// and the sibling form's Action-Required score. FCRA/CROA still applies:
+// we never promise a specific outcome, just surface how much attention
+// the profile needs.
+//
+// Replace these weights with measured client outcomes once the dashboard
+// is tracking real point deltas per package.
+const URGENCY_BASE: Record<string, number> = {
+  'below-550': 75,
+  '550-619':   58,
+  '620-679':   40,
+  '680+':      22,
 };
-const OBSTACLE_DELTA: Record<string, number> = {
-  medical:      -6,
-  late:         -12,
-  bankruptcies: -18,
-  balances:     -4,
-  unsure:       -10,
+const OBSTACLE_ADD: Record<string, number> = {
+  medical:      6,
+  late:         12,
+  bankruptcies: 18,
+  balances:     4,
+  unsure:       10,
 };
-const TIMELINE_DELTA: Record<string, number> = {
+const TIMELINE_SUB: Record<string, number> = {
   'asap':         0,
-  '3-6-months':   4,
+  '3-6-months':   4,   // more runway = slightly less urgent
   '6-12-months':  8,
 };
 
-function computeReadiness(
+function computeUrgency(
   creditScore: string,
   obstacles: string[],
   timeline: string,
 ): number {
-  const base = SCORE_BASE[creditScore] ?? 40;
+  const base = URGENCY_BASE[creditScore] ?? 60;
 
-  // Stack obstacles but don't double-penalize — the worst item takes its full
-  // weight, additional items add at half weight. Picking 3 pain points should
-  // deepen the diagnosis, not unfairly tank the score.
-  const deltas    = obstacles.map((o) => OBSTACLE_DELTA[o] ?? 0).sort((a, b) => a - b);
-  const primary   = deltas[0] ?? 0;
-  const additional = deltas.slice(1).reduce((sum, d) => sum + d * 0.5, 0);
+  // Stack obstacles but don't double-inflate — the worst item takes its
+  // full weight, additional items add at half weight. Picking 3 pain
+  // points should deepen the diagnosis without pinning everyone at 100.
+  const adds       = obstacles.map((o) => OBSTACLE_ADD[o] ?? 0).sort((a, b) => b - a);
+  const primary    = adds[0] ?? 0;
+  const additional = adds.slice(1).reduce((sum, d) => sum + d * 0.5, 0);
 
-  const tim = TIMELINE_DELTA[timeline] ?? 0;
-  return Math.round(Math.max(10, Math.min(92, base + primary + additional + tim)));
+  const tim = TIMELINE_SUB[timeline] ?? 0;
+  return Math.round(Math.max(8, Math.min(92, base + primary + additional - tim)));
 }
 
-interface ReadinessTier {
-  key:     'green' | 'yellow' | 'amber' | 'red';
+interface UrgencyTierInfo {
+  key:     'low' | 'moderate' | 'elevated' | 'urgent';
   label:   string;
   tagline: string;
   color:   string;
 }
 
-function readinessTier(score: number): ReadinessTier {
-  if (score >= 70) return { key: 'green',  label: 'Strong foundation',  tagline: 'Targeted adjustments can unlock premium rates quickly.',             color: '#10b981' };
-  if (score >= 50) return { key: 'yellow', label: 'Promising profile',  tagline: 'A focused repair plan can close the gap to your goal.',             color: '#eab308' };
-  if (score >= 30) return { key: 'amber',  label: 'Priority items',     tagline: "You're one structured system away from the score you need.",        color: '#f59e0b' };
-  return                   { key: 'red',   label: 'Fast action advised', tagline: 'The fastest path is a fully done-for-you removal system.',          color: '#ef4444' };
+function urgencyTier(score: number): UrgencyTierInfo {
+  if (score >= 70) return { key: 'urgent',   label: 'Urgent — immediate action', tagline: 'The fastest path is a fully done-for-you removal system.',    color: '#ef4444' };
+  if (score >= 50) return { key: 'elevated', label: 'Elevated priority',         tagline: "You're one structured system away from the score you need.", color: '#f59e0b' };
+  if (score >= 30) return { key: 'moderate', label: 'Moderate work',             tagline: 'A focused repair plan can close the gap to your goal.',       color: '#eab308' };
+  return                   { key: 'low',      label: 'Low priority',             tagline: 'Targeted adjustments can unlock premium rates quickly.',      color: '#10b981' };
 }
 
 // 2–3 line diagnosis shown under the score ring. Intentionally honest about
 // what the tier means for approvals without crossing into CROA-prohibited
 // "we'll get you to X" territory.
-function diagnosisFor(tierKey: ReadinessTier['key']): string {
+function diagnosisFor(tierKey: UrgencyTierInfo['key']): string {
   switch (tierKey) {
-    case 'red':
+    case 'urgent':
       return "At this level, most lenders treat you as higher risk — typically denials, notably higher APRs, and limited program access. The good news: the items keeping you here are almost always correctable.";
-    case 'amber':
+    case 'elevated':
       return "You're in the 'work to do' band. The items on your reports responsible for this are usually the most responsive to a structured, consistent dispute process.";
-    case 'yellow':
+    case 'moderate':
       return "Promising profile. A focused pass on the 2–3 items pulling your score down hardest typically closes the gap to your goal in 3–6 months.";
-    case 'green':
+    case 'low':
     default:
       return "Strong foundation. At this level, targeted optimization — utilization ratios, minor reporting inconsistencies — is often enough to unlock premium rates and tier-1 programs.";
   }
@@ -295,13 +299,13 @@ export function QuizFunnel() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Results + booking flow. Readiness numbers are derived from the user's
+  // Results + booking flow. Urgency numbers are derived from the user's
   // quiz answers the moment they finish step 4, frozen into state so the
   // results page doesn't flicker if formData changes later.
   const sectionRef          = useRef<HTMLElement>(null);
   const calendlyWrapRef     = useRef<HTMLDivElement>(null);
   const calendlyInitedRef   = useRef(false);
-  const [readiness, setReadiness] = useState<number>(0);
+  const [urgency, setUrgency]   = useState<number>(0);
   const [hasBooked, setHasBooked] = useState(false);
 
   // Hide the global ElevenLabs chatbot while any part of the quiz section is
@@ -492,11 +496,11 @@ export function QuizFunnel() {
     setIsFinalAnalyzing(true);
     setAnalysisProgress(0);
 
-    // Compute the readiness score up front so we can ship it with the
-    // payload — /api/lead tags the GHL contact with a readiness bucket for
+    // Compute the urgency score up front so we can ship it with the
+    // payload — /api/lead tags the GHL contact with an urgency bucket for
     // sales triage, and the admin dashboard reads it back later. Frozen
     // into state below on success so the results page doesn't re-compute.
-    const readinessNow = computeReadiness(formData.creditScore, selectedObstacles, formData.timeline);
+    const urgencyNow = computeUrgency(formData.creditScore, selectedObstacles, formData.timeline);
 
     const progressInterval = setInterval(() => {
       setAnalysisProgress(prev => {
@@ -524,7 +528,7 @@ export function QuizFunnel() {
           // fields are typically strings, not arrays — keep both so whichever
           // side of the integration consumes the payload, it works).
           obstacle: selectedObstacles.join(', '),
-          readinessScore: readinessNow,
+          urgencyScore: urgencyNow,
           // C-4 bot protection — server verifies both.
           website: honeypotRef.current?.value || '',
           cf_turnstile_token: turnstileToken,
@@ -557,9 +561,9 @@ export function QuizFunnel() {
       return;
     }
 
-    // Freeze the readiness score for the results page — computed up front
+    // Freeze the urgency score for the results page — computed up front
     // before the fetch so the server sees the same number the UI will render.
-    setReadiness(readinessNow);
+    setUrgency(urgencyNow);
 
     setAnalysisProgress(100);
     setTimeout(() => {
@@ -990,7 +994,7 @@ export function QuizFunnel() {
               )}
 
               {step === 5 && (() => {
-                const tier       = readinessTier(readiness);
+                const tier       = urgencyTier(urgency);
                 const goalData   = goalInsight(selectedGoal);
                 const cost       = costOfInactionFor(selectedGoal);
                 const firstName  = formData.fullName.trim().split(/\s+/)[0];
@@ -1036,18 +1040,18 @@ export function QuizFunnel() {
                             strokeLinecap="round"
                             strokeDasharray={2 * Math.PI * 52}
                             initial={{ strokeDashoffset: 2 * Math.PI * 52 }}
-                            animate={{ strokeDashoffset: 2 * Math.PI * 52 * (1 - readiness / 100) }}
+                            animate={{ strokeDashoffset: 2 * Math.PI * 52 * (1 - urgency / 100) }}
                             transition={{ duration: 1.2, ease: 'easeOut' }}
                           />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <div className="text-4xl font-bold text-zinc-900">{readiness}</div>
+                          <div className="text-4xl font-bold text-zinc-900">{urgency}</div>
                           <div className="text-[10px] tracking-[0.12em] uppercase text-zinc-500">of 100</div>
                         </div>
                       </div>
                       <div className="mt-4 text-center max-w-md">
                         <div className="text-sm font-semibold" style={{ color: tier.color }}>{tier.label}</div>
-                        <div className="text-xs text-zinc-500 mt-1 mb-3">Approval readiness for your goal</div>
+                        <div className="text-xs text-zinc-500 mt-1 mb-3">Action priority for your goal</div>
                         <p className="text-sm text-zinc-700 leading-relaxed">{diagnosisFor(tier.key)}</p>
                       </div>
                     </div>

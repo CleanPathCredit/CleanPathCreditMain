@@ -26,9 +26,10 @@ export type DocumentCategory = "id" | "ssn" | "credit_report" | "other";
 export type DocumentStatus = "pending" | "verified" | "rejected";
 export type MessageSender = "admin" | "client";
 
-// Lead readiness tiers — buckets of readiness_score for triage UI.
-// Matches the bucketing in /api/lead's tag generator.
-export type ReadinessTier      = "strong" | "promising" | "priority" | "urgent";
+// Urgency tiers — higher urgency_score = more action needed. Flipped from
+// the earlier "readiness" direction so the number matches sales intuition
+// (high number = hot lead). Migration 006 renamed the DB columns to match.
+export type UrgencyTier        = "low" | "moderate" | "elevated" | "urgent";
 export type RecommendedOffer   = "diy"    | "accelerated" | "executive";
 export type GHLDelivery        = "api"    | "webhook_fallback" | "failed";
 
@@ -174,8 +175,8 @@ export interface Database {
           income_range: string | null;
           ideal_score: string | null;
           timeline: string | null;
-          readiness_score: number | null;
-          readiness_tier: ReadinessTier | null;
+          urgency_score: number | null;
+          urgency_tier: UrgencyTier | null;
           recommended_offer: RecommendedOffer | null;
           source: string;
           ghl_contact_id: string | null;
@@ -197,8 +198,8 @@ export interface Database {
           income_range?: string | null;
           ideal_score?: string | null;
           timeline?: string | null;
-          readiness_score?: number | null;
-          readiness_tier?: ReadinessTier | null;
+          urgency_score?: number | null;
+          urgency_tier?: UrgencyTier | null;
           recommended_offer?: RecommendedOffer | null;
           source?: string;
           ghl_contact_id?: string | null;
