@@ -49,7 +49,8 @@ interface LeadPayload {
   idealScore?: unknown;
   timeline?: unknown;
   goal?: unknown;
-  obstacle?: unknown;
+  obstacle?: unknown;   // legacy/compat: comma-joined string
+  obstacles?: unknown;  // current: string[] (multi-select)
   website?: unknown;
   cf_turnstile_token?: unknown;
 }
@@ -186,6 +187,19 @@ export default async function handler(
     return sendJson(res, 500, { error: "server_misconfigured" });
   }
 
+  // Obstacles may arrive as an array (multi-select quiz) or a comma-joined
+  // string (legacy single-select). Accept both, cap size + entry length so
+  // a malicious caller can't stuff megabytes of attacker-controlled text
+  // into the downstream CRM.
+  const obstaclesArr: string[] = Array.isArray(body.obstacles)
+    ? body.obstacles
+        .filter((x): x is string => typeof x === "string")
+        .map((x) => x.trim())
+        .filter((x) => x.length > 0 && x.length <= 64)
+        .slice(0, 10)
+    : [];
+  const obstacleStr = obstaclesArr.length > 0 ? obstaclesArr.join(", ") : str(body.obstacle);
+
   const sanitized = {
     fullName:    str(body.fullName),
     email,
@@ -196,7 +210,8 @@ export default async function handler(
     idealScore:  str(body.idealScore),
     timeline:    str(body.timeline),
     goal:        str(body.goal),
-    obstacle:    str(body.obstacle),
+    obstacle:    obstacleStr,
+    obstacles:   obstaclesArr,
     source:      "quiz_funnel",
     submittedAt: new Date().toISOString(),
   };
