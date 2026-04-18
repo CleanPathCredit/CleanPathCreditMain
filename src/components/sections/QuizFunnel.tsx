@@ -1,10 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Loader2, Calendar, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Link } from 'react-router-dom';
 
 type Step = 1 | 2 | 3 | 4 | 5;
+
+// Cloudflare Turnstile runtime shim — script is loaded in index.html.
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        el: string | HTMLElement,
+        opts: {
+          sitekey: string;
+          callback?: (token: string) => void;
+          'expired-callback'?: () => void;
+          'error-callback'?: () => void;
+        },
+      ) => string;
+      reset: (widgetId?: string) => void;
+      remove: (widgetId?: string) => void;
+    };
+  }
+}
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
 const STEP_1_OPTIONS = [
   { id: 'home', label: 'Buy a Dream Home', fact: 'We specialize in removing derogatory marks to drop mortgage rates and get you clear to close.' },
@@ -71,6 +92,48 @@ export function QuizFunnel() {
     consent: false,
   });
 
+  // C-4 anti-bot state. Honeypot is an uncontrolled ref so legitimate users
+  // never see re-renders; Turnstile token is state because submit must react
+  // to it (button enable + race-condition guard).
+  const honeypotRef = useRef<HTMLInputElement>(null);
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Render the Turnstile widget once the lead-capture step is visible and the
+  // Cloudflare script has loaded. Poll briefly because the script is `async`
+  // and may resolve after React mounts the container.
+  useEffect(() => {
+    if (step !== 4 || isFinalAnalyzing) return;
+    if (!TURNSTILE_SITE_KEY) return;
+    if (turnstileWidgetIdRef.current) return;
+
+    let cancelled = false;
+    const tryRender = () => {
+      if (cancelled) return;
+      const ts = window.turnstile;
+      const container = turnstileContainerRef.current;
+      if (!ts || !container) return false;
+      turnstileWidgetIdRef.current = ts.render(container, {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: (token: string) => setTurnstileToken(token),
+        'expired-callback': () => setTurnstileToken(null),
+        'error-callback': () => setTurnstileToken(null),
+      });
+      return true;
+    };
+
+    if (tryRender()) return;
+    const interval = window.setInterval(() => {
+      if (tryRender()) window.clearInterval(interval);
+    }, 150);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [step, isFinalAnalyzing]);
+
   const handleOptionSelect = (stepNumber: 1 | 2, optionId: string) => {
     if (stepNumber === 1) {
       setSelectedGoal(optionId);
@@ -93,47 +156,81 @@ export function QuizFunnel() {
     }, 2000);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // C-4: when Turnstile is configured, block submit until the challenge
+    // resolves. Without this guard, fast clickers race past the async widget,
+    // the server rejects the request, and the UI still advances — silently
+    // dropping the lead (Seer-flagged on the sibling static form).
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setSubmitError('Please wait for the security check to finish, then try again.');
+      return;
+    }
+
+    setSubmitError(null);
     setIsFinalAnalyzing(true);
     setAnalysisProgress(0);
 
-    // Send lead data to the CRM via a same-origin backend proxy. Never embed
-    // raw webhook URLs (or secrets) in client code — anyone could replay or
-    // spam them. The proxy is expected to validate + forward server-side.
-    // Configure the endpoint with VITE_LEAD_WEBHOOK_URL (e.g. "/api/lead").
-    const leadEndpoint = import.meta.env.VITE_LEAD_WEBHOOK_URL;
-    if (leadEndpoint) {
-      fetch(leadEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      }).catch((error) => {
-        if (import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
-          console.error("Error sending lead data:", error);
-        }
-      });
-    }
-    
-    const interval = setInterval(() => {
+    const progressInterval = setInterval(() => {
       setAnalysisProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
+        if (prev >= 95) return 95;
         return prev + Math.floor(Math.random() * 15) + 5;
       });
     }, 200);
 
+    // Send lead data to the CRM via a same-origin backend proxy. Never embed
+    // raw webhook URLs (or secrets) in client code — the proxy validates the
+    // Turnstile token and honeypot server-side before forwarding.
+    const leadEndpoint = import.meta.env.VITE_LEAD_WEBHOOK_URL || '/api/lead';
+    const minDisplay = new Promise<void>(resolve => setTimeout(resolve, 2000));
+
+    let ok = false;
+    try {
+      const response = await fetch(leadEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          goal: selectedGoal,
+          obstacle: selectedObstacle,
+          // C-4 bot protection — server verifies both.
+          website: honeypotRef.current?.value || '',
+          cf_turnstile_token: turnstileToken,
+        }),
+      });
+      ok = response.ok;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.error('Error sending lead data:', error);
+      }
+      ok = false;
+    }
+
+    await minDisplay;
+    clearInterval(progressInterval);
+
+    if (!ok) {
+      // Block redirect — keep the user on step 4 so they can retry. Remove the
+      // existing widget so the effect re-renders a fresh one into the form
+      // container that is about to remount (isFinalAnalyzing → false).
+      if (turnstileWidgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(turnstileWidgetIdRef.current);
+      }
+      turnstileWidgetIdRef.current = null;
+      setTurnstileToken(null);
+      setAnalysisProgress(0);
+      setIsFinalAnalyzing(false);
+      setSubmitError("We couldn't submit your analysis. Please check your connection and try again.");
+      return;
+    }
+
+    setAnalysisProgress(100);
     setTimeout(() => {
-      clearInterval(interval);
-      setAnalysisProgress(100);
-      setTimeout(() => {
-        setIsFinalAnalyzing(false);
-        setStep(5);
-      }, 1000);
-    }, 2500);
+      setIsFinalAnalyzing(false);
+      setStep(5);
+    }, 800);
   };
 
   return (
@@ -491,8 +588,8 @@ export function QuizFunnel() {
                         </div>
 
                         <div className="flex items-start gap-3">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             id="consent"
                             required
                             className="mt-1 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
@@ -504,7 +601,39 @@ export function QuizFunnel() {
                           </label>
                         </div>
 
-                        <Button type="submit" className="w-full h-14 text-lg mt-4">
+                        {/* Honeypot — hidden from real users; bots that scrape and fill every
+                            input will populate it and be rejected by /api/lead. */}
+                        <div
+                          aria-hidden="true"
+                          style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: 0, height: 0, overflow: 'hidden' }}
+                        >
+                          <label htmlFor="cpc-website">Website (leave empty)</label>
+                          <input
+                            ref={honeypotRef}
+                            id="cpc-website"
+                            name="website"
+                            type="text"
+                            tabIndex={-1}
+                            autoComplete="off"
+                            defaultValue=""
+                          />
+                        </div>
+
+                        {TURNSTILE_SITE_KEY && (
+                          <div ref={turnstileContainerRef} className="flex justify-center" />
+                        )}
+
+                        {submitError && (
+                          <p role="alert" aria-live="assertive" className="text-sm text-red-600">
+                            {submitError}
+                          </p>
+                        )}
+
+                        <Button
+                          type="submit"
+                          className="w-full h-14 text-lg mt-4"
+                          disabled={Boolean(TURNSTILE_SITE_KEY) && !turnstileToken}
+                        >
                           See My Results
                         </Button>
                       </form>
