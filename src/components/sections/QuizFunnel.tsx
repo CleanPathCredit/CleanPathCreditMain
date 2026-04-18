@@ -236,6 +236,14 @@ declare global {
       reset: (widgetId?: string) => void;
       remove: (widgetId?: string) => void;
     };
+    Calendly?: {
+      initInlineWidget: (opts: {
+        url:            string;
+        parentElement:  HTMLElement;
+        prefill?:       { name?: string; email?: string };
+        utm?:           Record<string, string>;
+      }) => void;
+    };
   }
 }
 
@@ -290,8 +298,9 @@ export function QuizFunnel() {
   // Results + booking flow. Readiness numbers are derived from the user's
   // quiz answers the moment they finish step 4, frozen into state so the
   // results page doesn't flicker if formData changes later.
-  const sectionRef        = useRef<HTMLElement>(null);
-  const calendlyWrapRef   = useRef<HTMLDivElement>(null);
+  const sectionRef          = useRef<HTMLElement>(null);
+  const calendlyWrapRef     = useRef<HTMLDivElement>(null);
+  const calendlyInitedRef   = useRef(false);
   const [readiness, setReadiness] = useState<number>(0);
   const [hasBooked, setHasBooked] = useState(false);
 
@@ -316,21 +325,55 @@ export function QuizFunnel() {
     };
   }, []);
 
-  // Load Calendly's inline-widget script once the results step is reached.
-  // Deferred to step 5 so the script isn't pulled for visitors who bounce
-  // before completing the quiz. Calendly idempotently skips re-init if the
-  // script is already on the page.
+  // Load + explicitly initialize the Calendly inline widget once step 5
+  // renders. We call initInlineWidget() ourselves instead of letting the
+  // script auto-scan for `.calendly-inline-widget` elements — in a React
+  // SPA the script often parses before our container is committed to the
+  // DOM, so auto-init silently no-ops and the user sees an empty box.
   useEffect(() => {
     if (step !== 5) return;
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[src="https://assets.calendly.com/assets/external/widget.js"]',
-    );
-    if (existing) return;
+    if (calendlyInitedRef.current) return;
+
+    const src = 'https://assets.calendly.com/assets/external/widget.js';
+
+    const init = () => {
+      const container = calendlyWrapRef.current;
+      if (!window.Calendly || !container) return false;
+      // Clear in case a prior auto-init rendered a stub.
+      container.innerHTML = '';
+      window.Calendly.initInlineWidget({
+        url: `${CALENDLY_URL}?hide_gdpr_banner=1`,
+        parentElement: container,
+        prefill: {
+          name:  formData.fullName || undefined,
+          email: formData.email    || undefined,
+        },
+      });
+      calendlyInitedRef.current = true;
+      return true;
+    };
+
+    if (window.Calendly) {
+      init();
+      return;
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
+    if (existing) {
+      // Script is already in-flight from a previous mount — poll briefly
+      // until Calendly is on window, then init once.
+      const poll = window.setInterval(() => {
+        if (init()) window.clearInterval(poll);
+      }, 100);
+      return () => window.clearInterval(poll);
+    }
+
     const s = document.createElement('script');
-    s.src = 'https://assets.calendly.com/assets/external/widget.js';
+    s.src = src;
     s.async = true;
+    s.onload = () => { init(); };
     document.body.appendChild(s);
-  }, [step]);
+  }, [step, formData.fullName, formData.email]);
 
   // Calendly dispatches window.postMessage events for every lifecycle step.
   // We only care about `calendly.event_scheduled` — fires once the attendee
@@ -1088,10 +1131,13 @@ export function QuizFunnel() {
                         </div>
                         <p className="text-xs text-zinc-500 italic mt-4">No pressure. No obligation. Just clarity.</p>
                       </div>
+                      {/* Container only — initInlineWidget() populates this
+                          from the useEffect above. Intentionally NO
+                          `calendly-inline-widget` class or `data-url`:
+                          those would cue Calendly's auto-init to render a
+                          second copy in here. */}
                       <div
                         ref={calendlyWrapRef}
-                        className="calendly-inline-widget"
-                        data-url={`${CALENDLY_URL}?hide_event_type_details=1&hide_landing_page_details=1&hide_gdpr_banner=1&name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}`}
                         style={{ minWidth: '320px', height: '680px' }}
                       />
                       {/* Fallbacks — reCAPTCHA can fail inside the embed for
@@ -1103,7 +1149,7 @@ export function QuizFunnel() {
                           href={`${CALENDLY_URL}?name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-zinc-500 hover:text-zinc-800 underline underline-offset-2"
+                          className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2 font-medium"
                         >
                           Trouble booking? Open Calendly in a new tab ↗
                         </a>
