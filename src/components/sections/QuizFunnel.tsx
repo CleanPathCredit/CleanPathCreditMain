@@ -1,10 +1,142 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Loader2, Calendar, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Link } from 'react-router-dom';
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
+
+const CALENDLY_URL =
+  'https://calendly.com/cleanpathcredit/free-15-min-credit-audit-strategy-call';
+
+// Approval readiness model. Deliberately conservative — FCRA/CROA prohibits
+// promising specific score outcomes, so this is framed as "readiness for your
+// goal" (0-95), not "you will hit 750". Replace with real client outcome data
+// once the dashboard pulls bureau pulls and tracks point deltas per package.
+const SCORE_BASE: Record<string, number> = {
+  'below-550': 25,
+  '550-619':   42,
+  '620-679':   60,
+  '680+':      78,
+};
+const OBSTACLE_DELTA: Record<string, number> = {
+  medical:      -6,
+  late:         -12,
+  bankruptcies: -18,
+  balances:     -4,
+  unsure:       -10,
+};
+const TIMELINE_DELTA: Record<string, number> = {
+  'asap':         0,
+  '3-6-months':   4,
+  '6-12-months':  8,
+};
+
+function computeReadiness(
+  creditScore: string,
+  obstacle: string | null,
+  timeline: string,
+): number {
+  const base = SCORE_BASE[creditScore] ?? 40;
+  const obs  = obstacle ? (OBSTACLE_DELTA[obstacle] ?? 0) : 0;
+  const tim  = TIMELINE_DELTA[timeline] ?? 0;
+  return Math.max(10, Math.min(92, base + obs + tim));
+}
+
+interface ReadinessTier {
+  key:     'green' | 'yellow' | 'amber' | 'red';
+  label:   string;
+  tagline: string;
+  color:   string;
+}
+
+function readinessTier(score: number): ReadinessTier {
+  if (score >= 70) return { key: 'green',  label: 'Strong foundation',  tagline: 'Targeted adjustments can unlock premium rates quickly.',             color: '#10b981' };
+  if (score >= 50) return { key: 'yellow', label: 'Promising profile',  tagline: 'A focused repair plan can close the gap to your goal.',             color: '#eab308' };
+  if (score >= 30) return { key: 'amber',  label: 'Priority items',     tagline: "You're one structured system away from the score you need.",        color: '#f59e0b' };
+  return                   { key: 'red',   label: 'Fast action advised', tagline: 'The fastest path is a fully done-for-you removal system.',          color: '#ef4444' };
+}
+
+interface GoalInsight {
+  headline: string;
+  points:   string[];
+}
+
+// Goal → "what becomes possible" — adapted from the sibling form's value
+// props (industry-plausible ranges; replace with measured outcomes later).
+function goalInsight(goal: string | null): GoalInsight {
+  switch (goal) {
+    case 'home': return {
+      headline: 'Your path to the mortgage rate you actually deserve',
+      points: [
+        'Drop your mortgage rate 1–2% — typically $40K–$100K saved over 30 years',
+        'Meet 640+, 660+, 680+ lender cutoffs currently out of reach',
+        'Access conventional loan programs with lower down-payment requirements',
+      ],
+    };
+    case 'car': return {
+      headline: 'Stop overpaying on auto interest',
+      points: [
+        'Typical APR reduction of 3–6% after targeted profile repair',
+        'Move from subprime / buy-here-pay-here to prime lender terms',
+        'Monthly savings of $100–$300 on a typical financed vehicle',
+      ],
+    };
+    case 'business': return {
+      headline: 'Unlock capital your profile currently blocks',
+      points: [
+        'SBA 7(a) / 504 loans — personal credit is the primary qualifier',
+        'Business lines of credit — most require 650+ personal score',
+        'Lower personal-guarantee exposure and collateral requirements',
+      ],
+    };
+    case 'clean':
+    default: return {
+      headline: 'Stop paying the "bad credit tax"',
+      points: [
+        'Lower APR on every card and loan you already carry',
+        'No more security deposits on utilities, apartments, or phones',
+        'Reduced insurance premiums in states that score-rate drivers',
+      ],
+    };
+  }
+}
+
+// Obstacle → "how we attack this" — plain-English, FCRA-grounded.
+function obstacleInsight(obstacle: string | null): { headline: string; body: string } {
+  switch (obstacle) {
+    case 'medical': return {
+      headline: 'Medical & utility collections',
+      body:     'New FCRA rules removed paid medical collections and collections under $500 from reports. Many remaining medical items also fail strict reporting standards — which is exactly the gap we work in.',
+    };
+    case 'late': return {
+      headline: 'Late payments & collections',
+      body:     "Late marks are among the most challengeable items on a report — they frequently fail the FCRA's accuracy, completeness, or verifiability standards. That's the wedge we use to force removal.",
+    };
+    case 'bankruptcies': return {
+      headline: 'Bankruptcies & public records',
+      body:     'Account-level items tied to a discharged bankruptcy are routinely reported incorrectly — those are directly addressable. The public record itself has a separate, specific strategy.',
+    };
+    case 'balances': return {
+      headline: 'High utilization',
+      body:     'Utilization above 30% signals risk across all three bureaus. A one-cycle utilization reset paired with strategic balance distribution is often the single fastest score lever available.',
+    };
+    case 'unsure':
+    default: return {
+      headline: "What's actually on your report",
+      body:     "Most people don't know exactly what's hurting their score — which is exactly what our free audit surfaces. You'll leave the call knowing every item and the plan for each one.",
+    };
+  }
+}
+
+// Typical post-repair point improvement windows. Conservative, legally-safe
+// ranges — we never promise a specific number. Per-package numbers will be
+// swapped for measured cohort data once the dashboard gathers it.
+const IMPROVEMENT_RANGES = {
+  diy:      { min: 20,  max: 60,  label: 'DIY Blueprint'      },
+  standard: { min: 60,  max: 140, label: 'Accelerated Audit'  },
+  premium:  { min: 100, max: 200, label: 'Executive Funding'  },
+};
 
 // Cloudflare Turnstile runtime shim — script is loaded in index.html.
 declare global {
@@ -51,36 +183,6 @@ export function QuizFunnel() {
   const [isFinalAnalyzing, setIsFinalAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
 
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
-    return tomorrow;
-  };
-
-  const getEndDate = (startDate: Date) => {
-    const endDate = new Date(startDate);
-    endDate.setMinutes(endDate.getMinutes() + 30);
-    return endDate;
-  };
-
-  const formatDateForCalendar = (date: Date) => {
-    return date.toISOString().replace(/-|:|\.\d+/g, '');
-  };
-
-  const generateGoogleCalendarLink = () => {
-    const start = formatDateForCalendar(getTomorrowDate());
-    const end = formatDateForCalendar(getEndDate(getTomorrowDate()));
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Credit+Strategy+Session&dates=${start}/${end}&details=Your+free+30-minute+Credit+Strategy+Session+with+Clean+Path+Credit.&location=Online`;
-  };
-
-  const generateIcsFile = () => {
-    const start = formatDateForCalendar(getTomorrowDate());
-    const end = formatDateForCalendar(getEndDate(getTomorrowDate()));
-    const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:Credit Strategy Session\nDESCRIPTION:Your free 30-minute Credit Strategy Session with Clean Path Credit.\\n\\nPlease update the time to match your Calendly booking.\nLOCATION:Online\nDTSTART:${start}\nDTEND:${end}\nEND:VEVENT\nEND:VCALENDAR`;
-    return `data:text/calendar;charset=utf8,${encodeURIComponent(icsContent)}`;
-  };
-
   const [formData, setFormData] = useState({
     creditScore: '',
     income: '',
@@ -100,6 +202,68 @@ export function QuizFunnel() {
   const turnstileWidgetIdRef = useRef<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Results + booking flow. Readiness numbers are derived from the user's
+  // quiz answers the moment they finish step 4, frozen into state so the
+  // results page doesn't flicker if formData changes later.
+  const sectionRef        = useRef<HTMLElement>(null);
+  const calendlyWrapRef   = useRef<HTMLDivElement>(null);
+  const [readiness, setReadiness] = useState<number>(0);
+  const [hasBooked, setHasBooked] = useState(false);
+
+  // Hide the global ElevenLabs chatbot while any part of the quiz section is
+  // on-screen — the widget otherwise overlaps "Continue" on mobile and pulls
+  // attention away from the funnel's primary CTA.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          document.body.classList.toggle('cpc-quiz-active', entry.isIntersecting);
+        }
+      },
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      document.body.classList.remove('cpc-quiz-active');
+    };
+  }, []);
+
+  // Load Calendly's inline-widget script once the results step is reached.
+  // Deferred to step 5 so the script isn't pulled for visitors who bounce
+  // before completing the quiz. Calendly idempotently skips re-init if the
+  // script is already on the page.
+  useEffect(() => {
+    if (step !== 5) return;
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://assets.calendly.com/assets/external/widget.js"]',
+    );
+    if (existing) return;
+    const s = document.createElement('script');
+    s.src = 'https://assets.calendly.com/assets/external/widget.js';
+    s.async = true;
+    document.body.appendChild(s);
+  }, [step]);
+
+  // Calendly dispatches window.postMessage events for every lifecycle step.
+  // We only care about `calendly.event_scheduled` — fires once the attendee
+  // clicks Confirm. At that point we swap to step 6 which surfaces the
+  // account-creation CTA. The origin check guards against forged events.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== 'https://calendly.com') return;
+      const data = e.data;
+      if (data && typeof data === 'object' && data.event === 'calendly.event_scheduled') {
+        setHasBooked(true);
+        setStep(6);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
   // Render the Turnstile widget once the lead-capture step is visible and the
   // Cloudflare script has loaded. Poll briefly because the script is `async`
@@ -226,6 +390,10 @@ export function QuizFunnel() {
       return;
     }
 
+    // Freeze the readiness score for the results page now — computing it
+    // inline during render would recompute on every keystroke + re-render.
+    setReadiness(computeReadiness(formData.creditScore, selectedObstacle, formData.timeline));
+
     setAnalysisProgress(100);
     setTimeout(() => {
       setIsFinalAnalyzing(false);
@@ -234,7 +402,7 @@ export function QuizFunnel() {
   };
 
   return (
-    <section className="py-24 bg-zinc-50">
+    <section ref={sectionRef} className="py-24 bg-zinc-50">
       <div className="mx-auto max-w-3xl px-6">
         {/* Who This Is For / Not For — pre-qualification filter */}
         <div className="mb-16 grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
@@ -271,7 +439,7 @@ export function QuizFunnel() {
             <motion.div
               className="h-full bg-emerald-500"
               initial={{ width: '20%' }}
-              animate={{ width: `${(step / 5) * 100}%` }}
+              animate={{ width: `${Math.min((step / 5) * 100, 100)}%` }}
               transition={{ duration: 0.5, ease: 'easeInOut' }}
             />
           </div>
@@ -642,9 +810,143 @@ export function QuizFunnel() {
                 </motion.div>
               )}
 
-              {step === 5 && (
+              {step === 5 && (() => {
+                const tier       = readinessTier(readiness);
+                const goalData   = goalInsight(selectedGoal);
+                const blocker    = obstacleInsight(selectedObstacle);
+                const firstName  = formData.fullName.trim().split(/\s+/)[0];
+                const greeting   = firstName ? `${firstName}, here's your path forward.` : "Here's your path forward.";
+                return (
+                  <motion.div
+                    key="step5"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex flex-col h-full"
+                  >
+                    <div className="text-center mb-8">
+                      <div className="text-xs font-semibold tracking-[0.14em] uppercase text-emerald-600 mb-3">
+                        Your personalized credit analysis
+                      </div>
+                      <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-2">
+                        {greeting}
+                      </h3>
+                      <p className="text-zinc-500 max-w-lg mx-auto">
+                        Based on your answers, here's where you stand, what's in the way, and the fastest way to close the gap.
+                      </p>
+                    </div>
+
+                    {/* Readiness ring */}
+                    <div className="flex flex-col items-center mb-10">
+                      <div className="relative w-40 h-40">
+                        <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                          <circle cx="60" cy="60" r="52" fill="none" stroke="#e4e4e7" strokeWidth="10" />
+                          <motion.circle
+                            cx="60" cy="60" r="52" fill="none"
+                            stroke={tier.color}
+                            strokeWidth="10"
+                            strokeLinecap="round"
+                            strokeDasharray={2 * Math.PI * 52}
+                            initial={{ strokeDashoffset: 2 * Math.PI * 52 }}
+                            animate={{ strokeDashoffset: 2 * Math.PI * 52 * (1 - readiness / 100) }}
+                            transition={{ duration: 1.2, ease: 'easeOut' }}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <div className="text-4xl font-bold text-zinc-900">{readiness}</div>
+                          <div className="text-[10px] tracking-[0.12em] uppercase text-zinc-500">of 100</div>
+                        </div>
+                      </div>
+                      <div className="mt-4 text-center">
+                        <div className="text-sm font-semibold" style={{ color: tier.color }}>{tier.label}</div>
+                        <div className="text-xs text-zinc-500 mt-1">Approval readiness for your goal</div>
+                        <p className="text-sm text-zinc-700 mt-3 max-w-md">{tier.tagline}</p>
+                      </div>
+                    </div>
+
+                    {/* Goal-specific value prop */}
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-6 mb-5">
+                      <div className="text-xs font-semibold tracking-[0.14em] uppercase text-emerald-600 mb-2">What becomes possible</div>
+                      <h4 className="text-lg font-semibold text-zinc-900 mb-3">{goalData.headline}</h4>
+                      <ul className="space-y-2">
+                        {goalData.points.map((p) => (
+                          <li key={p} className="flex items-start gap-2 text-sm text-zinc-700">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                            <span>{p}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Obstacle-specific strategy */}
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-6 mb-5">
+                      <div className="text-xs font-semibold tracking-[0.14em] uppercase text-amber-600 mb-2">Priority item we'll target</div>
+                      <h4 className="text-lg font-semibold text-zinc-900 mb-2">{blocker.headline}</h4>
+                      <p className="text-sm text-zinc-700">{blocker.body}</p>
+                    </div>
+
+                    {/* Expected improvement — conservative ranges, FCRA-safe framing */}
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-6 mb-8">
+                      <div className="text-xs font-semibold tracking-[0.14em] uppercase text-emerald-700 mb-3">Typical point improvement after repair</div>
+                      <div className="grid grid-cols-3 gap-3 text-center">
+                        {(['diy', 'standard', 'premium'] as const).map((plan) => {
+                          const r = IMPROVEMENT_RANGES[plan];
+                          return (
+                            <div key={plan} className="rounded-xl bg-white border border-emerald-100 p-3">
+                              <div className="text-[10px] tracking-[0.08em] uppercase text-zinc-500 mb-1">{r.label}</div>
+                              <div className="text-base sm:text-lg font-bold text-emerald-700">+{r.min}–{r.max}</div>
+                              <div className="text-[10px] text-zinc-400 mt-0.5">typical range</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[11px] text-zinc-500 mt-3 leading-snug">
+                        Ranges reflect typical outcomes across our book of business. No legitimate credit service can promise a specific number — we build the plan, you see the lift.
+                      </p>
+                    </div>
+
+                    {/* Calendly — primary CTA */}
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6">
+                      <div className="text-center mb-4">
+                        <div className="text-xs font-semibold tracking-[0.14em] uppercase text-blue-600 mb-2">Your next step</div>
+                        <h4 className="text-xl font-semibold text-zinc-900 mb-1">Book your free 15-minute audit call</h4>
+                        <p className="text-sm text-zinc-600 max-w-md mx-auto">
+                          We'll pop the hood on your 3-bureau report, pinpoint the exact items holding you back, and show you the removal plan. No sales pitch — you leave with the plan whether you hire us or not.
+                        </p>
+                      </div>
+                      <div
+                        ref={calendlyWrapRef}
+                        className="calendly-inline-widget"
+                        data-url={`${CALENDLY_URL}?hide_gdpr_banner=1&name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}`}
+                        style={{ minWidth: '320px', height: '680px' }}
+                      />
+                      {/* Soft fallback — don't lose users who'd create an account
+                          but aren't ready to book. They can schedule from the
+                          dashboard later. */}
+                      <div className="text-center mt-4">
+                        <Link
+                          to="/register"
+                          onClick={() => {
+                            try {
+                              sessionStorage.setItem('cpc_lead', JSON.stringify({
+                                name:  formData.fullName,
+                                email: formData.email,
+                              }));
+                            } catch { /* sessionStorage unavailable — Register handles the empty case */ }
+                          }}
+                          className="text-xs text-zinc-500 hover:text-zinc-800 underline underline-offset-2"
+                        >
+                          Prefer to create your account first? You can book the call from your dashboard.
+                        </Link>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })()}
+
+              {step === 6 && (
                 <motion.div
-                  key="step5"
+                  key="step6"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4 }}
@@ -653,77 +955,50 @@ export function QuizFunnel() {
                   <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
                     <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                   </div>
-                  <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-4">Application Received & Approved!</h3>
-                  <p className="text-base sm:text-lg text-zinc-600 mb-6 sm:mb-8 max-w-lg">
-                    Based on your profile, you qualify for a complete Credit Strategy Session. On this call, we will pop the hood on your 3-bureau report, pinpoint the exact negative items holding your score hostage, and show you the exact credit correction strategies we use to force them off your report.
+                  <h3 className="text-2xl sm:text-3xl font-semibold text-zinc-900 mb-3">Your call is booked.</h3>
+                  <p className="text-base text-zinc-600 mb-2 max-w-lg">
+                    Check your inbox — Calendly just sent a confirmation with the date, time, and calendar invite.
                   </p>
-                  
-                  <a 
-                    href="https://calendly.com/cleanpathcredit/free-15-min-credit-audit-strategy-call"
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-full max-w-md"
-                  >
-                    <Button className="w-full h-16 text-xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all">
-                      Book Now
-                    </Button>
-                  </a>
+                  <p className="text-sm text-zinc-500 mb-8 max-w-lg">
+                    Want to hit the ground running? Set up your free client portal now so we can review your 3-bureau report <em>before</em> the call — you'll get twice as much out of it.
+                  </p>
 
-                  <div className="mt-8 pt-8 border-t border-zinc-100 w-full max-w-md text-left">
-                    <p className="text-sm font-medium text-zinc-900 mb-4 text-center">Don't forget your appointment! Add to your calendar:</p>
-                    <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-10">
-                      <a href={generateGoogleCalendarLink()} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" size="sm" className="gap-1.5 px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap">
-                          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Google
-                        </Button>
-                      </a>
-                      <a href={generateIcsFile()} download="credit-strategy-session.ics">
-                        <Button variant="outline" size="sm" className="gap-1.5 px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap">
-                          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Apple
-                        </Button>
-                      </a>
-                      <a href={generateIcsFile()} download="credit-strategy-session.ics">
-                        <Button variant="outline" size="sm" className="gap-1.5 px-3 sm:px-4 text-xs sm:text-sm whitespace-nowrap">
-                          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Outlook
-                        </Button>
-                      </a>
-                    </div>
-
-                    <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-200">
-                      <h4 className="text-xl font-semibold text-zinc-900 mb-3">Next Step: Create Your Clean Path Client Portal</h4>
-                      <p className="text-zinc-600 mb-4">Don't wait for your call to get started. Create your free client account now to:</p>
-                      <ul className="space-y-2 mb-6 text-zinc-700">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                          Access your credit correction tracking tools.
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                          View your credit journey progress.
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                          Download your Master Financial List and premium credit resources.
-                        </li>
-                      </ul>
-                      <Link
-                        to="/register"
-                        onClick={() => {
-                          // Store lead data in sessionStorage so Register can pre-fill
-                          // the Clerk form without exposing PII in the URL (logs/history).
-                          try {
-                            sessionStorage.setItem("cpc_lead", JSON.stringify({
-                              name: formData.fullName,
-                              email: formData.email,
-                            }));
-                          } catch { /* sessionStorage unavailable — Register falls back gracefully */ }
-                        }}
-                      >
-                        <Button variant="primary" className="w-full h-12">
-                          Create My Free Account
-                        </Button>
-                      </Link>
-                    </div>
+                  <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-zinc-50 p-6 text-left">
+                    <h4 className="text-lg font-semibold text-zinc-900 mb-3">Your free client portal includes:</h4>
+                    <ul className="space-y-2 mb-6 text-sm text-zinc-700">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>Upload your 3-bureau report so we can pre-audit it</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>Track progress on every disputed item, per bureau</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>Access the Master Financial List — credit-builder tools we actually use</span>
+                      </li>
+                    </ul>
+                    <Link
+                      to="/register"
+                      onClick={() => {
+                        // Stash lead details so /register can pre-fill Clerk's
+                        // form without putting PII in the URL (logs / history).
+                        try {
+                          sessionStorage.setItem('cpc_lead', JSON.stringify({
+                            name:  formData.fullName,
+                            email: formData.email,
+                          }));
+                        } catch { /* sessionStorage unavailable — Register handles the empty case */ }
+                      }}
+                    >
+                      <Button variant="primary" className="w-full h-12">
+                        Create a free account
+                      </Button>
+                    </Link>
+                    <p className="text-[11px] text-zinc-400 mt-3 text-center">
+                      Takes 30 seconds. No credit card required.
+                    </p>
                   </div>
                 </motion.div>
               )}
