@@ -392,17 +392,21 @@ export function QuizFunnel() {
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
-  // Render the Turnstile widget once the lead-capture step is visible and the
-  // Cloudflare script has loaded. Poll briefly because the script is `async`
-  // and may resolve after React mounts the container.
+  // Load + render the Turnstile widget only once the lead-capture step is
+  // visible. The script used to sit in index.html, but that made it global —
+  // which clashed with Clerk's own Turnstile on /register (both scripts
+  // fighting over the same Turnstile singleton produced Error 300030 and
+  // hung the sign-up form for 5 minutes before timing out). Lazy-loading
+  // keeps the script scoped to the only page that actually needs it.
   useEffect(() => {
     if (step !== 4 || isFinalAnalyzing) return;
     if (!TURNSTILE_SITE_KEY) return;
     if (turnstileWidgetIdRef.current) return;
 
     let cancelled = false;
+
     const tryRender = () => {
-      if (cancelled) return;
+      if (cancelled) return false;
       const ts = window.turnstile;
       const container = turnstileContainerRef.current;
       if (!ts || !container) return false;
@@ -415,13 +419,33 @@ export function QuizFunnel() {
       return true;
     };
 
-    if (tryRender()) return;
-    const interval = window.setInterval(() => {
-      if (tryRender()) window.clearInterval(interval);
-    }, 150);
+    const src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    const existing = document.querySelector<HTMLScriptElement>(
+      `script[src^="https://challenges.cloudflare.com/turnstile/v0/api.js"]`,
+    );
+
+    // Script already injected (re-mount, or loaded by another component):
+    // poll briefly for window.turnstile, then render.
+    if (existing || window.turnstile) {
+      if (tryRender()) return;
+      const interval = window.setInterval(() => {
+        if (tryRender()) window.clearInterval(interval);
+      }, 150);
+      return () => {
+        cancelled = true;
+        window.clearInterval(interval);
+      };
+    }
+
+    // First mount — inject the script now and render on load.
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.defer = true;
+    s.onload = () => { tryRender(); };
+    document.head.appendChild(s);
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
     };
   }, [step, isFinalAnalyzing]);
 
