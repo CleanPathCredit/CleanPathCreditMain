@@ -15,9 +15,12 @@ import type {
 import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
   Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Flame, Plus,
+  Pencil,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { AddLeadModal } from "@/components/admin/AddLeadModal";
+import { EditLeadModal } from "@/components/admin/EditLeadModal";
+import { EditClientModal } from "@/components/admin/EditClientModal";
 
 const STATUS_OPTIONS: { value: ClientStatus; label: string; color: string }[] = [
   { value: "missing_id",       label: "Missing ID",         color: "bg-red-50 text-red-700 border-red-200" },
@@ -80,6 +83,11 @@ export function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen]     = useState(false);
   const [view, setView]                   = useState<"clients" | "leads">("clients");
   const [addLeadOpen, setAddLeadOpen]     = useState(false);
+  // Inline modals for edit/delete flows. Keyed on the specific row so
+  // opening "Manage" on a different lead while a modal is already open
+  // swaps the payload rather than stacking modals.
+  const [editingLead, setEditingLead]     = useState<LeadSubmission | null>(null);
+  const [editingClient, setEditingClient] = useState<ClientRecord | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Guard — only admins
@@ -372,6 +380,7 @@ export function AdminDashboard() {
                         <th className="px-6 py-4 font-medium">Recommended</th>
                         <th className="px-6 py-4 font-medium">Submitted</th>
                         <th className="px-6 py-4 font-medium">Registered?</th>
+                        <th className="px-6 py-4 font-medium text-right">Manage</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
@@ -423,11 +432,20 @@ export function AdminDashboard() {
                                 <span className="text-zinc-400">No</span>
                               )}
                             </td>
+                            <td className="px-6 py-4 text-right">
+                              <Button
+                                variant="outline"
+                                className="h-8 px-3 text-xs bg-white hover:bg-zinc-50 shadow-sm"
+                                onClick={() => setEditingLead(l)}
+                              >
+                                Manage
+                              </Button>
+                            </td>
                           </tr>
                         );
                       })}
                       {leads.length === 0 && (
-                        <tr><td colSpan={7} className="px-6 py-12 text-center text-zinc-500">
+                        <tr><td colSpan={8} className="px-6 py-12 text-center text-zinc-500">
                           <Flame className="h-10 w-10 text-zinc-300 mx-auto mb-3" />
                           No leads yet — submissions will appear here in real time.
                         </td></tr>
@@ -453,8 +471,16 @@ export function AdminDashboard() {
                     <p className="text-sm text-zinc-500">{selected.email} · {selected.phone ?? "No phone"}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-zinc-500">Status:</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setEditingClient(selected)}
+                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-sm font-medium text-zinc-700 shadow-sm transition-colors"
+                    title="Edit client profile"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Edit profile</span>
+                  </button>
+                  <span className="text-sm font-medium text-zinc-500 hidden md:inline">Status:</span>
                   <select
                     value={selected.status}
                     onChange={(e) => updateClientStatus(selected.id, e.target.value as ClientStatus)}
@@ -582,6 +608,31 @@ export function AdminDashboard() {
           on success; the realtime INSERT subscription on lead_submissions
           pushes the new row into the table with no explicit refetch. */}
       <AddLeadModal open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
+
+      {/* Edit / delete flows for a single lead. Optimistic list updates on
+          save (realtime INSERT channel doesn't catch UPDATE events) and on
+          delete (remove locally so the row disappears before Postgres
+          round-trips). */}
+      <EditLeadModal
+        open={editingLead !== null}
+        lead={editingLead}
+        onClose={() => setEditingLead(null)}
+        onSaved={(u) => setLeads((prev) => prev.map((l) => (l.id === u.id ? u : l)))}
+        onDeleted={(id) => setLeads((prev) => prev.filter((l) => l.id !== id))}
+      />
+
+      {/* Edit client profile — email is Clerk-owned so it's read-only. */}
+      <EditClientModal
+        open={editingClient !== null}
+        client={editingClient}
+        onClose={() => setEditingClient(null)}
+        onSaved={(u) => {
+          setClients((prev) => prev.map((c) => (c.id === u.id ? u : c)));
+          // If the detail view is currently focused on this client, swap
+          // the selected reference so its header re-renders immediately.
+          setSelected((curr) => (curr?.id === u.id ? u : curr));
+        }}
+      />
     </div>
   );
 }

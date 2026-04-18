@@ -207,7 +207,10 @@ export interface Database {
           consent?: boolean;
           submitted_at?: string;
         };
-        Update: Record<string, never>;
+        // Admin-side edits via /api/admin/lead/[id]. Shape matches Insert
+        // minus the required email (PATCH allows changing email but it's
+        // still validated to be an email at the endpoint layer).
+        Update: Partial<Database["public"]["Tables"]["lead_submissions"]["Insert"]>;
         Relationships: [];
       };
     };
