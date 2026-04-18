@@ -44,6 +44,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
+import { createClient } from "@supabase/supabase-js";
+import type { Database, ReadinessTier, RecommendedOffer, GHLDelivery } from "../src/types/database";
 
 export const config = { runtime: "nodejs" };
 
@@ -176,6 +178,38 @@ function splitName(full: string): { firstName?: string; lastName?: string } {
   return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
 }
 
+// Bucket the 0–100 readiness score into the same 4 tiers the results page
+// (QuizFunnel.tsx#readinessTier) renders, so admin dashboard tags match
+// exactly what the lead saw after submitting.
+function tierFromScore(score: number | null): ReadinessTier | null {
+  if (score === null) return null;
+  if (score >= 70) return "strong";
+  if (score >= 50) return "promising";
+  if (score >= 30) return "priority";
+  return "urgent";
+}
+
+// Derive which package to recommend from the readiness tier + obstacle
+// density. Kept server-side so admin and lead see the same recommendation,
+// and so the logic lives in one place (vs duplicating between client +
+// admin). Conservative fallback is "accelerated" — the middle tier is the
+// right default for most real leads.
+function recommendedOfferFrom(
+  readiness: number | null,
+  obstacles: string[],
+): RecommendedOffer {
+  const hasHeavy = obstacles.some((o) => o === "bankruptcies" || o === "late");
+  // Executive tier: strong foundation + stacked/heavy obstacles (e.g. a
+  // business owner with late history wanting a full strategy) — or anyone
+  // picking 3+ obstacles, which signals they want full done-for-you depth.
+  if ((readiness !== null && readiness >= 70) && obstacles.length >= 3) return "executive";
+  if (obstacles.length >= 3 && hasHeavy) return "executive";
+  // DIY only for very clean profiles with 0–1 obstacles — these leads can
+  // genuinely execute on their own with the right playbook.
+  if ((readiness !== null && readiness >= 70) && obstacles.length <= 1) return "diy";
+  return "accelerated";
+}
+
 function buildNoteBody(lead: SanitizedLead): string {
   const when = new Date(lead.submittedAt).toISOString();
   const lines: string[] = [
@@ -292,6 +326,57 @@ async function postGHLNote(
     }
   } catch (err) {
     console.error("[/api/lead] ghl_note_error:", err);
+  }
+}
+
+/**
+ * Persist the lead to Supabase so it shows up on the admin dashboard even
+ * if the lead never registers. Admin reads are gated by is_admin() RLS;
+ * we write with the service-role key which bypasses RLS. Best-effort: if
+ * Supabase is down or env is unset, we still forward to GHL. Logs are
+ * kept terse so the CloudWatch-equivalent view stays clean.
+ */
+async function persistLeadSubmission(
+  lead: SanitizedLead,
+  ghlContactId: string | undefined,
+  ghlDelivery: GHLDelivery,
+): Promise<void> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    // Supabase isn't provisioned for this env — GHL is still the source of
+    // truth, the dashboard view just misses this submission.
+    console.warn("[/api/lead] supabase_not_configured — skipping persist");
+    return;
+  }
+  try {
+    const supabase = createClient<Database>(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { error } = await supabase.from("lead_submissions").insert({
+      email:              lead.email,
+      full_name:          lead.fullName || null,
+      phone:              lead.phone    || null,
+      goal:               lead.goal     || null,
+      obstacles:          lead.obstacles,
+      credit_score_range: lead.creditScore || null,
+      income_range:       lead.income      || null,
+      ideal_score:        lead.idealScore  || null,
+      timeline:           lead.timeline    || null,
+      readiness_score:    lead.readinessScore,
+      readiness_tier:     tierFromScore(lead.readinessScore),
+      recommended_offer:  recommendedOfferFrom(lead.readinessScore, lead.obstacles),
+      source:             lead.source,
+      ghl_contact_id:     ghlContactId ?? null,
+      ghl_delivery:       ghlDelivery,
+      consent:            lead.consent,
+      submitted_at:       lead.submittedAt,
+    });
+    if (error) {
+      console.error("[/api/lead] persist_failed:", error.message);
+    }
+  } catch (err) {
+    console.error("[/api/lead] persist_error:", err);
   }
 }
 
@@ -430,6 +515,10 @@ export default async function handler(
   // the UI despite having landed somewhere.
   const delivered = (apiResult?.ok === true) || webhookOk;
   if (!delivered) {
+    // Still persist the attempt so the admin dashboard can see submissions
+    // that failed delivery — otherwise these leads would vanish without a
+    // trace. Delivery status marks them as 'failed' so sales can follow up.
+    await persistLeadSubmission(lead, undefined, "failed");
     return sendJson(res, 502, {
       error: "upstream_failed",
       // Surface the GHL status so front-end debugging in DevTools shows
@@ -437,6 +526,12 @@ export default async function handler(
       ghl_status: apiResult?.status,
     });
   }
+
+  // Persist to Supabase for the admin dashboard. Await so a batch of rapid
+  // submissions can't race — the write is cheap (~50ms) and we want the
+  // admin to see the row immediately on the next dashboard refresh.
+  const delivery: GHLDelivery = apiResult?.ok === true ? "api" : "webhook_fallback";
+  await persistLeadSubmission(lead, apiResult?.contactId, delivery);
 
   return sendJson(res, 200, {
     ok: true,

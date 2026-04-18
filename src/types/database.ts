@@ -26,6 +26,12 @@ export type DocumentCategory = "id" | "ssn" | "credit_report" | "other";
 export type DocumentStatus = "pending" | "verified" | "rejected";
 export type MessageSender = "admin" | "client";
 
+// Lead readiness tiers — buckets of readiness_score for triage UI.
+// Matches the bucketing in /api/lead's tag generator.
+export type ReadinessTier      = "strong" | "promising" | "priority" | "urgent";
+export type RecommendedOffer   = "diy"    | "accelerated" | "executive";
+export type GHLDelivery        = "api"    | "webhook_fallback" | "failed";
+
 export interface Database {
   public: {
     Tables: {
@@ -156,6 +162,53 @@ export interface Database {
         Update: Record<string, never>;
         Relationships: [];
       };
+      lead_submissions: {
+        Row: {
+          id: string;
+          email: string;
+          full_name: string | null;
+          phone: string | null;
+          goal: string | null;
+          obstacles: string[];
+          credit_score_range: string | null;
+          income_range: string | null;
+          ideal_score: string | null;
+          timeline: string | null;
+          readiness_score: number | null;
+          readiness_tier: ReadinessTier | null;
+          recommended_offer: RecommendedOffer | null;
+          source: string;
+          ghl_contact_id: string | null;
+          ghl_delivery: GHLDelivery | null;
+          consent: boolean;
+          submitted_at: string;
+          created_at: string;
+        };
+        // Writes only via service-role (/api/lead). RLS rejects all direct
+        // inserts from client sessions. Kept loose so the server code
+        // type-checks without having to spell every field as optional.
+        Insert: {
+          email: string;
+          full_name?: string | null;
+          phone?: string | null;
+          goal?: string | null;
+          obstacles?: string[];
+          credit_score_range?: string | null;
+          income_range?: string | null;
+          ideal_score?: string | null;
+          timeline?: string | null;
+          readiness_score?: number | null;
+          readiness_tier?: ReadinessTier | null;
+          recommended_offer?: RecommendedOffer | null;
+          source?: string;
+          ghl_contact_id?: string | null;
+          ghl_delivery?: GHLDelivery | null;
+          consent?: boolean;
+          submitted_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -172,11 +225,12 @@ export interface Database {
 }
 
 // Convenience row type aliases
-export type Profile  = Database["public"]["Tables"]["profiles"]["Row"];
-export type Message  = Database["public"]["Tables"]["messages"]["Row"];
-export type Document = Database["public"]["Tables"]["documents"]["Row"];
-export type AuditLog = Database["public"]["Tables"]["audit_log"]["Row"];
+export type Profile         = Database["public"]["Tables"]["profiles"]["Row"];
+export type Message         = Database["public"]["Tables"]["messages"]["Row"];
+export type Document        = Database["public"]["Tables"]["documents"]["Row"];
+export type AuditLog        = Database["public"]["Tables"]["audit_log"]["Row"];
 export type StripeWebhookEvent = Database["public"]["Tables"]["stripe_webhook_events"]["Row"];
+export type LeadSubmission  = Database["public"]["Tables"]["lead_submissions"]["Row"];
 
 /** Profile with its Supabase row id — used in admin list views */
 export type ClientRecord = Profile;
