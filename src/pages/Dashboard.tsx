@@ -11,7 +11,12 @@ import { DocumentVault } from "@/components/dashboard/DocumentVault";
 import { MasterList } from "@/components/dashboard/MasterList";
 import { TravelResources } from "@/components/dashboard/TravelResources";
 import { PlanGate } from "@/components/dashboard/PlanGate";
-import { CreditScoreWidget } from "@/components/dashboard/CreditScoreWidget";
+// CreditScoreWidget is intentionally no longer imported — it was a
+// pre-pipeline placeholder that showed an "Estimated 620" gauge plus a
+// "Connect your credit bureau — Coming Soon" button. With the real
+// upload → parse → CreditReportView flow live, that widget contradicts
+// the rest of the dashboard. Keep the file around in case we later
+// repurpose it for score-trend viz across multiple reports.
 import { OnboardingWizard } from "@/components/dashboard/OnboardingWizard";
 import { CreditReportView } from "@/components/dashboard/CreditReportView";
 import { canAccess, PLAN_LABEL } from "@/lib/planAccess";
@@ -274,8 +279,11 @@ export function Dashboard() {
           )}
         </AnimatePresence>
 
-        {/* Main */}
-        <main className="flex-1 p-4 md:p-8 max-w-5xl">
+        {/* Main. pb-28 on mobile leaves ~112px of clearance under the last
+            button so the fixed-position ElevenLabs chatbot widget never
+            covers a CTA at the end of the scroll. Desktop keeps normal
+            padding because the widget sits far enough from content width. */}
+        <main className="flex-1 p-4 md:p-8 pb-28 md:pb-8 max-w-5xl">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-zinc-900">Welcome back, {firstName}</h1>
           </div>
@@ -319,9 +327,6 @@ export function Dashboard() {
                     </Button>
                   </div>
                 )}
-
-                {/* Credit Score */}
-                <CreditScoreWidget profile={profile} />
 
                 {/* Dispute Tracker */}
                 <PlanGate feature="dispute_tracker" plan={effectivePlan} lightBlur={true}>
