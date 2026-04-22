@@ -33,6 +33,14 @@ export type UrgencyTier        = "low" | "moderate" | "elevated" | "urgent";
 export type RecommendedOffer   = "diy"    | "accelerated" | "executive";
 export type GHLDelivery        = "api"    | "webhook_fallback" | "failed";
 
+// Credit report ingestion (migration 008). Parse-status machine drives the
+// dashboard UI ("Analyzing your report…" vs "View your scores").
+export type CreditReportParseStatus =
+  | "pending"     // row created, parser hasn't started yet
+  | "processing"  // LLM call in flight
+  | "success"     // scores + accounts populated
+  | "failed";     // parse_error has the reason
+
 export interface Database {
   public: {
     Tables: {
@@ -217,6 +225,102 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["lead_submissions"]["Insert"]>;
         Relationships: [];
       };
+      credit_reports: {
+        Row: {
+          id: string;
+          profile_id: string;
+          document_id: string | null;
+          source: string;
+          report_date: string | null;
+          score_model: string | null;
+          eq_score: number | null;
+          tu_score: number | null;
+          ex_score: number | null;
+          total_accounts: number | null;
+          open_accounts: number | null;
+          closed_accounts: number | null;
+          negative_items_count: number | null;
+          total_utilization_pct: number | null;
+          inquiries_24mo: number | null;
+          raw_extracted: Record<string, unknown> | null;
+          parse_status: CreditReportParseStatus;
+          parse_error: string | null;
+          parse_model: string | null;
+          created_at: string;
+          processed_at: string | null;
+        };
+        // Writes only via service-role (/api/credit-report/*). RLS rejects
+        // every other path.
+        Insert: {
+          profile_id: string;
+          document_id?: string | null;
+          source?: string;
+          report_date?: string | null;
+          score_model?: string | null;
+          eq_score?: number | null;
+          tu_score?: number | null;
+          ex_score?: number | null;
+          total_accounts?: number | null;
+          open_accounts?: number | null;
+          closed_accounts?: number | null;
+          negative_items_count?: number | null;
+          total_utilization_pct?: number | null;
+          inquiries_24mo?: number | null;
+          raw_extracted?: Record<string, unknown> | null;
+          parse_status?: CreditReportParseStatus;
+          parse_error?: string | null;
+          parse_model?: string | null;
+          processed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["credit_reports"]["Insert"]>;
+        Relationships: [];
+      };
+      credit_report_accounts: {
+        Row: {
+          id: string;
+          credit_report_id: string;
+          profile_id: string;
+          creditor: string | null;
+          account_number_last4: string | null;
+          account_type: string | null;
+          bureau_reporting: string[];
+          status: string | null;
+          balance: number | null;
+          credit_limit: number | null;
+          high_balance: number | null;
+          monthly_payment: number | null;
+          date_opened: string | null;
+          last_reported: string | null;
+          payment_status: string | null;
+          is_negative: boolean;
+          dispute_eligible: boolean;
+          dispute_reason: string | null;
+          raw: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: {
+          credit_report_id: string;
+          profile_id: string;
+          creditor?: string | null;
+          account_number_last4?: string | null;
+          account_type?: string | null;
+          bureau_reporting?: string[];
+          status?: string | null;
+          balance?: number | null;
+          credit_limit?: number | null;
+          high_balance?: number | null;
+          monthly_payment?: number | null;
+          date_opened?: string | null;
+          last_reported?: string | null;
+          payment_status?: string | null;
+          is_negative?: boolean;
+          dispute_eligible?: boolean;
+          dispute_reason?: string | null;
+          raw?: Record<string, unknown> | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["credit_report_accounts"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -238,7 +342,9 @@ export type Message         = Database["public"]["Tables"]["messages"]["Row"];
 export type Document        = Database["public"]["Tables"]["documents"]["Row"];
 export type AuditLog        = Database["public"]["Tables"]["audit_log"]["Row"];
 export type StripeWebhookEvent = Database["public"]["Tables"]["stripe_webhook_events"]["Row"];
-export type LeadSubmission  = Database["public"]["Tables"]["lead_submissions"]["Row"];
+export type LeadSubmission       = Database["public"]["Tables"]["lead_submissions"]["Row"];
+export type CreditReport         = Database["public"]["Tables"]["credit_reports"]["Row"];
+export type CreditReportAccount  = Database["public"]["Tables"]["credit_report_accounts"]["Row"];
 
 /** Profile with its Supabase row id — used in admin list views */
 export type ClientRecord = Profile;
