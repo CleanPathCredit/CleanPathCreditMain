@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import type {
   ClientRecord, Message, ClientStatus, Document as DocRow,
-  LeadSubmission, UrgencyTier,
+  LeadSubmission, UrgencyTier, Plan,
 } from "@/types/database";
 import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
   Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Flame, Plus,
-  Pencil,
+  Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, FileDown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { AddLeadModal } from "@/components/admin/AddLeadModal";
@@ -68,6 +68,93 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
+// Generic sort state — key identifies the column, dir flips on re-click.
+// Stored as a single object so toggling between columns resets direction
+// to "desc" which is the usual default for numeric / date columns.
+interface SortState<K extends string> {
+  key: K;
+  dir: "asc" | "desc";
+}
+function toggleSort<K extends string>(prev: SortState<K>, key: K): SortState<K> {
+  if (prev.key === key) return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+  // New column → default desc (newest first / highest first)
+  return { key, dir: "desc" };
+}
+
+// URGENCY_ORDER ranks tier strings so sorting by tier uses intuitive
+// ordering (urgent > elevated > moderate > low) rather than alphabetical.
+const URGENCY_ORDER: Record<UrgencyTier, number> = {
+  urgent:   3,
+  elevated: 2,
+  moderate: 1,
+  low:      0,
+};
+
+/** RFC-4180-ish CSV escaping — wraps in quotes + doubles internal quotes. */
+function csvCell(v: unknown): string {
+  const s = v == null ? "" : String(v);
+  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+function leadsToCsv(rows: LeadSubmission[]): string {
+  const header = [
+    "submitted_at", "source", "full_name", "email", "phone",
+    "goal", "obstacles", "credit_score_range", "income_range",
+    "ideal_score", "timeline", "urgency_score", "urgency_tier",
+    "recommended_offer", "ghl_contact_id", "ghl_delivery",
+  ];
+  const body = rows.map((r) => [
+    r.submitted_at, r.source, r.full_name, r.email, r.phone,
+    r.goal, r.obstacles?.join("|"), r.credit_score_range, r.income_range,
+    r.ideal_score, r.timeline, r.urgency_score, r.urgency_tier,
+    r.recommended_offer, r.ghl_contact_id, r.ghl_delivery,
+  ].map(csvCell).join(","));
+  return [header.join(","), ...body].join("\n");
+}
+function downloadCsv(rows: LeadSubmission[]): void {
+  const csv = leadsToCsv(rows);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
+  a.href = url;
+  a.download = `cleanpath-leads-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Reusable sort-indicator cell — clickable header that displays the
+// active direction via a tiny chevron.
+function SortHeader<K extends string>({
+  label, sortKey, sort, setSort, align = "left",
+}: {
+  label:    string;
+  sortKey:  K;
+  sort:     SortState<K>;
+  setSort:  (s: SortState<K>) => void;
+  align?:   "left" | "right";
+}) {
+  const active = sort.key === sortKey;
+  const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th className={`px-6 py-4 font-medium ${align === "right" ? "text-right" : ""}`}>
+      <button
+        onClick={() => setSort(toggleSort(sort, sortKey))}
+        className={`inline-flex items-center gap-1.5 hover:text-zinc-900 transition-colors ${
+          active ? "text-zinc-900" : ""
+        }`}
+      >
+        {label}
+        <Icon className="h-3 w-3" />
+      </button>
+    </th>
+  );
+}
+
 export function AdminDashboard() {
   const { clerkUser, profile: adminProfile, logout } = useAuth();
   const navigate = useNavigate();
@@ -88,6 +175,21 @@ export function AdminDashboard() {
   // swaps the payload rather than stacking modals.
   const [editingLead, setEditingLead]     = useState<LeadSubmission | null>(null);
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null);
+
+  // ── Search / filter / sort state ─────────────────────────────────────────
+  // Kept local to the page (not persisted) so the admin always starts with
+  // a clean view on each session — avoids "why is the list empty?" moments
+  // after a filter was forgotten from last time.
+  type LeadSortKey   = "submitted_at" | "full_name" | "urgency_score" | "urgency_tier" | "goal";
+  type ClientSortKey = "created_at" | "full_name" | "plan" | "status" | "progress";
+  const [leadSearch,    setLeadSearch]    = useState("");
+  const [leadTierFilter, setLeadTierFilter] = useState<UrgencyTier | "all">("all");
+  const [leadSort,      setLeadSort]      = useState<SortState<LeadSortKey>>({ key: "submitted_at", dir: "desc" });
+  const [clientSearch,  setClientSearch]  = useState("");
+  const [clientStatusFilter, setClientStatusFilter] = useState<ClientStatus | "all">("all");
+  const [clientPlanFilter,   setClientPlanFilter]   = useState<Plan | "all">("all");
+  const [clientSort,    setClientSort]    = useState<SortState<ClientSortKey>>({ key: "created_at", dir: "desc" });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Guard — only admins
@@ -164,6 +266,69 @@ export function AdminDashboard() {
   }, [selected?.id]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  // Derive filtered + sorted leads. Memoized so the table only re-sorts
+  // when the inputs change, not on every keystroke in an unrelated input.
+  const filteredLeads = useMemo(() => {
+    const q = leadSearch.trim().toLowerCase();
+    let rows = leads.filter((l) => {
+      if (leadTierFilter !== "all" && l.urgency_tier !== leadTierFilter) return false;
+      if (q) {
+        const hay = `${l.full_name ?? ""} ${l.email} ${l.phone ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    const { key, dir } = leadSort;
+    const sign = dir === "asc" ? 1 : -1;
+    rows = [...rows].sort((a, b) => {
+      let av: string | number = "";
+      let bv: string | number = "";
+      switch (key) {
+        case "submitted_at":  av = a.submitted_at;                    bv = b.submitted_at;                    break;
+        case "full_name":     av = (a.full_name ?? "").toLowerCase(); bv = (b.full_name ?? "").toLowerCase(); break;
+        case "urgency_score": av = a.urgency_score ?? -1;             bv = b.urgency_score ?? -1;             break;
+        case "urgency_tier":  av = a.urgency_tier ? URGENCY_ORDER[a.urgency_tier] : -1;
+                              bv = b.urgency_tier ? URGENCY_ORDER[b.urgency_tier] : -1;
+                              break;
+        case "goal":          av = a.goal ?? "";                       bv = b.goal ?? "";                       break;
+      }
+      if (av < bv) return -1 * sign;
+      if (av > bv) return  1 * sign;
+      return 0;
+    });
+    return rows;
+  }, [leads, leadSearch, leadTierFilter, leadSort]);
+
+  const filteredClients = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase();
+    let rows = clients.filter((c) => {
+      if (clientStatusFilter !== "all" && c.status !== clientStatusFilter) return false;
+      if (clientPlanFilter   !== "all" && c.plan   !== clientPlanFilter)   return false;
+      if (q) {
+        const hay = `${c.full_name ?? ""} ${c.email} ${c.phone ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    const { key, dir } = clientSort;
+    const sign = dir === "asc" ? 1 : -1;
+    rows = [...rows].sort((a, b) => {
+      let av: string | number = "";
+      let bv: string | number = "";
+      switch (key) {
+        case "created_at": av = a.created_at;                    bv = b.created_at;                    break;
+        case "full_name":  av = (a.full_name ?? "").toLowerCase(); bv = (b.full_name ?? "").toLowerCase(); break;
+        case "plan":       av = a.plan;                           bv = b.plan;                           break;
+        case "status":     av = a.status;                         bv = b.status;                         break;
+        case "progress":   av = a.progress;                       bv = b.progress;                       break;
+      }
+      if (av < bv) return -1 * sign;
+      if (av > bv) return  1 * sign;
+      return 0;
+    });
+    return rows;
+  }, [clients, clientSearch, clientStatusFilter, clientPlanFilter, clientSort]);
 
   const updateClientStatus = async (clientId: string, status: ClientStatus) => {
     const progressMap: Partial<Record<ClientStatus, number>> = {
@@ -265,19 +430,54 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* Search + filters — client-side only, operate on the
+                    already-fetched list. Status filter helps triage by
+                    funnel stage; plan filter surfaces upgrade candidates. */}
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                    <input
+                      type="search"
+                      placeholder="Search name, email, or phone…"
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-zinc-200 bg-white shadow-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+                  <select
+                    value={clientStatusFilter}
+                    onChange={(e) => setClientStatusFilter(e.target.value as ClientStatus | "all")}
+                    className="py-2 px-3 text-sm rounded-lg border border-zinc-200 bg-white shadow-sm min-w-[160px]"
+                  >
+                    <option value="all">All statuses</option>
+                    {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <select
+                    value={clientPlanFilter}
+                    onChange={(e) => setClientPlanFilter(e.target.value as Plan | "all")}
+                    className="py-2 px-3 text-sm rounded-lg border border-zinc-200 bg-white shadow-sm min-w-[130px]"
+                  >
+                    <option value="all">All plans</option>
+                    <option value="free">Free</option>
+                    <option value="diy">DIY</option>
+                    <option value="standard">Standard</option>
+                    <option value="premium">Premium</option>
+                  </select>
+                </div>
+
                 <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-x-auto">
                   <table className="w-full text-left text-sm min-w-[700px]">
                     <thead className="bg-zinc-50/50 border-b border-zinc-200 text-zinc-500">
                       <tr>
-                        <th className="px-6 py-4 font-medium">Client</th>
+                        <SortHeader<ClientSortKey> label="Client"   sortKey="full_name" sort={clientSort} setSort={setClientSort} />
                         <th className="px-6 py-4 font-medium">Urgency</th>
-                        <th className="px-6 py-4 font-medium">Status</th>
-                        <th className="px-6 py-4 font-medium">Progress</th>
+                        <SortHeader<ClientSortKey> label="Status"   sortKey="status"    sort={clientSort} setSort={setClientSort} />
+                        <SortHeader<ClientSortKey> label="Progress" sortKey="progress"  sort={clientSort} setSort={setClientSort} />
                         <th className="px-6 py-4 font-medium text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
-                      {clients.map((c) => {
+                      {filteredClients.map((c) => {
                         // Stitch the registered client to their most-recent
                         // quiz submission by email (case-insensitive). Cheap
                         // client-side match — leads list is capped at 200.
@@ -328,10 +528,10 @@ export function AdminDashboard() {
                           </tr>
                         );
                       })}
-                      {clients.length === 0 && (
+                      {filteredClients.length === 0 && (
                         <tr><td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
                           <Users className="h-10 w-10 text-zinc-300 mx-auto mb-3" />
-                          No clients yet.
+                          {clients.length === 0 ? "No clients yet." : "No clients match the current filter."}
                         </td></tr>
                       )}
                     </tbody>
@@ -355,6 +555,16 @@ export function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => downloadCsv(filteredLeads)}
+                      disabled={filteredLeads.length === 0}
+                      title="Export visible leads as CSV"
+                      aria-label="Export CSV"
+                      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      <span className="hidden sm:inline">Export CSV</span>
+                    </button>
+                    <button
                       onClick={() => setAddLeadOpen(true)}
                       title="Add lead manually"
                       aria-label="Add lead manually"
@@ -364,27 +574,54 @@ export function AdminDashboard() {
                       <span className="hidden sm:inline">Add Lead</span>
                     </button>
                     <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm flex items-center gap-2">
-                      <Flame className="h-4 w-4 text-emerald-500" /> {leads.length} Leads
+                      <Flame className="h-4 w-4 text-emerald-500" />
+                      {filteredLeads.length}{filteredLeads.length !== leads.length && ` / ${leads.length}`} Leads
                     </div>
                   </div>
+                </div>
+
+                {/* Search + tier filter for leads. Same layout pattern as
+                    the Clients view above so admins build one mental model. */}
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                    <input
+                      type="search"
+                      placeholder="Search name, email, or phone…"
+                      value={leadSearch}
+                      onChange={(e) => setLeadSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-zinc-200 bg-white shadow-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+                  <select
+                    value={leadTierFilter}
+                    onChange={(e) => setLeadTierFilter(e.target.value as UrgencyTier | "all")}
+                    className="py-2 px-3 text-sm rounded-lg border border-zinc-200 bg-white shadow-sm min-w-[140px]"
+                  >
+                    <option value="all">All tiers</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="elevated">Elevated</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="low">Low</option>
+                  </select>
                 </div>
 
                 <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-x-auto">
                   <table className="w-full text-left text-sm min-w-[800px]">
                     <thead className="bg-zinc-50/50 border-b border-zinc-200 text-zinc-500">
                       <tr>
-                        <th className="px-6 py-4 font-medium">Lead</th>
-                        <th className="px-6 py-4 font-medium">Urgency</th>
-                        <th className="px-6 py-4 font-medium">Goal</th>
+                        <SortHeader<LeadSortKey> label="Lead"      sortKey="full_name"     sort={leadSort} setSort={setLeadSort} />
+                        <SortHeader<LeadSortKey> label="Urgency"   sortKey="urgency_score" sort={leadSort} setSort={setLeadSort} />
+                        <SortHeader<LeadSortKey> label="Goal"      sortKey="goal"          sort={leadSort} setSort={setLeadSort} />
                         <th className="px-6 py-4 font-medium">Obstacles</th>
                         <th className="px-6 py-4 font-medium">Recommended</th>
-                        <th className="px-6 py-4 font-medium">Submitted</th>
+                        <SortHeader<LeadSortKey> label="Submitted" sortKey="submitted_at"  sort={leadSort} setSort={setLeadSort} />
                         <th className="px-6 py-4 font-medium">Registered?</th>
                         <th className="px-6 py-4 font-medium text-right">Manage</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
-                      {leads.map((l) => {
+                      {filteredLeads.map((l) => {
                         const tier = l.urgency_tier as UrgencyTier | null;
                         const registered = clients.some(c => c.email.toLowerCase() === l.email.toLowerCase());
                         return (
@@ -444,10 +681,12 @@ export function AdminDashboard() {
                           </tr>
                         );
                       })}
-                      {leads.length === 0 && (
+                      {filteredLeads.length === 0 && (
                         <tr><td colSpan={8} className="px-6 py-12 text-center text-zinc-500">
                           <Flame className="h-10 w-10 text-zinc-300 mx-auto mb-3" />
-                          No leads yet — submissions will appear here in real time.
+                          {leads.length === 0
+                            ? "No leads yet — submissions will appear here in real time."
+                            : "No leads match the current search or filter."}
                         </td></tr>
                       )}
                     </tbody>
