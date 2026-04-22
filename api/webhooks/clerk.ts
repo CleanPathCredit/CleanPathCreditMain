@@ -155,6 +155,68 @@ export default async function handler(req: Request): Promise<Response> {
     const meta        = user.unsafe_metadata ?? {};
     const plan        = (meta.plan as string) || "free";
 
+    // Stitch this signup to their most-recent pre-registration quiz lead
+    // (matched case-insensitively on email). Profiles doesn't have
+    // urgency/tier columns of its own, so we fold them into quiz_data
+    // along with the obstacles + score/income/timeline ranges — gives the
+    // admin the full funnel context the moment the user registers,
+    // without a separate dashboard lookup.
+    let linkedLead: {
+      goal:              string | null;
+      challenge:         string | null;
+      quiz_data:         Record<string, unknown> | null;
+    } | null = null;
+    try {
+      const { data: leadMatch } = await supabase
+        .from("lead_submissions")
+        .select("*")
+        .ilike("email", primaryEmail)   // case-insensitive equality
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (leadMatch) {
+        linkedLead = {
+          goal:      leadMatch.goal ?? null,
+          challenge: leadMatch.obstacles && leadMatch.obstacles.length > 0
+                       ? leadMatch.obstacles.join(", ")
+                       : null,
+          quiz_data: {
+            // Namespace under "lead" so future fields from signup flow
+            // (ads, referrer, etc.) don't collide.
+            lead: {
+              id:                 leadMatch.id,
+              urgency_score:      leadMatch.urgency_score,
+              urgency_tier:       leadMatch.urgency_tier,
+              recommended_offer:  leadMatch.recommended_offer,
+              obstacles:          leadMatch.obstacles,
+              credit_score_range: leadMatch.credit_score_range,
+              income_range:       leadMatch.income_range,
+              ideal_score:        leadMatch.ideal_score,
+              timeline:           leadMatch.timeline,
+              source:             leadMatch.source,
+              submitted_at:       leadMatch.submitted_at,
+            },
+          },
+        };
+      }
+    } catch (err) {
+      // Non-fatal — registration proceeds even if the link lookup fails.
+      console.error("Lead auto-link lookup failed:", err);
+    }
+
+    // Merge explicit Clerk metadata quiz_data (from in-product flows) over
+    // the linked-lead quiz_data. If both exist, the in-product one wins
+    // for any overlapping keys but the lead context is preserved under
+    // `lead` namespace.
+    const mergedQuizData = (() => {
+      const base = linkedLead?.quiz_data ?? null;
+      const meta_qd = (meta.quiz_data as Record<string, unknown> | undefined) ?? null;
+      if (!base && !meta_qd) return null;
+      if (!base) return meta_qd;
+      if (!meta_qd) return base;
+      return { ...base, ...meta_qd };
+    })();
+
     const { error } = await supabase.from("profiles").upsert({
       id:                 user.id,
       email:              primaryEmail,
@@ -164,7 +226,9 @@ export default async function handler(req: Request): Promise<Response> {
       plan:               plan as "free" | "diy" | "standard" | "premium",
       stripe_session_id:  meta.stripe_session_id ?? null,
       stripe_customer_id: meta.stripe_customer_id ?? null,
-      quiz_data:          meta.quiz_data ?? null,
+      goal:               linkedLead?.goal ?? null,
+      challenge:          linkedLead?.challenge ?? null,
+      quiz_data:          mergedQuizData,
     }, { onConflict: "id" });
 
     if (error) {
