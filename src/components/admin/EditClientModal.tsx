@@ -2,18 +2,23 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Admin-only modal for editing a registered client's basic profile info
- * (name, phone, address, goal, challenge, plan, status, progress).
+ * Admin-only modal for editing OR deleting a registered client.
  *
- * Intentionally no delete — removing a profile cascades into messages,
- * documents, and leaves an orphan Clerk user. Deletion is deferred to a
- * purpose-built workflow (tracked separately). Admins wanting to disable
- * a client currently change their status to an inactive value instead.
+ *  - PATCH via /api/admin/client/[id] — name/phone/address/goal/challenge
+ *    /plan/status/progress
+ *  - DELETE via /api/admin/client/[id] — removes the Clerk user AND the
+ *    Supabase profile (cascades to messages + documents). Irreversible.
+ *    Gated behind a "type DELETE to confirm" sub-panel so a mis-click
+ *    can't nuke a paying customer.
+ *
+ * Email is immutable here — it's Clerk-managed. To change it, update the
+ * user in Clerk first, the Clerk webhook syncs email back to profiles
+ * on user.updated.
  */
 
 import React, { useEffect, useState } from "react";
 import { useSession } from "@clerk/clerk-react";
-import { X } from "lucide-react";
+import { AlertTriangle, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { ClientRecord, Plan, ClientStatus } from "@/types/database";
 
@@ -33,22 +38,31 @@ const STATUS_OPTIONS: ClientStatus[] = [
 ];
 
 interface EditClientModalProps {
-  open:     boolean;
-  client:   ClientRecord | null;
-  onClose:  () => void;
-  onSaved?: (updated: ClientRecord) => void;
+  open:       boolean;
+  client:     ClientRecord | null;
+  onClose:    () => void;
+  onSaved?:   (updated: ClientRecord) => void;
+  onDeleted?: (id: string) => void;
 }
 
-export function EditClientModal({ open, client, onClose, onSaved }: EditClientModalProps) {
+export function EditClientModal({ open, client, onClose, onSaved, onDeleted }: EditClientModalProps) {
   const { session } = useSession();
   const [form, setForm]   = useState<ClientRecord | null>(client);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Same type-DELETE confirmation pattern as EditLeadModal — idle by
+  // default, admin has to click the trash button to reveal the confirm
+  // sub-panel, then literally type "DELETE" to enable the destructive
+  // action.
+  const [confirmStage, setConfirmStage] = useState<"idle" | "confirming">("idle");
+  const [confirmText, setConfirmText]   = useState("");
 
   useEffect(() => {
     setForm(client);
     setError(null);
     setSaving(false);
+    setConfirmStage("idle");
+    setConfirmText("");
   }, [client?.id, open]);
 
   if (!open || !form) return null;
@@ -56,6 +70,42 @@ export function EditClientModal({ open, client, onClose, onSaved }: EditClientMo
   const close = () => {
     if (saving) return;
     onClose();
+  };
+
+  const handleDelete = async () => {
+    if (!form) return;
+    if (confirmText.trim().toUpperCase() !== "DELETE") {
+      setError('Type DELETE exactly to confirm.');
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    try {
+      const token = session ? await session.getToken() : null;
+      if (!token) { setError("Session expired. Please reload."); return; }
+
+      const resp = await fetch(`/api/admin/client/${encodeURIComponent(form.id)}`, {
+        method:  "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({} as { error?: string }));
+        // cannot_delete_self is the one error worth translating — it's the
+        // common case where an admin clicks the nuke button on their own
+        // row to see what happens.
+        const msg = data.error === "cannot_delete_self"
+          ? "You can't delete your own admin account from here."
+          : data.error ?? `Delete failed (${resp.status}).`;
+        setError(msg);
+        return;
+      }
+      onDeleted?.(form.id);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSave = async () => {
@@ -220,13 +270,76 @@ export function EditClientModal({ open, client, onClose, onSaved }: EditClientMo
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-2 border-t border-zinc-100">
-            <Button type="button" variant="outline" onClick={close} disabled={saving} className="h-10 px-5">
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleSave} disabled={saving} className="h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white">
-              {saving ? "Saving…" : "Save changes"}
-            </Button>
+          {confirmStage === "confirming" && (
+            <div className="rounded-xl border border-red-300 bg-red-50/70 p-4 space-y-3">
+              <div className="flex items-start gap-2 text-red-800">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div className="text-sm space-y-1">
+                  <p className="font-semibold">This will permanently:</p>
+                  <ul className="list-disc ml-5">
+                    <li>Delete the Clerk user (they lose dashboard access)</li>
+                    <li>Delete the Supabase profile + all messages + all documents</li>
+                  </ul>
+                  <p className="pt-1">
+                    GHL contacts and Stripe subscriptions are <em>not</em> touched — handle those separately if needed.
+                  </p>
+                  <p className="pt-1">
+                    Type <span className="font-mono font-bold">DELETE</span> to confirm.
+                  </p>
+                </div>
+              </div>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-red-300 p-2.5 text-sm font-mono bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
+                placeholder="DELETE"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setConfirmStage("idle"); setConfirmText(""); setError(null); }}
+                  disabled={saving}
+                  className="h-9 px-4 text-sm"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={saving || confirmText.trim().toUpperCase() !== "DELETE"}
+                  className="h-9 px-4 text-sm bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                >
+                  {saving ? "Deleting…" : "Delete client"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-zinc-100">
+            {onDeleted ? (
+              <button
+                type="button"
+                onClick={() => setConfirmStage("confirming")}
+                disabled={saving || confirmStage === "confirming"}
+                className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium shadow-sm disabled:opacity-50"
+                title="Delete client"
+                aria-label="Delete client"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+            ) : <span />}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={close} disabled={saving} className="h-10 px-5">
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleSave} disabled={saving} className="h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                {saving ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,22 +1,29 @@
 /**
  * @license SPDX-License-Identifier: Apache-2.0
  *
- * PATCH /api/admin/client/[id]
+ * /api/admin/client/[id]
+ *   PATCH  — edit name/phone/address/goal/challenge/plan/status/progress
+ *   DELETE — remove the Clerk user AND the Supabase profile row (cascades
+ *            to messages + documents). IRREVERSIBLE.
  *
- * Admin-auth edit of a client's profile row (full_name, phone, address,
- * goal, challenge, plan, status, progress). Uses the service-role key so
- * column allow-listing is enforced in code here rather than via RLS.
+ * Uses the Supabase service-role key so column allow-listing is enforced
+ * in code here rather than via RLS. Clerk user deletion goes through
+ * createClerkClient.users.deleteUser().
  *
- * DELETE is intentionally NOT supported on clients — removing a profile
- * has cascading side effects (messages, documents, Clerk user) that
- * warrant a separate, more deliberate workflow. Admins wanting to "delete
- * a client" currently demote them (set status to an inactive value) and
- * leave the account.
+ * Side effects NOT handled here (deliberate — flag separately if you
+ * want admin-initiated cleanup of them too):
+ *   - Stripe subscriptions: any active subscription on the deleted user
+ *     is NOT auto-canceled; admin should cancel in Stripe if needed.
+ *   - Supabase Storage files: the `documents` table cascade removes
+ *     rows, but the underlying files in Storage stay until a cleanup
+ *     job removes them.
+ *   - GHL contact: left alone by design. GHL is the marketing/sales
+ *     system of record; deleting here shouldn't wipe it there.
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
 import { createClient } from "@supabase/supabase-js";
-import { verifyToken } from "@clerk/backend";
+import { verifyToken, createClerkClient } from "@clerk/backend";
 import type { Database, Plan, ClientStatus } from "../../../src/types/database";
 
 export const config = { runtime: "nodejs" };
@@ -37,6 +44,10 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
   res.end(JSON.stringify(body));
+}
+function sendEmpty(res: ServerResponse, status: number): void {
+  res.statusCode = status;
+  res.end();
 }
 
 async function readJsonBody<T>(req: IncomingMessage): Promise<T | null> {
@@ -117,8 +128,8 @@ export default async function handler(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  if (req.method !== "PATCH") {
-    res.setHeader("Allow", "PATCH");
+  if (req.method !== "PATCH" && req.method !== "DELETE") {
+    res.setHeader("Allow", "PATCH, DELETE");
     return sendJson(res, 405, { error: "method_not_allowed" });
   }
 
@@ -170,6 +181,53 @@ export default async function handler(
     return sendJson(res, 403, { error: "forbidden" });
   }
 
+  // ── DELETE ─────────────────────────────────────────────────────────────
+  if (req.method === "DELETE") {
+    // Self-delete guard: an admin hitting the delete button on their own
+    // profile row would nuke their own auth + lock themselves out of the
+    // dashboard mid-session. 400 at this layer is cleaner than letting it
+    // succeed and leaving behind a confused admin.
+    if (id === callerId) {
+      return sendJson(res, 400, { error: "cannot_delete_self" });
+    }
+
+    // 1. Delete the Clerk user first (auth is the primary identity). If
+    //    this succeeds the user can no longer sign in even if the
+    //    Supabase delete fails — the profile row becomes orphaned data,
+    //    which is recoverable. The reverse (Supabase first) would leave
+    //    a signed-in user staring at a broken dashboard.
+    try {
+      const clerk = createClerkClient({ secretKey: clerkSecretKey });
+      await clerk.users.deleteUser(id);
+    } catch (err) {
+      // Clerk returns 404 if the user is already gone — treat that as
+      // success and continue to Supabase cleanup. Any other error is
+      // fatal: abort so the operator can investigate.
+      const status = (err as { status?: number } | null)?.status;
+      if (status !== 404) {
+        console.error("[/api/admin/client/:id DELETE] clerk_delete_failed:", err);
+        return sendJson(res, 502, { error: "clerk_delete_failed" });
+      }
+    }
+
+    // 2. Delete the Supabase profile. Foreign keys on messages +
+    //    documents are ON DELETE CASCADE (migration 001), so those
+    //    rows go with it. Supabase Storage files are NOT cleaned up
+    //    here — any orphaned objects sit in the `documents` bucket
+    //    until a scheduled cleanup picks them up.
+    const { error: delErr } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", id);
+    if (delErr) {
+      console.error("[/api/admin/client/:id DELETE] supabase_delete_failed:", delErr.message);
+      return sendJson(res, 500, { error: "supabase_delete_failed" });
+    }
+
+    return sendEmpty(res, 204);
+  }
+
+  // ── PATCH ──────────────────────────────────────────────────────────────
   const body = await readJsonBody<EditableClientFields>(req);
   if (!body) return sendJson(res, 400, { error: "invalid_body" });
 

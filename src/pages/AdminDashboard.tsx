@@ -621,7 +621,8 @@ export function AdminDashboard() {
         onDeleted={(id) => setLeads((prev) => prev.filter((l) => l.id !== id))}
       />
 
-      {/* Edit client profile — email is Clerk-owned so it's read-only. */}
+      {/* Edit / delete client. Email is Clerk-owned so it's read-only;
+          delete removes both the Clerk user and the Supabase profile. */}
       <EditClientModal
         open={editingClient !== null}
         client={editingClient}
@@ -631,6 +632,12 @@ export function AdminDashboard() {
           // If the detail view is currently focused on this client, swap
           // the selected reference so its header re-renders immediately.
           setSelected((curr) => (curr?.id === u.id ? u : curr));
+        }}
+        onDeleted={(id) => {
+          setClients((prev) => prev.filter((c) => c.id !== id));
+          // If we're looking at the deleted client's detail view, bounce
+          // back to the clients list so we're not staring at a ghost.
+          setSelected((curr) => (curr?.id === id ? null : curr));
         }}
       />
     </div>
