@@ -20,6 +20,7 @@ const Methodology = lazy(() => import("@/pages/Methodology").then(m => ({ defaul
 const Welcome     = lazy(() => import("@/pages/Welcome").then(m => ({ default: m.Welcome })));
 const Terms       = lazy(() => import("@/pages/Terms").then(m => ({ default: m.Terms })));
 const Privacy     = lazy(() => import("@/pages/Privacy").then(m => ({ default: m.Privacy })));
+const Unlock      = lazy(() => import("@/pages/Unlock").then(m => ({ default: m.Unlock })));
 
 function LoadingFallback() {
   return (
@@ -46,6 +47,9 @@ export default function App() {
               <Route path="/welcome" element={<Welcome />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/unlock"   element={<Unlock />} />
+              {/* Alias: marketing teams sometimes reach for /upgrade instead */}
+              <Route path="/upgrade"  element={<Unlock />} />
               <Route
                 path="/dashboard"
                 element={
