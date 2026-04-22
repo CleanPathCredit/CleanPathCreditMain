@@ -13,6 +13,7 @@ import { TravelResources } from "@/components/dashboard/TravelResources";
 import { PlanGate } from "@/components/dashboard/PlanGate";
 import { CreditScoreWidget } from "@/components/dashboard/CreditScoreWidget";
 import { OnboardingWizard } from "@/components/dashboard/OnboardingWizard";
+import { CreditReportView } from "@/components/dashboard/CreditReportView";
 import { canAccess, PLAN_LABEL } from "@/lib/planAccess";
 import type { Message, Plan, CreditReport } from "@/types/database";
 import {
@@ -289,6 +290,15 @@ export function Dashboard() {
                 onComplete={() => fetchCreditReports()}
                 onDismiss={() => setOnboardingDismissed(true)}
               />
+            </div>
+          )}
+
+          {/* Credit report view — shown once the user has a parsed report
+              (or an in-progress parse). Mounts on the main dashboard tab
+              so it's the first thing they see after the wizard unmounts. */}
+          {reportsLoaded && hasSuccessReport && activeTab === "dashboard" && (
+            <div className="mb-8">
+              <CreditReportView />
             </div>
           )}
 
