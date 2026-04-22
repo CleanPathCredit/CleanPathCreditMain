@@ -79,14 +79,15 @@ function str(v: unknown): string | null {
 }
 
 interface EditableClientFields {
-  full_name?: unknown;
-  phone?:     unknown;
-  address?:   unknown;
-  goal?:      unknown;
-  challenge?: unknown;
-  plan?:      unknown;
-  status?:    unknown;
-  progress?:  unknown;
+  full_name?:   unknown;
+  phone?:       unknown;
+  address?:     unknown;
+  goal?:        unknown;
+  challenge?:   unknown;
+  plan?:        unknown;
+  status?:      unknown;
+  progress?:    unknown;
+  admin_notes?: unknown;
 }
 
 const VALID_PLANS:   Plan[]         = ["free", "diy", "standard", "premium"];
@@ -100,11 +101,12 @@ const VALID_STATUSES: ClientStatus[] = [
 function buildUpdate(raw: EditableClientFields): Record<string, unknown> | null {
   const update: Record<string, unknown> = {};
 
-  if ("full_name" in raw) update.full_name = str(raw.full_name);
-  if ("phone" in raw)     update.phone     = str(raw.phone);
-  if ("address" in raw)   update.address   = str(raw.address);
-  if ("goal" in raw)      update.goal      = str(raw.goal);
-  if ("challenge" in raw) update.challenge = str(raw.challenge);
+  if ("full_name" in raw)   update.full_name   = str(raw.full_name);
+  if ("phone" in raw)       update.phone       = str(raw.phone);
+  if ("address" in raw)     update.address     = str(raw.address);
+  if ("goal" in raw)        update.goal        = str(raw.goal);
+  if ("challenge" in raw)   update.challenge   = str(raw.challenge);
+  if ("admin_notes" in raw) update.admin_notes = str(raw.admin_notes);
 
   if ("plan" in raw) {
     if (typeof raw.plan !== "string" || !VALID_PLANS.includes(raw.plan as Plan)) return null;

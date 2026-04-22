@@ -96,6 +96,7 @@ interface EditableLeadFields {
   urgency_score?:      unknown;
   urgency_tier?:       unknown;
   recommended_offer?:  unknown;
+  admin_notes?:        unknown;
 }
 
 const VALID_TIERS: UrgencyTier[] = ["low", "moderate", "elevated", "urgent"];
@@ -111,6 +112,7 @@ function buildUpdate(raw: EditableLeadFields): Record<string, unknown> | null {
   if ("income_range" in raw)       update.income_range       = str(raw.income_range);
   if ("ideal_score" in raw)        update.ideal_score        = str(raw.ideal_score);
   if ("timeline" in raw)           update.timeline           = str(raw.timeline);
+  if ("admin_notes" in raw)        update.admin_notes        = str(raw.admin_notes);
 
   if ("email" in raw) {
     const e = str(raw.email);

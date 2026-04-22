@@ -117,14 +117,15 @@ export function EditClientModal({ open, client, onClose, onSaved, onDeleted }: E
       if (!token) { setError("Session expired. Please reload."); return; }
 
       const body = {
-        full_name: form.full_name,
-        phone:     form.phone,
-        address:   form.address,
-        goal:      form.goal,
-        challenge: form.challenge,
-        plan:      form.plan,
-        status:    form.status,
-        progress:  form.progress,
+        full_name:   form.full_name,
+        phone:       form.phone,
+        address:     form.address,
+        goal:        form.goal,
+        challenge:   form.challenge,
+        plan:        form.plan,
+        status:      form.status,
+        progress:    form.progress,
+        admin_notes: form.admin_notes,
       };
 
       const resp = await fetch(`/api/admin/client/${encodeURIComponent(form.id)}`, {
@@ -262,6 +263,20 @@ export function EditClientModal({ open, client, onClose, onSaved, onDeleted }: E
                 onChange={(e) => setForm({ ...form, progress: Number(e.target.value) })}
               />
             </div>
+          </div>
+
+          {/* Free-form admin notes — not shown to the client, not synced to
+              GHL. Use for context like "spouse is co-applicant",
+              "preferred contact time: evenings", etc. */}
+          <div>
+            <label className="block text-xs font-medium text-zinc-700 mb-1.5">Admin notes</label>
+            <textarea
+              rows={4}
+              className="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none resize-y"
+              value={form.admin_notes ?? ""}
+              onChange={(e) => setForm({ ...form, admin_notes: e.target.value || null })}
+              placeholder="Context that helps the team but shouldn't be in the client-visible profile."
+            />
           </div>
 
           {error && (

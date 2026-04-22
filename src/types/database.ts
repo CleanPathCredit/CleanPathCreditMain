@@ -58,6 +58,7 @@ export interface Database {
           ssn_secret_id: string | null;
           negative_items: number | null;
           dispute_probability: number | null;
+          admin_notes: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -82,6 +83,7 @@ export interface Database {
           ssn_secret_id?: string | null;
           negative_items?: number | null;
           dispute_probability?: number | null;
+          admin_notes?: string | null;
         };
         // Broad Update shape is retained so admin code (which writes via the
         // "profiles: admin full access" RLS policy) continues to type-check.
@@ -184,6 +186,7 @@ export interface Database {
           consent: boolean;
           submitted_at: string;
           created_at: string;
+          admin_notes: string | null;
         };
         // Writes only via service-role (/api/lead). RLS rejects all direct
         // inserts from client sessions. Kept loose so the server code
@@ -206,6 +209,7 @@ export interface Database {
           ghl_delivery?: GHLDelivery | null;
           consent?: boolean;
           submitted_at?: string;
+          admin_notes?: string | null;
         };
         // Admin-side edits via /api/admin/lead/[id]. Shape matches Insert
         // minus the required email (PATCH allows changing email but it's

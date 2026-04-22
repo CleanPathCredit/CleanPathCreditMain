@@ -108,6 +108,7 @@ export function EditLeadModal({ open, lead, onClose, onSaved, onDeleted }: EditL
         urgency_score:      form.urgency_score,
         urgency_tier:       form.urgency_tier,
         recommended_offer:  form.recommended_offer,
+        admin_notes:        form.admin_notes,
       };
 
       const resp = await fetch(`/api/admin/lead/${encodeURIComponent(form.id)}`, {
@@ -333,6 +334,19 @@ export function EditLeadModal({ open, lead, onClose, onSaved, onDeleted }: EditL
                 </select>
               </div>
             </div>
+          </div>
+
+          {/* Free-form admin notes — grows with the lead's lifetime. Not
+              synced to GHL; lives in Supabase only. */}
+          <div>
+            <div className="text-xs font-semibold tracking-[0.14em] uppercase text-emerald-600 mb-3">Admin notes</div>
+            <textarea
+              rows={4}
+              className="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none resize-y"
+              value={form.admin_notes ?? ""}
+              onChange={(e) => setForm({ ...form, admin_notes: e.target.value || null })}
+              placeholder="Call context, follow-up status, quotes from the lead, anything only the team should see."
+            />
           </div>
 
           {error && (
