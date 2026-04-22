@@ -15,12 +15,13 @@ import type {
 import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
   Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Flame, Plus,
-  Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, FileDown,
+  Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, FileDown, Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { AddLeadModal } from "@/components/admin/AddLeadModal";
 import { EditLeadModal } from "@/components/admin/EditLeadModal";
 import { EditClientModal } from "@/components/admin/EditClientModal";
+import { DraftEmailModal } from "@/components/admin/DraftEmailModal";
 
 const STATUS_OPTIONS: { value: ClientStatus; label: string; color: string }[] = [
   { value: "missing_id",       label: "Missing ID",         color: "bg-red-50 text-red-700 border-red-200" },
@@ -175,6 +176,7 @@ export function AdminDashboard() {
   // swaps the payload rather than stacking modals.
   const [editingLead, setEditingLead]     = useState<LeadSubmission | null>(null);
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null);
+  const [draftingLead, setDraftingLead]   = useState<LeadSubmission | null>(null);
 
   // ── Search / filter / sort state ─────────────────────────────────────────
   // Kept local to the page (not persisted) so the admin always starts with
@@ -670,13 +672,23 @@ export function AdminDashboard() {
                               )}
                             </td>
                             <td className="px-6 py-4 text-right">
-                              <Button
-                                variant="outline"
-                                className="h-8 px-3 text-xs bg-white hover:bg-zinc-50 shadow-sm"
-                                onClick={() => setEditingLead(l)}
-                              >
-                                Manage
-                              </Button>
+                              <div className="inline-flex items-center gap-1.5">
+                                <button
+                                  onClick={() => setDraftingLead(l)}
+                                  title="Draft follow-up email (AI)"
+                                  aria-label="Draft follow-up email"
+                                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-white border border-zinc-200 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 text-zinc-500 shadow-sm transition-colors"
+                                >
+                                  <Sparkles className="h-3.5 w-3.5" />
+                                </button>
+                                <Button
+                                  variant="outline"
+                                  className="h-8 px-3 text-xs bg-white hover:bg-zinc-50 shadow-sm"
+                                  onClick={() => setEditingLead(l)}
+                                >
+                                  Manage
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -858,6 +870,14 @@ export function AdminDashboard() {
         onClose={() => setEditingLead(null)}
         onSaved={(u) => setLeads((prev) => prev.map((l) => (l.id === u.id ? u : l)))}
         onDeleted={(id) => setLeads((prev) => prev.filter((l) => l.id !== id))}
+      />
+
+      {/* AI-drafted follow-up email. Auto-generates on open; admin can
+          regenerate, edit, copy. We never send — human in the loop. */}
+      <DraftEmailModal
+        open={draftingLead !== null}
+        lead={draftingLead}
+        onClose={() => setDraftingLead(null)}
       />
 
       {/* Edit / delete client. Email is Clerk-owned so it's read-only;
