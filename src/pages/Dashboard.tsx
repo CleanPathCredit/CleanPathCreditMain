@@ -12,8 +12,9 @@ import { MasterList } from "@/components/dashboard/MasterList";
 import { TravelResources } from "@/components/dashboard/TravelResources";
 import { PlanGate } from "@/components/dashboard/PlanGate";
 import { CreditScoreWidget } from "@/components/dashboard/CreditScoreWidget";
+import { OnboardingWizard } from "@/components/dashboard/OnboardingWizard";
 import { canAccess, PLAN_LABEL } from "@/lib/planAccess";
-import type { Message, Plan } from "@/types/database";
+import type { Message, Plan, CreditReport } from "@/types/database";
 import {
   CheckCircle2, LogOut, Shield, FileText, Download,
   MessageSquare, BookOpen, X, Send, Lock,
@@ -61,6 +62,13 @@ export function Dashboard() {
   // scoped (resets on reload) so the admin never accidentally ships in a
   // stale preview mode.
   const [previewPlan, setPreviewPlan]         = useState<Plan | null>(null);
+  // Credit-report onboarding state. dismissed=true hides the wizard for
+  // this session even if the user hasn't uploaded yet; it reappears on
+  // next login until a report exists (so the prompt isn't intrusive but
+  // still reliable).
+  const [creditReports, setCreditReports]     = useState<CreditReport[]>([]);
+  const [reportsLoaded, setReportsLoaded]     = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Effective plan used for all gating decisions on this page. Non-admins
@@ -93,9 +101,31 @@ export function Dashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [clerkUser?.id]);
 
+  // Fetch credit reports — drives the onboarding wizard visibility. Simple
+  // fetch-once; real-time subscription overkill since reports are created
+  // rarely. Re-fetches if the wizard completion callback fires.
+  const fetchCreditReports = async () => {
+    if (!clerkUser) return;
+    const { data } = await supabase
+      .from("credit_reports")
+      .select("*")
+      .eq("profile_id", clerkUser.id)
+      .order("created_at", { ascending: false });
+    setCreditReports((data ?? []) as CreditReport[]);
+    setReportsLoaded(true);
+  };
+  useEffect(() => { fetchCreditReports(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [clerkUser?.id]);
+
   useEffect(() => {
     if (isChatOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isChatOpen]);
+
+  // Show the wizard only if: reports fetched, none exist successfully, and
+  // user hasn't clicked "I'll do this later" for this session. Admins see
+  // it too if they don't have reports — useful for eating-your-own-dogfood
+  // testing.
+  const hasSuccessReport = creditReports.some((r) => r.parse_status === "success");
+  const showOnboarding   = reportsLoaded && !hasSuccessReport && !onboardingDismissed;
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !clerkUser) return;
@@ -248,6 +278,19 @@ export function Dashboard() {
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-zinc-900">Welcome back, {firstName}</h1>
           </div>
+
+          {/* Onboarding wizard — renders only for users who haven't yet
+              uploaded + parsed a credit report. Self-dismisses on success
+              (via onComplete → re-fetch → hasSuccessReport becomes true)
+              or per-session on explicit user dismiss. */}
+          {showOnboarding && activeTab === "dashboard" && (
+            <div className="mb-8">
+              <OnboardingWizard
+                onComplete={() => fetchCreditReports()}
+                onDismiss={() => setOnboardingDismissed(true)}
+              />
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             {/* ── DASHBOARD ── */}
