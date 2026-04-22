@@ -16,12 +16,14 @@ import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
   Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Flame, Plus,
   Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, FileDown, Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { AddLeadModal } from "@/components/admin/AddLeadModal";
 import { EditLeadModal } from "@/components/admin/EditLeadModal";
 import { EditClientModal } from "@/components/admin/EditClientModal";
 import { DraftEmailModal } from "@/components/admin/DraftEmailModal";
+import { CreditReportView } from "@/components/dashboard/CreditReportView";
 
 const STATUS_OPTIONS: { value: ClientStatus; label: string; color: string }[] = [
   { value: "missing_id",       label: "Missing ID",         color: "bg-red-50 text-red-700 border-red-200" },
@@ -757,6 +759,18 @@ export function AdminDashboard() {
                       <div><div className="text-xs text-zinc-500 mb-1">Goal</div><div className="font-medium text-zinc-900 capitalize">{selected.goal?.replace(/-/g, " ") ?? "—"}</div></div>
                       <div><div className="text-xs text-zinc-500 mb-1">Challenge</div><div className="font-medium text-zinc-900 capitalize">{selected.challenge?.replace(/-/g, " ") ?? "—"}</div></div>
                     </div>
+                  </section>
+
+                  {/* Credit report — reuses the same CreditReportView the
+                      client sees on their own dashboard, with profileId
+                      passed explicitly so /api/credit-report/list is
+                      scoped to this client. Admin sees the full view:
+                      scores, aggregates, accounts, flagged items. */}
+                  <section>
+                    <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-zinc-400" /> Credit Report
+                    </h3>
+                    <CreditReportView profileId={selected.id} />
                   </section>
 
                   {/* Documents */}
