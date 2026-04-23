@@ -41,6 +41,15 @@ export type CreditReportParseStatus =
   | "success"     // scores + accounts populated
   | "failed";     // parse_error has the reason
 
+// Referrals (migration 009). Lifecycle state machine drives the admin's
+// "pending payouts" view + the referrer's dashboard stats.
+export type ReferralStatus =
+  | "pending"    // visitor clicked /r/<code>, no signup yet
+  | "signup"     // Clerk account created, matched by cookie
+  | "purchased"  // Stripe checkout cleared — commission due
+  | "paid_out"   // admin marked the payout as sent
+  | "void";      // rejected (chargeback, self-referral, fraud)
+
 export interface Database {
   public: {
     Tables: {
@@ -67,6 +76,7 @@ export interface Database {
           negative_items: number | null;
           dispute_probability: number | null;
           admin_notes: string | null;
+          referral_code: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -92,6 +102,7 @@ export interface Database {
           negative_items?: number | null;
           dispute_probability?: number | null;
           admin_notes?: string | null;
+          referral_code?: string | null;
         };
         // Broad Update shape is retained so admin code (which writes via the
         // "profiles: admin full access" RLS policy) continues to type-check.
@@ -321,6 +332,42 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["credit_report_accounts"]["Insert"]>;
         Relationships: [];
       };
+      referrals: {
+        Row: {
+          id: string;
+          referrer_profile_id: string | null;
+          referral_code_used: string;
+          referred_profile_id: string | null;
+          referred_email: string | null;
+          status: ReferralStatus;
+          amount_cents: number | null;
+          stripe_session_id: string | null;
+          clicked_at: string;
+          signed_up_at: string | null;
+          purchased_at: string | null;
+          paid_out_at: string | null;
+          client_ip: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          referrer_profile_id?: string | null;
+          referral_code_used: string;
+          referred_profile_id?: string | null;
+          referred_email?: string | null;
+          status?: ReferralStatus;
+          amount_cents?: number | null;
+          stripe_session_id?: string | null;
+          clicked_at?: string;
+          signed_up_at?: string | null;
+          purchased_at?: string | null;
+          paid_out_at?: string | null;
+          client_ip?: string | null;
+          user_agent?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["referrals"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -345,6 +392,7 @@ export type StripeWebhookEvent = Database["public"]["Tables"]["stripe_webhook_ev
 export type LeadSubmission       = Database["public"]["Tables"]["lead_submissions"]["Row"];
 export type CreditReport         = Database["public"]["Tables"]["credit_reports"]["Row"];
 export type CreditReportAccount  = Database["public"]["Tables"]["credit_report_accounts"]["Row"];
+export type Referral             = Database["public"]["Tables"]["referrals"]["Row"];
 
 /** Profile with its Supabase row id — used in admin list views */
 export type ClientRecord = Profile;
