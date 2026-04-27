@@ -35,6 +35,7 @@ import Stripe from "stripe";
 import { createClerkClient } from "@clerk/backend";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, Plan } from "../../src/types/database";
+import { createPostHogClient } from "../../src/lib/posthog-server";
 
 export const config = { runtime: "nodejs" };
 
@@ -247,6 +248,38 @@ export default async function handler(
 
   // 8. Internal notification (fire-and-forget; non-fatal)
   await notifyOwner({ email, name, plan, sessionId: session.id });
+
+  // 9. PostHog — identify user and capture purchase event
+  const posthog = createPostHogClient();
+  try {
+    posthog.identify({
+      distinctId: clerkUserId,
+      properties: {
+        $set: {
+          email,
+          name: name || undefined,
+          plan,
+          stripe_customer_id: customerId,
+        },
+      },
+    });
+    posthog.capture({
+      distinctId: clerkUserId,
+      event: "purchase_completed",
+      properties: {
+        plan,
+        stripe_session_id: session.id,
+        stripe_customer_id: customerId,
+        amount_total: session.amount_total,
+        currency: session.currency,
+        is_new_user: !existingUser,
+      },
+    });
+  } catch (err) {
+    posthog.captureException(err, clerkUserId);
+  } finally {
+    await posthog.shutdown();
+  }
 
   console.log(
     `[/api/webhooks/stripe] purchase processed: email=${email} plan=${plan} userId=${clerkUserId} eventId=${event.id}`,

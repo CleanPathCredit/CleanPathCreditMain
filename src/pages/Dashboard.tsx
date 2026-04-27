@@ -6,6 +6,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
+import { posthog } from "@/lib/posthog-client";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
 import { MasterList } from "@/components/dashboard/MasterList";
 import { TravelResources } from "@/components/dashboard/TravelResources";
@@ -91,7 +92,13 @@ export function Dashboard() {
       sender: "client",
       body: newMessage.trim(),
     });
+    posthog.capture('support_message_sent', { plan: profile?.plan });
     setNewMessage("");
+  };
+
+  const handleTabChange = (tab: SidebarTab) => {
+    setActiveTab(tab);
+    posthog.capture('dashboard_tab_viewed', { tab, plan: profile?.plan });
   };
 
   const sidebarItems: { id: SidebarTab; label: string; icon: React.ReactNode }[] = [
@@ -142,7 +149,7 @@ export function Dashboard() {
         {/* Sidebar — Desktop */}
         <aside className="hidden md:flex flex-col w-56 bg-[#111111] min-h-[calc(100vh-48px)] sticky top-12 p-3 gap-1">
           {sidebarItems.map((item) => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)}
+            <button key={item.id} onClick={() => handleTabChange(item.id)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left w-full ${
                 activeTab === item.id ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-white hover:bg-zinc-800"}`}>
               {item.icon}{item.label}
@@ -164,7 +171,7 @@ export function Dashboard() {
                   <span className="font-bold text-white text-sm">Clean Path Credit</span>
                 </div>
                 {sidebarItems.map((item) => (
-                  <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileSidebarOpen(false); }}
+                  <button key={item.id} onClick={() => { handleTabChange(item.id); setMobileSidebarOpen(false); }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left w-full ${
                       activeTab === item.id ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-white hover:bg-zinc-800"}`}>
                     {item.icon}{item.label}
@@ -257,7 +264,8 @@ export function Dashboard() {
                             </div>
                           </div>
                           {unlocked ? (
-                            <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-full bg-white hover:bg-zinc-50 border-zinc-200">
+                            <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-full bg-white hover:bg-zinc-50 border-zinc-200"
+                              onClick={() => posthog.capture('resource_download_clicked', { resource_title: r.title, resource_type: r.type, plan: profile?.plan })}>
                               <Download className="h-4 w-4 text-zinc-500" />
                             </Button>
                           ) : (

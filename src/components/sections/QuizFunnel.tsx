@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Loader2, Calendar, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Link } from 'react-router-dom';
+import { posthog } from '@/lib/posthog-client';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -74,8 +75,10 @@ export function QuizFunnel() {
   const handleOptionSelect = (stepNumber: 1 | 2, optionId: string) => {
     if (stepNumber === 1) {
       setSelectedGoal(optionId);
+      posthog.capture('quiz_goal_selected', { goal: optionId });
     } else {
       setSelectedObstacle(optionId);
+      posthog.capture('quiz_obstacle_selected', { obstacle: optionId, goal: selectedGoal });
     }
     setShowFact(true);
   };
@@ -95,6 +98,22 @@ export function QuizFunnel() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    posthog.capture('quiz_lead_submitted', {
+      credit_score:  formData.creditScore,
+      income:        formData.income,
+      ideal_score:   formData.idealScore,
+      timeline:      formData.timeline,
+      goal:          selectedGoal,
+      obstacle:      selectedObstacle,
+    });
+    // Identify the lead so future events link to this person
+    if (formData.email) {
+      posthog.identify(formData.email, {
+        email: formData.email,
+        name:  formData.fullName || undefined,
+        phone: formData.phone || undefined,
+      });
+    }
     setIsFinalAnalyzing(true);
     setAnalysisProgress(0);
 
@@ -529,11 +548,12 @@ export function QuizFunnel() {
                     Based on your profile, you qualify for a complete Credit Strategy Session. On this call, we will pop the hood on your 3-bureau report, pinpoint the exact negative items holding your score hostage, and show you the exact credit correction strategies we use to force them off your report.
                   </p>
                   
-                  <a 
+                  <a
                     href="https://calendly.com/cleanpathcredit/free-15-min-credit-audit-strategy-call"
-                    target="_blank" 
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="w-full max-w-md"
+                    onClick={() => posthog.capture('quiz_booking_clicked', { goal: selectedGoal, obstacle: selectedObstacle })}
                   >
                     <Button className="w-full h-16 text-xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all">
                       Book Now

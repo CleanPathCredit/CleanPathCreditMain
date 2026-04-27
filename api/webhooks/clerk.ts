@@ -22,6 +22,28 @@ import { Webhook } from "svix";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../src/types/database";
 
+/** Fire-and-forget PostHog event via fetch (edge-compatible, no SDK needed). */
+async function capturePostHogEvent(event: string, distinctId: string, properties: Record<string, unknown>): Promise<void> {
+  const apiKey = process.env.POSTHOG_API_KEY;
+  const host   = process.env.POSTHOG_HOST;
+  if (!apiKey || !host) return;
+  try {
+    await fetch(`${host}/capture/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key:     apiKey,
+        event,
+        distinct_id: distinctId,
+        properties,
+        timestamp:   new Date().toISOString(),
+      }),
+    });
+  } catch {
+    // Non-fatal — analytics must not block webhook response
+  }
+}
+
 // Service-role client bypasses RLS — only used server-side in webhooks.
 function getServiceClient() {
   return createClient<Database>(
@@ -105,6 +127,20 @@ export default async function handler(req: Request): Promise<Response> {
       console.error("Failed to upsert profile:", error.message);
       return new Response("Database error", { status: 500 });
     }
+
+    // PostHog: identify and capture sign-up
+    await capturePostHogEvent("$identify", user.id, {
+      $set: {
+        email:              primaryEmail,
+        name:               fullName ?? undefined,
+        phone:              phone ?? undefined,
+        plan,
+      },
+    });
+    await capturePostHogEvent("user_signed_up", user.id, {
+      plan,
+      has_stripe_session: !!meta.stripe_session_id,
+    });
   }
 
   if (event.type === "user.updated") {
@@ -121,6 +157,13 @@ export default async function handler(req: Request): Promise<Response> {
           stripe_customer_id: meta.stripe_customer_id ?? null,
         })
         .eq("id", user.id);
+
+      // PostHog: capture plan upgrade
+      await capturePostHogEvent("plan_upgraded", user.id, {
+        plan:               meta.plan,
+        stripe_customer_id: meta.stripe_customer_id ?? undefined,
+        $set: { plan: meta.plan },
+      });
     }
   }
 
