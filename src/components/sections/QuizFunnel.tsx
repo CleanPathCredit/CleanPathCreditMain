@@ -311,14 +311,21 @@ export function QuizFunnel() {
 
   // Hide the global ElevenLabs chatbot while any part of the quiz section is
   // on-screen — the widget otherwise overlaps "Continue" on mobile and pulls
-  // attention away from the funnel's primary CTA.
+  // attention away from the funnel's primary CTA. Also fire quiz_started
+  // exactly once the first time the section enters the viewport, so the
+  // funnel's top-of-funnel rate is measurable without double-counting.
   useEffect(() => {
     const el = sectionRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') return;
+    let started = false;
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           document.body.classList.toggle('cpc-quiz-active', entry.isIntersecting);
+          if (entry.isIntersecting && !started) {
+            started = true;
+            posthog.capture('quiz_started');
+          }
         }
       },
       { threshold: 0 },
@@ -391,11 +398,16 @@ export function QuizFunnel() {
       if (data && typeof data === 'object' && data.event === 'calendly.event_scheduled') {
         setHasBooked(true);
         setStep(6);
+        posthog.capture('quiz_booking_completed', {
+          goal:      selectedGoal,
+          obstacles: selectedObstacles,
+          urgency,
+        });
       }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, []);
+  }, [selectedGoal, selectedObstacles, urgency]);
 
   // Load + render the Turnstile widget only once the lead-capture step is
   // visible. The script used to sit in index.html, but that made it global —

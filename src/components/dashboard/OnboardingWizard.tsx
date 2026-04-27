@@ -27,6 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSession } from "@clerk/clerk-react";
 import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
+import { posthog } from "@/lib/posthog-client";
 import {
   ArrowRight, CheckCircle2, Upload, FileText, ExternalLink,
   Loader2, Sparkles, AlertTriangle,
@@ -130,6 +131,12 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
         return;
       }
 
+      posthog.capture("report_uploaded", {
+        document_id: docRow.id,
+        size_bytes:  file.size,
+        file_name:   file.name,
+      });
+
       // 3. Kick off the parser. This call blocks until Claude Sonnet
       //    finishes — typically 15–30s. We show "Analyzing…" UI during
       //    the wait.
@@ -150,6 +157,11 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
       });
       if (!resp.ok) {
         const data = await resp.json().catch(() => ({} as { error?: string }));
+        posthog.capture("report_parse_failed", {
+          document_id: docRow.id,
+          status:      resp.status,
+          reason:      data.error ?? "unknown",
+        });
         setError(
           data.error === "openrouter_not_configured"
             ? "Report parser isn't configured on the server yet. Your file is uploaded; admin will process it."
@@ -159,9 +171,16 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
         return;
       }
       const data = await resp.json() as { ok: true; report_id: string };
+      posthog.capture("report_parsed", {
+        document_id: docRow.id,
+        report_id:   data.report_id,
+      });
       setStatus("success");
       onComplete?.(data.report_id);
     } catch (err) {
+      posthog.capture("report_parse_failed", {
+        reason: err instanceof Error ? err.message : "unknown",
+      });
       setError(err instanceof Error ? err.message : "Unexpected error.");
       setStatus("error");
     }

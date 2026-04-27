@@ -22,6 +22,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
+import { posthog } from "@/lib/posthog-client";
 import { Users, Link2, Check, Share2, Gift, TrendingUp, DollarSign } from "lucide-react";
 
 interface ReferralRow {
@@ -105,9 +106,11 @@ export function ReferralCard() {
       await navigator.clipboard.writeText(data.shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
+      posthog.capture("referral_link_copied", { code: data.code });
     } catch {
       // Older browsers — surface the URL in a prompt as a graceful fallback
       window.prompt("Copy your referral link:", data.shareUrl);
+      posthog.capture("referral_link_copied", { code: data.code, fallback: true });
     }
   };
 
@@ -117,6 +120,7 @@ export function ReferralCard() {
       copyLink();
       return;
     }
+    posthog.capture("referral_share_clicked", { code: data.code });
     try {
       await navigator.share({
         title: "Clean Path Credit — get your free credit analysis",
