@@ -16,13 +16,14 @@ import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
   Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Flame, Plus,
   Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, FileDown, Sparkles,
-  TrendingUp,
+  TrendingUp, Gift,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { AddLeadModal } from "@/components/admin/AddLeadModal";
 import { EditLeadModal } from "@/components/admin/EditLeadModal";
 import { EditClientModal } from "@/components/admin/EditClientModal";
 import { DraftEmailModal } from "@/components/admin/DraftEmailModal";
+import { AdminReferralsView } from "@/components/admin/AdminReferralsView";
 import { CreditReportView } from "@/components/dashboard/CreditReportView";
 
 const STATUS_OPTIONS: { value: ClientStatus; label: string; color: string }[] = [
@@ -171,7 +172,7 @@ export function AdminDashboard() {
   const [documents, setDocuments]         = useState<DocRow[]>([]);
   const [newMessage, setNewMessage]       = useState("");
   const [sidebarOpen, setSidebarOpen]     = useState(false);
-  const [view, setView]                   = useState<"clients" | "leads">("clients");
+  const [view, setView]                   = useState<"clients" | "leads" | "referrals">("clients");
   const [addLeadOpen, setAddLeadOpen]     = useState(false);
   // Inline modals for edit/delete flows. Keyed on the specific row so
   // opening "Manage" on a different lead while a modal is already open
@@ -385,6 +386,10 @@ export function AdminDashboard() {
                 {leads.length}
               </span>
             )}
+          </button>
+          <button onClick={() => { setSelected(null); setView("referrals"); setSidebarOpen(false); }}
+            className={`flex items-center gap-3 px-4 py-3 w-full rounded-lg transition-colors text-left ${!selected && view === "referrals" ? "bg-zinc-800 text-white" : "hover:bg-zinc-800/50 hover:text-zinc-200"}`}>
+            <Gift className="h-5 w-5" /> Referrals
           </button>
           <button className="flex items-center gap-3 px-4 py-3 w-full hover:bg-zinc-800/50 hover:text-zinc-200 rounded-lg transition-colors text-left opacity-50 cursor-not-allowed" disabled>
             <FileText className="h-5 w-5" /> Documents
@@ -707,6 +712,11 @@ export function AdminDashboard() {
                   </table>
                 </div>
               </div>
+            </motion.div>
+          ) : !selected && view === "referrals" ? (
+            /* ── REFERRALS ── */
+            <motion.div key="referrals" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex-1 overflow-auto">
+              <AdminReferralsView />
             </motion.div>
           ) : (
             /* ── CLIENT DETAIL ── */
