@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Link } from 'react-router-dom';
+import { posthog } from '@/lib/posthog-client';
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -457,14 +458,19 @@ export function QuizFunnel() {
   const handleGoalSelect = (optionId: string) => {
     setSelectedGoal(optionId);
     setShowFact(true);
+    posthog.capture('quiz_goal_selected', { goal: optionId });
   };
 
   // Step 2 — multi-select toggle. Selected cards expand inline to show their
   // fact; users can stack as many as apply. Continue lives at the bottom.
   const handleObstacleToggle = (optionId: string) => {
-    setSelectedObstacles((prev) =>
-      prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId],
-    );
+    setSelectedObstacles((prev) => {
+      const next = prev.includes(optionId)
+        ? prev.filter((id) => id !== optionId)
+        : [...prev, optionId];
+      posthog.capture('quiz_obstacle_selected', { obstacle: optionId, goal: selectedGoal, total: next.length });
+      return next;
+    });
   };
 
   const handleNextStep = () => {
@@ -493,6 +499,26 @@ export function QuizFunnel() {
     }
 
     setSubmitError(null);
+
+    // PostHog: top-of-funnel conversion event. Identify by email so anonymous
+    // pre-quiz events stitch to this person; Clerk signup later re-identifies
+    // by clerkUserId, which PostHog aliases automatically.
+    posthog.capture('quiz_lead_submitted', {
+      credit_score: formData.creditScore,
+      income:       formData.income,
+      ideal_score:  formData.idealScore,
+      timeline:     formData.timeline,
+      goal:         selectedGoal,
+      obstacles:    selectedObstacles,
+    });
+    if (formData.email) {
+      posthog.identify(formData.email, {
+        email: formData.email,
+        name:  formData.fullName || undefined,
+        phone: formData.phone || undefined,
+      });
+    }
+
     setIsFinalAnalyzing(true);
     setAnalysisProgress(0);
 

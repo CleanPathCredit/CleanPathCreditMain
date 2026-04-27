@@ -13,6 +13,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { useUser, useSession, useClerk } from "@clerk/clerk-react";
 import { useSupabaseClient } from "@/lib/supabase";
 import type { Profile } from "@/types/database";
+import { posthog } from "@/lib/posthog-client";
 
 interface AuthContextType {
   /** The raw Clerk User object — null while loading or signed out */
@@ -96,6 +97,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             sessionStorage.removeItem(attrKey);
           });
         }
+
+        // Identify the user in PostHog once we have their profile.
+        if (data) {
+          posthog.identify(data.id, {
+            email:    data.email ?? undefined,
+            name:     data.full_name ?? undefined,
+            plan:     data.plan,
+            role:     data.role,
+          });
+        }
       } else {
         setProfile(null);
       }
@@ -114,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     await signOut();
     setProfile(null);
+    posthog.reset();
   };
 
   const loading = !userLoaded || !sessionLoaded || profileLoading;
