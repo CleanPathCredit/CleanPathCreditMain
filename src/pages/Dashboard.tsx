@@ -19,6 +19,7 @@ import { PlanGate } from "@/components/dashboard/PlanGate";
 // repurpose it for score-trend viz across multiple reports.
 import { OnboardingWizard } from "@/components/dashboard/OnboardingWizard";
 import { CreditReportView } from "@/components/dashboard/CreditReportView";
+import { ReferralCard } from "@/components/dashboard/ReferralCard";
 import { canAccess, PLAN_LABEL } from "@/lib/planAccess";
 import type { Message, Plan, CreditReport } from "@/types/database";
 import {
@@ -402,6 +403,11 @@ export function Dashboard() {
                     </div>
                   )}
                 </section>
+
+                {/* Refer & Earn — available on every plan (including free).
+                    Word-of-mouth is the cheapest acquisition channel, so the
+                    card is intentionally not behind PlanGate. */}
+                <ReferralCard />
               </motion.div>
             )}
 
