@@ -77,6 +77,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         const data = (await res.json()) as Profile | null;
         setProfile(data);
+
+        // Best-effort referral attribution — fires once per browser session.
+        // The cpc_ref cookie is HttpOnly so JS can't read it; the server
+        // endpoint reads it directly and advances the referral row to 'signup'.
+        const attrKey = `cpc_attr_${clerkUser.id}`;
+        if (!sessionStorage.getItem(attrKey)) {
+          sessionStorage.setItem(attrKey, "1");
+          fetch("/api/referrals/attribute", {
+            method:      "POST",
+            credentials: "include",   // sends HttpOnly cookies
+            headers: {
+              Authorization:  `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }).catch(() => {
+            // Non-fatal: clear the flag so the next page-load retries.
+            sessionStorage.removeItem(attrKey);
+          });
+        }
       } else {
         setProfile(null);
       }

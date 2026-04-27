@@ -238,6 +238,46 @@ export default async function handler(
     { onConflict: "id" },
   );
 
+  // 6b. Referral commission — find a 'signup' referral for this user and
+  // advance it to 'purchased'. Self-referrals are voided; no commission.
+  // Default commission: $50 (5000 cents). Best-effort: never blocks the
+  // purchase flow even if this fails.
+  try {
+    const { data: referralRow } = await supabase
+      .from("referrals")
+      .select("id, referrer_profile_id")
+      .eq("referred_profile_id", clerkUserId)
+      .eq("status", "signup")
+      .order("signed_up_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (referralRow) {
+      if (referralRow.referrer_profile_id === clerkUserId) {
+        // Self-referral — void it
+        await supabase
+          .from("referrals")
+          .update({ status: "void" })
+          .eq("id", referralRow.id);
+        console.log(`[/api/webhooks/stripe] referral voided (self-referral): rowId=${referralRow.id}`);
+      } else {
+        await supabase
+          .from("referrals")
+          .update({
+            status:           "purchased",
+            amount_cents:     5000,       // $50 default commission
+            stripe_session_id: session.id,
+            purchased_at:     new Date().toISOString(),
+          })
+          .eq("id", referralRow.id)
+          .eq("status", "signup");        // optimistic lock
+        console.log(`[/api/webhooks/stripe] referral purchased: rowId=${referralRow.id} userId=${clerkUserId}`);
+      }
+    }
+  } catch (err) {
+    console.error("[/api/webhooks/stripe] referral commission update failed:", err);
+  }
+
   // 7. Sign-in token for /welcome auto-sign-in (24h TTL).
   //    DO NOT log the token — it is an auth credential.
   const signInToken = await clerk.signInTokens.createSignInToken({
