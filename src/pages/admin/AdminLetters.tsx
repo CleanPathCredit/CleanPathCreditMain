@@ -35,6 +35,7 @@ import {
   Clock,
   DollarSign,
   CheckCircle2,
+  Link as LinkIcon,
 } from "lucide-react";
 import type {
   Profile,
@@ -206,6 +207,44 @@ export function AdminLetters() {
     else if (selectedClientId) reloadRounds(selectedClientId);
   };
 
+  /**
+   * Generate a Stripe Checkout link the admin can email/text to the
+   * client. The link is pre-tagged with metadata.letter_round_id so
+   * the existing Stripe webhook flips payment_cleared_at on
+   * completion. URL is copied to the clipboard for the admin to
+   * paste into their preferred outreach channel.
+   */
+  const createCheckoutLink = async (roundId: string) => {
+    if (!session) return;
+    setError(null);
+    try {
+      const token = await session.getToken();
+      const res = await fetch("/api/letters/checkout", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ letter_round_id: roundId }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        setError(data.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(data.url);
+        alert(`Payment link copied to clipboard:\n\n${data.url}`);
+      } catch {
+        // Clipboard can fail in non-secure contexts (e.g. http preview);
+        // surface the URL so the admin can copy it manually.
+        prompt("Copy this payment link:", data.url);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const deleteItem = async (id: string) => {
     if (!confirm("Delete this item?")) return;
     await supabase.from("negative_items").delete().eq("id", id);
@@ -338,6 +377,7 @@ export function AdminLetters() {
                   onDeleteItem={deleteItem}
                   onGenerate={() => generate(r)}
                   onMarkPaid={() => markPaid(r.id)}
+                  onCreateCheckoutLink={() => createCheckoutLink(r.id)}
                   onDownload={downloadPacket}
                 />
               ))}
@@ -414,6 +454,7 @@ function RoundCard({
   onDeleteItem,
   onGenerate,
   onMarkPaid,
+  onCreateCheckoutLink,
   onDownload,
 }: {
   round: RoundWithChildren;
@@ -434,6 +475,7 @@ function RoundCard({
   onDeleteItem: (id: string) => void;
   onGenerate: () => void;
   onMarkPaid: () => void;
+  onCreateCheckoutLink: () => void;
   onDownload: (p: LetterPacket) => void;
 }) {
   const usedBureaus = new Set(round.bureauReports.map((b) => b.bureau));
@@ -519,14 +561,24 @@ function RoundCard({
             </select>
           )}
           {!paid && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onMarkPaid}
-            >
-              <DollarSign className="h-4 w-4" />
-              Mark paid
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCreateCheckoutLink}
+              >
+                <LinkIcon className="h-4 w-4" />
+                Copy payment link
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onMarkPaid}
+              >
+                <DollarSign className="h-4 w-4" />
+                Mark paid
+              </Button>
+            </>
           )}
           <Button
             variant="primary"
