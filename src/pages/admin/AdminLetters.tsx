@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
+import { isInCroaHold, croaHoldUntil } from "@/lib/letters/croaHold";
 import {
   ChevronLeft,
   Plus,
@@ -31,6 +32,7 @@ import {
   Sparkles,
   Trash2,
   Download,
+  Clock,
 } from "lucide-react";
 import type {
   Profile,
@@ -305,6 +307,7 @@ export function AdminLetters() {
                   key={r.id}
                   round={r}
                   busy={busy}
+                  contractDate={selectedClient.created_at}
                   onAddBureau={(b) => addBureauReport(r.id, b)}
                   onAddItem={(brId, item) => addItem(brId, item)}
                   onDeleteItem={deleteItem}
@@ -379,6 +382,7 @@ function RoundCreator({
 function RoundCard({
   round,
   busy,
+  contractDate,
   onAddBureau,
   onAddItem,
   onDeleteItem,
@@ -387,6 +391,8 @@ function RoundCard({
 }: {
   round: RoundWithChildren;
   busy: boolean;
+  /** ISO timestamp from profiles.created_at — used for the CROA hold window. */
+  contractDate: string;
   onAddBureau: (b: Bureau) => void;
   onAddItem: (
     bureauReportId: string,
@@ -409,6 +415,14 @@ function RoundCard({
     0,
   );
 
+  // CROA §407 — Round 1 only; freezes until 3 business days after the
+  // contract date. Mirrored server-side in /api/letters/generate so a
+  // determined admin can't bypass by hitting the API directly.
+  const contractDt = new Date(contractDate);
+  const inHold = isInCroaHold(contractDt, round.round_number);
+  const holdUntil = croaHoldUntil(contractDt, round.round_number);
+  const generateDisabled = busy || totalItems === 0 || inHold;
+
   return (
     <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
       <div className="px-5 py-4 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-3">
@@ -425,6 +439,12 @@ function RoundCard({
               </>
             )}
           </p>
+          {inHold && holdUntil && (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+              <Clock className="h-3 w-3" />
+              CROA hold — generation unlocks {holdUntil.toLocaleDateString()}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {remainingBureaus.length > 0 && (
@@ -450,10 +470,10 @@ function RoundCard({
             variant="primary"
             size="sm"
             onClick={onGenerate}
-            disabled={busy || totalItems === 0}
+            disabled={generateDisabled}
           >
             <Sparkles className="h-4 w-4" />
-            {busy ? "Generating…" : "Generate letters"}
+            {busy ? "Generating…" : inHold ? "Held (CROA)" : "Generate letters"}
           </Button>
         </div>
       </div>

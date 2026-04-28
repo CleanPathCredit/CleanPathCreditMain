@@ -59,6 +59,7 @@ import { Letter609Round4 } from "../../src/components/letters/Letter609Round4";
 import { Letter611 } from "../../src/components/letters/Letter611";
 import { BUREAU_ADDRESSES } from "../../src/lib/letters/bureaus";
 import { isDisputable } from "../../src/lib/letters/filtering";
+import { isInCroaHold, croaHoldUntil } from "../../src/lib/letters/croaHold";
 import type {
   ConsumerIdentity,
   LetterRenderInput,
@@ -185,14 +186,26 @@ export default async function handler(
     return sendJson(res, 501, { error: "623_template_not_implemented" });
   }
 
-  // 7. Load case profile (for consumer identity defaults)
+  // 7. Load case profile (for consumer identity defaults + CROA contract date)
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, address")
+    .select("id, full_name, address, created_at")
     .eq("id", round.profile_id)
     .single();
   if (!profile) {
     return sendJson(res, 500, { error: "profile_missing" });
+  }
+
+  // 7a. CROA §407 — Round 1 cannot be generated inside the
+  // 3-business-day cancellation window. Subsequent rounds are exempt.
+  const contractDate = new Date(profile.created_at);
+  if (isInCroaHold(contractDate, round.round_number)) {
+    const until = croaHoldUntil(contractDate, round.round_number);
+    return sendJson(res, 423, {
+      error: "croa_hold_active",
+      hold_until: until?.toISOString(),
+      hint: "Letters cannot be generated during the 3-business-day CROA cancellation window.",
+    });
   }
 
   // Consumer identity — body overrides win, then profile, then placeholder.

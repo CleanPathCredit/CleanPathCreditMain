@@ -7,6 +7,7 @@ import type { Plan } from "@/types/database";
 
 export type Feature =
   | "dispute_tracker"   // Live admin-managed dispute progress
+  | "dispute_letters"   // Generated 609/611/623 letter packets
   | "document_vault"    // Upload ID/SSN/credit reports to us
   | "master_list"       // Curated credit-building tools
   | "support_chat"      // Direct specialist messaging
@@ -21,6 +22,7 @@ const ACCESS_MAP: Record<Feature, Plan[]> = {
   credit_score:    ["free", "diy", "standard", "premium"],
   basic_guides:    ["free", "diy", "standard", "premium"],
   diy_templates:   ["diy",  "standard", "premium"],
+  dispute_letters: ["diy",  "standard", "premium"],
   all_guides:      ["diy",  "standard", "premium"],
   master_list:     ["diy",  "standard", "premium"],
   dispute_tracker: ["standard", "premium"],
@@ -55,6 +57,11 @@ export const UPGRADE_COPY: Record<Feature, { heading: string; body: string; cta:
     heading: "We handle every step for you",
     body:    "Upgrade to Accelerated Audit and we'll manage all 4 rounds of the done-for-you dispute process — you don't lift a finger.",
     cta:     "Get Done-For-You Results →",
+  },
+  dispute_letters: {
+    heading: "Your dispute letters live here",
+    body:    "Upgrade to a paid plan to access the FCRA dispute letter packets generated for your case — one per bureau, every round.",
+    cta:     "Unlock Dispute Letters →",
   },
   document_vault: {
     heading: "Secure document upload required",
