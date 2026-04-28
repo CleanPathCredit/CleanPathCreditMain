@@ -395,29 +395,61 @@ export function QuizFunnel() {
   }, [step, formData.fullName, formData.email]);
 
   // Detect whether Calendly actually populated the container with an
-  // iframe. If 6 seconds pass after step 5 mounts and there's still no
-  // iframe inside calendlyWrapRef, the script is being blocked client-
-  // side (adblocker, privacy extension, corporate firewall). In that
-  // case we surface a prominent "Open Calendly in a new tab" fallback
-  // instead of leaving the user staring at a tall empty box.
+  // iframe. If the iframe doesn't appear within 6 seconds of step 5
+  // mounting, the script is probably being blocked client-side
+  // (adblocker, privacy extension, corporate firewall) and we surface
+  // a prominent "Open Calendly in a new tab" fallback instead of
+  // leaving the user staring at a tall empty box.
+  //
+  // Implementation note: a fixed-window setInterval poll would give up
+  // permanently after the timeout, so a slow-network user whose iframe
+  // arrives at e.g. t=8s would have the embed silently rendered into a
+  // height:0 container and never see it (Codex caught this on PR #9).
+  // Instead we set a 6s fallback timer to flip showFallback=true, but
+  // keep a MutationObserver running on the container so that if the
+  // iframe DOES eventually appear it always wins — fallback hides,
+  // embed becomes visible.
   useEffect(() => {
     if (step !== 5) return;
+    const container = calendlyWrapRef.current;
+    if (!container) return;
     setCalendlyLoaded(false);
-    let attempts = 0;
-    const poll = window.setInterval(() => {
-      attempts += 1;
-      const iframe = calendlyWrapRef.current?.querySelector('iframe');
+
+    const checkAndUpdate = () => {
+      const iframe = container.querySelector('iframe');
       if (iframe) {
         setCalendlyLoaded(true);
-        window.clearInterval(poll);
-        return;
+        return true;
       }
-      if (attempts >= 30) {
-        // 30 × 200ms = 6s. Stop polling; the fallback CTA will render.
-        window.clearInterval(poll);
-      }
-    }, 200);
-    return () => window.clearInterval(poll);
+      return false;
+    };
+
+    // Initial check in case the iframe was already inserted before this
+    // effect ran (HMR, fast remount, etc.)
+    if (checkAndUpdate()) return;
+
+    // Watch the container for child-list mutations. Calendly inserts
+    // its iframe as a direct child of the container; subtree:true is
+    // defensive against any wrapper Calendly might add later.
+    const observer = new MutationObserver(() => { checkAndUpdate(); });
+    observer.observe(container, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, [step]);
+
+  // Independent fallback-visibility flag. The 6s timer flips this to
+  // true regardless of whether the iframe ever shows up. If the iframe
+  // arrives later (slow connection), the calendlyLoaded state above
+  // hides the fallback again — so the slowest legitimate user gets
+  // both: fallback shown briefly, then real embed wins.
+  const [showFallback, setShowFallback] = useState(false);
+  useEffect(() => {
+    if (step !== 5) {
+      setShowFallback(false);
+      return;
+    }
+    const t = window.setTimeout(() => setShowFallback(true), 6000);
+    return () => window.clearTimeout(t);
   }, [step]);
 
   // Calendly dispatches window.postMessage events for every lifecycle step.
@@ -1252,7 +1284,7 @@ export function QuizFunnel() {
                           up after ~6s without finding a Calendly iframe.
                           Without this, users with strict privacy tools
                           see a tall empty white box and bounce. */}
-                      {!calendlyLoaded && step === 5 && (
+                      {!calendlyLoaded && showFallback && step === 5 && (
                         <div className="rounded-xl border border-amber-300 bg-amber-50 px-5 py-6 text-center max-w-lg mx-auto">
                           <p className="text-sm text-zinc-700 mb-3">
                             <span className="font-semibold">The booking widget didn't load.</span>{' '}
