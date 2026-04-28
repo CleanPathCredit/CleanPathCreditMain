@@ -188,3 +188,110 @@ A few things that came up repeatedly and are worth flagging for future sessions:
 - **The signed-commit infrastructure was broken** for the entire session. All commits landed unsigned with explicit auth. If you care about a clean signed-history audit trail, file a ticket on whatever signing service is running.
 - **Branch hygiene**: PRs that sit unmerged for weeks accumulate conflicts and migration-number collisions. The turnstile branch was 5 weeks old when we landed it; the merge required renumbering migrations 005-009 → 010-014.
 - **GitHub MCP tools have content-size limits** — pushing files >25K tokens via `push_files` or `create_or_update_file` can timeout or fail. Local `git push` with a configured PAT is more reliable for big diffs. The PAT path was set up mid-session via credential-helper + `~/.git-credentials`.
+
+---
+
+# Session 2 — 2026-04-28 (GHL inbound, retention, substantiation)
+
+This block continues the log above. Three PRs landed (or are in-flight) addressing items 2, 3, 4, and 6 from the previous session's backlog.
+
+## Summary of what shipped
+
+| PR | Branch | Theme |
+|----|--------|-------|
+| #11 | `claude/ghl-inbound-lead-sync-sePyK` | `POST /api/webhooks/ghl-contact` — inbound sync from GHL Workflow → `lead_submissions`. Closes the gap where contacts added in GHL via non-quiz channels (manual entry, imported list, SMS opt-in) never surfaced on the admin dashboard. Shared-secret header auth (`x-cpc-ghl-secret`), case-insensitive email upsert, preserves `quiz_funnel` rows by only backfilling missing fields |
+| #12 | `claude/data-retention-and-resend-sePyK` | (a) Data-retention purge — migration 015 + `purge_profile_pii` SECURITY DEFINER RPC + `/api/cron/data-retention-purge` Vercel cron at 04:17 UTC daily. Profiles flip to `data_retention_until = now()+2y` automatically when status reaches `complete`; the cron then wipes `vault.secrets`, document files + Storage objects, credit reports, PII flags. Profile identity preserved for accounting. (b) Resend invitation — `/api/admin/invite-client` now lists pending Clerk invitations, returns 409 `invitation_pending` with hint, accepts `{resend:true}` to revoke + recreate. `InviteClientModal` flips primary action to "Resend invitation" on 409 |
+| #13 | `claude/substantiation-file-sePyK` | `docs/SUBSTANTIATION.md` tracking sheet for every testimonial outcome claim in `Proof.tsx` + `_template_release.md` for client signatures + `docs/substantiation/README.md` folder layout. All 6 current testimonials flagged `verified=NO` — doc is the blocker checklist before paid traffic scales. `.gitignore` excludes per-client subfolders |
+
+All three opened against `main`. CI status at session end: Vercel checks ✓, CodeQL pending.
+
+## New env vars
+
+```
+# PR #11 — required for /api/webhooks/ghl-contact
+GHL_WEBHOOK_SECRET=<openssl rand -hex 32>
+
+# PR #12 — required for /api/cron/data-retention-purge
+CRON_SECRET=<openssl rand -hex 32>
+```
+
+Both are server-only secrets (no `VITE_` prefix). Set in Vercel Project Settings → Environment Variables for Preview + Production. The cron endpoint fail-closes (500) if `CRON_SECRET` is unset — won't run unauthenticated. The GHL webhook similarly fail-closes on missing `GHL_WEBHOOK_SECRET`.
+
+## GHL admin one-time setup (PR #11)
+
+In GoHighLevel:
+
+1. Workflows → pick (or create) the workflow that adds a contact you want synced.
+2. Add Action → Webhook.
+3. URL: `https://<your-deployment>/api/webhooks/ghl-contact`
+4. Method: POST
+5. Custom Header — Key: `x-cpc-ghl-secret`, Value: the same value as the `GHL_WEBHOOK_SECRET` env var.
+6. Body (Custom JSON):
+
+```json
+{
+  "email":     "{{contact.email}}",
+  "phone":     "{{contact.phone}}",
+  "fullName":  "{{contact.full_name}}",
+  "firstName": "{{contact.first_name}}",
+  "lastName":  "{{contact.last_name}}",
+  "contactId": "{{contact.id}}",
+  "source":    "ghl_workflow"
+}
+```
+
+The same template copy lives verbatim in `.env.example` next to the env var.
+
+## Data-retention model (PR #12)
+
+- New columns on `profiles`: `data_retention_until timestamptz`, `data_retention_purged_at timestamptz`. NULL on `data_retention_until` means "indefinite" — used for active clients and admin accounts.
+- Trigger `profiles_set_data_retention` automatically sets `data_retention_until = now() + interval '2 years'` when `status` transitions into `'complete'` (skipped if admin pre-set a date or a purge already ran).
+- SECURITY DEFINER RPC `public.purge_profile_pii(p_profile_id text)` does the cross-schema work (vault delete + cascade) atomically. Returns `documents.storage_path` rows so the endpoint can also remove Storage objects (Storage isn't reachable from SQL).
+- Endpoint `/api/cron/data-retention-purge` reads up to 50 due profiles per run, calls the RPC for each, then `supabase.storage.from('documents').remove(paths)`. Serial processing avoids Storage 429s on a backlog day.
+- Vercel cron schedule in `vercel.json`: `17 4 * * *` (04:17 UTC daily, off-peak + jittered minute to avoid alignment with other crons).
+- What is preserved (deliberately): `clerk_user_id`, `email`, plan history, `stripe_customer_id`, `status` timestamps, `referrals` rows, `admin_notes`. So accounting + chargeback investigation still works.
+- What is wiped: `vault.secrets` row referenced by `ssn_secret_id`, `documents` rows + Storage objects, `credit_reports` (cascades to parsed account data), and the `id_uploaded`/`ssn_uploaded`/`video_verified` flags reset.
+
+## Resend invitation flow (PR #12, second half)
+
+Closes a small UX gap from PR #10. The original "Add Client / Convert Lead" flow surfaced a generic 502 if a pending invite already existed — the admin had no path to fix it without going to the Clerk dashboard. Now:
+
+- `/api/admin/invite-client` calls `clerk.invitations.getInvitationList({status:'pending'})` before `createInvitation`.
+- If a pending invite is found and `resend:false` (default): returns 409 `invitation_pending` with `invitation_id`, `invitation_url`, hint.
+- If `resend:true`: revokes each pending invite for that email, creates a fresh one. Revocation failures don't abort — `createInvitation` will surface the real blocker.
+- `InviteClientModal` watches for the 409 and flips the primary button to "Resend invitation". One click sends `{resend:true}` and shows a fresh URL on success.
+
+## Substantiation file (PR #13)
+
+Pure docs. `docs/SUBSTANTIATION.md` lists every numeric outcome claim in `Proof.tsx` (6 testimonials) with the exact evidence type required to verify each. All 6 rows currently flagged `verified=NO`. The doc states explicitly: "No claim moves to paid traffic until its row in this file shows `verified=yes`."
+
+Companion files:
+
+- `docs/substantiation/_template_release.md` — release form clients sign granting permission to publish a verbatim quote with first-name + last-initial + city/profession attribution. Includes revocation process, 4-year retention window matching FTC investigation lookback.
+- `docs/substantiation/README.md` — per-client folder layout, what goes in (signed release, before/after reports, approval/refi docs with PII redacted), what does NOT go in (unredacted PII).
+- `.gitignore` excludes `docs/substantiation/*/` so signed releases and redacted credit reports never land in git. README + template stay tracked.
+
+The FTC results-not-typical disclaimer in `Proof.tsx:63-65` was already there — this PR is the backing-evidence side of the same compliance posture, not a replacement for the disclaimer.
+
+## Backlog after this session
+
+| Item | Status | Trigger |
+|---|---|---|
+| **`Letter623.tsx` template** | Pending | When user provides the screenshot |
+| **GHL inbound lead sync** | ✅ Shipped (PR #11) | — |
+| **Data-retention purge job** | ✅ Shipped (PR #12) | — |
+| **Resend invitation** | ✅ Shipped (PR #12) | — |
+| **Substantiation file** | ✅ Shipped (PR #13) | — |
+| **Verify ≥1 testimonial OR replace section with no-outcome copy** | New (follow-up to PR #13) | Before next paid-traffic spend over $500/month |
+| **Attorney review of full ToS** | Pending | First $10K month or first 25 paying clients |
+| **Stripe `unsafe_metadata.plan` → `private_metadata.plan`** (audit C-3 outstanding TODO) | Pending | Whenever |
+| **PII out of URL query strings on funnel results page** | Pending | Whenever |
+| **Texas CSO registration decision** | Pending | ~$25K-50K total revenue checkpoint |
+| **Resend domain verification** | Pending | Before letter-ready emails go to real clients |
+| **Apply migration 015 to staging Supabase** | New (PR #12 deploy step) | Before deploying PR #12 to production |
+| **Set Vercel env vars `GHL_WEBHOOK_SECRET`, `CRON_SECRET`** | New (deploy step) | Before merging PRs #11 and #12 to prod |
+
+## How to pick this up in a fresh chat
+
+> I'm working on `cleanpathcredit/cleanpathcreditmain`. Read `docs/SESSION_LOG.md` on `main` for the full project state — there are two session blocks, the second covers PRs #11/#12/#13 (GHL inbound sync, data-retention purge, resend invitation, substantiation file). Today I want to work on: \[name a backlog item from the table above].
+
