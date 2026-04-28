@@ -70,11 +70,11 @@ const TIERS: TierConfig[] = [
     cadence:  "Full 4-round correction cycle · everything handled for you",
     fitFor:   "People who are serious about fixing their credit and want a done-for-you approach — no research, no paperwork, no follow-up required on your end.",
     features: [
-      "Full 4-round credit correction process",
-      "Done-for-you dispute handling",
-      "Legally-documented submission",
+      "Full 4-round structured credit-improvement workflow",
+      "Done-for-you dispute submission handling",
+      "Legally-documented FCRA-grounded challenges",
       "Score sequencing strategy",
-      "120-day money-back guarantee",
+      "Cancel anytime — billed per round after completion",
     ],
     highlighted: true,   // Most-common pick — emerald ring to draw the eye
   },
@@ -147,8 +147,8 @@ export function Unlock() {
         {/* 2. Trust strip */}
         <section className="flex flex-wrap justify-center gap-6 text-sm text-zinc-600 border-y border-zinc-200 py-4">
           <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-500" />FCRA + FDCPA grounded</span>
-          <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-500" />120-day Accelerated guarantee</span>
-          <span className="inline-flex items-center gap-1.5"><Clock   className="h-4 w-4 text-emerald-500" />Most see movement in 30–45 days</span>
+          <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-500" />Cancel anytime · Per-round billing</span>
+          <span className="inline-flex items-center gap-1.5"><Clock   className="h-4 w-4 text-emerald-500" />Bureaus typically respond within 30–45 days · Individual results vary</span>
         </section>
 
         {/* 3. Pricing */}
@@ -225,17 +225,21 @@ export function Unlock() {
           </p>
         </section>
 
-        {/* 4. Guarantee panel */}
+        {/* 4. Process commitment panel — replaces the prior "guarantee"
+            framing per CROA §404(c). Outcome guarantees are prohibited
+            for credit-repair organizations; the structured-process
+            commitment + per-round billing covers the same trust beat
+            without the legal exposure. */}
         <section className="rounded-2xl bg-emerald-50/60 border border-emerald-100 p-6 sm:p-8 max-w-3xl mx-auto">
           <div className="flex items-start gap-4">
             <ShieldCheck className="h-8 w-8 text-emerald-600 shrink-0" />
             <div>
               <div className="text-xs font-semibold tracking-[0.14em] uppercase text-emerald-700 mb-2">
-                120-day Clean Path promise
+                Our process commitment
               </div>
-              <h3 className="text-lg font-semibold text-zinc-900 mb-2">If we don't remove a single item, you don't pay.</h3>
+              <h3 className="text-lg font-semibold text-zinc-900 mb-2">Pay per round, after the work is done. Cancel anytime.</h3>
               <p className="text-sm text-zinc-700">
-                The Accelerated Audit includes four full rounds of strategically crafted credit corrections over 120 days. If we complete the full cycle and fail to secure the removal of a single inaccurate, unverified, or obsolete item, you receive a full refund. No questions.
+                The Accelerated Audit runs as a structured 4-round credit-improvement workflow. Each round is billed after that round is completed and submitted on your behalf — never upfront. If you don't see the kind of progress you hoped for after a round, you can cancel before the next one begins. Individual results vary based on the accuracy of reported information, creditor and bureau responses, and your participation. Clean Path Credit cannot guarantee specific score changes or item removals.
               </p>
             </div>
           </div>

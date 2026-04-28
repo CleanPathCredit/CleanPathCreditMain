@@ -209,20 +209,24 @@ export default async function handler(
     });
   }
 
-  // 7b. Payment gate — CROA §404 prohibits charging for credit-repair
-  // services that haven't been performed; the inverse is also true in
-  // our model: don't perform (generate letters) until payment for this
-  // specific round has cleared. `payment_cleared_at` is set by:
+  // 7b. Payment status — informational only, NOT a hard gate.
+  //
+  // CROA §404(b) and TSR §310.4(a)(2) prohibit advance fees for
+  // credit-repair services. The CROA-safe operating model is to
+  // perform each round and bill the customer AFTER the work is done
+  // (generate → notarize → mail → send payment link). Hard-blocking
+  // generation on `payment_cleared_at` would force the *opposite*
+  // (charge first, perform later), which is what we're trying to
+  // avoid. So payment status flows through to the response and the
+  // admin UI surfaces a "send payment link" reminder, but generation
+  // itself is never blocked on payment.
+  //
+  // `payment_cleared_at` is still flipped by:
   //   - the Stripe webhook when a checkout session completes with
   //     `metadata.letter_round_id = round.id`, or
   //   - the admin clicking "Mark as paid" in /admin/letters (manual
   //     offline-payment recording — same column, same effect).
-  if (!round.payment_cleared_at) {
-    return sendJson(res, 402, {
-      error: "payment_required",
-      hint: "This round's payment hasn't cleared. Either wait for the Stripe webhook or mark it paid in admin.",
-    });
-  }
+  const billedAfterCompletion = !round.payment_cleared_at;
 
   // Consumer identity — body overrides win, then profile, then placeholder.
   const consumer: ConsumerIdentity = {
@@ -435,6 +439,11 @@ export default async function handler(
   return sendJson(res, 200, {
     letter_round_id: round.id,
     packets: packetsOut,
+    // Tells the caller (admin UI) whether this round was generated
+    // without prior payment. When true the UI should remind the
+    // admin to copy the payment link and send it to the customer
+    // before mailing the letters out.
+    billed_after_completion: billedAfterCompletion,
   });
 }
 

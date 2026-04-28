@@ -262,11 +262,11 @@ const STEP_1_OPTIONS = [
 ];
 
 const STEP_2_OPTIONS = [
-  { id: 'medical', label: 'Medical or Utility Collections', fact: "Fact: Paying a collection doesn't remove it. We use federal laws to legally challenge and delete them." },
-  { id: 'late', label: 'Late Payments/ Collections', fact: 'One late payment/ collection can cost you 50+ points. We aggressively target these for removal.' },
-  { id: 'bankruptcies', label: 'Bankruptcies / Liens', fact: "Even public records can be challenged when they're incomplete, unverifiable, or misreported — which they often are. The account-level items tied to the bankruptcy often come off too." },
+  { id: 'medical', label: 'Medical or Utility Collections', fact: "Paying a collection alone doesn't remove the entry. Under the FCRA we can challenge inaccurate or unverifiable items — outcomes depend on the bureau's response." },
+  { id: 'late', label: 'Late Payments/ Collections', fact: 'Late payments and collections can be a major drag on your score. We help you challenge entries that are inaccurate, outdated, or unverifiable.' },
+  { id: 'bankruptcies', label: 'Bankruptcies / Liens', fact: "Public records can be challenged when they're incomplete, unverifiable, or misreported. Account-level items tied to the bankruptcy may also be challengeable." },
   { id: 'balances', label: 'High Credit Card Balances', fact: "We will build you a custom 'Master Financial List' to optimize your credit utilization." },
-  { id: 'unsure', label: "I'm Not Sure", fact: "That's exactly what our free deep-dive audit is for. We'll find the hidden errors." },
+  { id: 'unsure', label: "I'm Not Sure", fact: "That's exactly what our free deep-dive audit is for. We'll identify potentially inaccurate or unverifiable items on your reports." },
 ];
 
 export function QuizFunnel() {

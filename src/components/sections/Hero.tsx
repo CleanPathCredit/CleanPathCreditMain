@@ -37,12 +37,12 @@ export function Hero() {
         </h1>
 
         <p className="mx-auto mb-6 max-w-3xl text-lg font-medium text-zinc-900 md:text-xl">
-          Not generic methods. Not guesswork. A structured, AI-powered credit correction system designed to remove negative items and position you for approvals, lower rates, and real opportunities.
+          Not generic methods. Not guesswork. A structured, AI-powered credit optimization system that helps you challenge inaccurate or unverifiable items and position your credit profile for better approvals.
         </p>
-        
+
         <div className="mb-10 inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 border border-emerald-200">
           <ShieldCheck className="h-5 w-5 text-emerald-600" />
-          <span><strong>Ironclad Guarantee:</strong> Results guaranteed, or you don't pay.</span>
+          <span><strong>Process commitment:</strong> structured 4-round credit-improvement workflow. Individual results vary based on your file and bureau responses.</span>
         </div>
 
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -71,7 +71,7 @@ export function Hero() {
           <div className="hidden h-1.5 w-1.5 rounded-full bg-zinc-300 sm:block" />
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5" />
-            <span>Hundreds of Derogatory Marks Removed</span>
+            <span>Structured Process · CROA Compliant</span>
           </div>
         </div>
       </motion.div>

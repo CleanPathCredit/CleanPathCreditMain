@@ -499,7 +499,12 @@ function RoundCard({
   const paid = !!round.payment_cleared_at;
   const paidOffline = round.payment_stripe_id === "PAID_OFFLINE";
 
-  const generateDisabled = busy || totalItems === 0 || inHold || !paid;
+  // Generate is allowed even on unpaid rounds — the CROA-safe operating
+  // model is perform-then-bill (generate → mail → send payment link →
+  // customer pays). The button label reflects the unpaid state so the
+  // admin knows to follow up with a payment link, but the action itself
+  // is never blocked on payment status.
+  const generateDisabled = busy || totalItems === 0 || inHold;
 
   return (
     <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
@@ -592,7 +597,7 @@ function RoundCard({
               : inHold
                 ? "Held (CROA)"
                 : !paid
-                  ? "Awaiting payment"
+                  ? "Generate (bill after)"
                   : "Generate letters"}
           </Button>
         </div>
