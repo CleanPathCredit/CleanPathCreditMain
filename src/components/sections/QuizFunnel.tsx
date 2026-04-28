@@ -306,6 +306,13 @@ export function QuizFunnel() {
   const sectionRef          = useRef<HTMLElement>(null);
   const calendlyWrapRef     = useRef<HTMLDivElement>(null);
   const calendlyInitedRef   = useRef(false);
+  // Tracks whether Calendly's iframe has actually rendered into the
+  // container. Adblockers (uBlock Origin's default lists, Privacy Badger,
+  // Brave shields) silently block calendly.com — when they do, the script
+  // never loads, the container stays empty, and the user sees a tall
+  // blank white box. We poll for the iframe and surface a prominent
+  // "Open Calendly in a new tab" button if it doesn't show up in 6s.
+  const [calendlyLoaded, setCalendlyLoaded] = useState(false);
   const [urgency, setUrgency]   = useState<number>(0);
   const [hasBooked, setHasBooked] = useState(false);
 
@@ -386,6 +393,64 @@ export function QuizFunnel() {
     s.onload = () => { init(); };
     document.body.appendChild(s);
   }, [step, formData.fullName, formData.email]);
+
+  // Detect whether Calendly actually populated the container with an
+  // iframe. If the iframe doesn't appear within 6 seconds of step 5
+  // mounting, the script is probably being blocked client-side
+  // (adblocker, privacy extension, corporate firewall) and we surface
+  // a prominent "Open Calendly in a new tab" fallback instead of
+  // leaving the user staring at a tall empty box.
+  //
+  // Implementation note: a fixed-window setInterval poll would give up
+  // permanently after the timeout, so a slow-network user whose iframe
+  // arrives at e.g. t=8s would have the embed silently rendered into a
+  // height:0 container and never see it (Codex caught this on PR #9).
+  // Instead we set a 6s fallback timer to flip showFallback=true, but
+  // keep a MutationObserver running on the container so that if the
+  // iframe DOES eventually appear it always wins — fallback hides,
+  // embed becomes visible.
+  useEffect(() => {
+    if (step !== 5) return;
+    const container = calendlyWrapRef.current;
+    if (!container) return;
+    setCalendlyLoaded(false);
+
+    const checkAndUpdate = () => {
+      const iframe = container.querySelector('iframe');
+      if (iframe) {
+        setCalendlyLoaded(true);
+        return true;
+      }
+      return false;
+    };
+
+    // Initial check in case the iframe was already inserted before this
+    // effect ran (HMR, fast remount, etc.)
+    if (checkAndUpdate()) return;
+
+    // Watch the container for child-list mutations. Calendly inserts
+    // its iframe as a direct child of the container; subtree:true is
+    // defensive against any wrapper Calendly might add later.
+    const observer = new MutationObserver(() => { checkAndUpdate(); });
+    observer.observe(container, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, [step]);
+
+  // Independent fallback-visibility flag. The 6s timer flips this to
+  // true regardless of whether the iframe ever shows up. If the iframe
+  // arrives later (slow connection), the calendlyLoaded state above
+  // hides the fallback again — so the slowest legitimate user gets
+  // both: fallback shown briefly, then real embed wins.
+  const [showFallback, setShowFallback] = useState(false);
+  useEffect(() => {
+    if (step !== 5) {
+      setShowFallback(false);
+      return;
+    }
+    const t = window.setTimeout(() => setShowFallback(true), 6000);
+    return () => window.clearTimeout(t);
+  }, [step]);
 
   // Calendly dispatches window.postMessage events for every lifecycle step.
   // We only care about `calendly.event_scheduled` — fires once the attendee
@@ -1199,7 +1264,7 @@ export function QuizFunnel() {
                           </div>
                           <div className="flex items-start gap-2">
                             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                            <span>Hand you the exact removal plan — whether you hire us or not</span>
+                            <span>Outline your structured dispute strategy — whether you hire us or not</span>
                           </div>
                         </div>
                         <p className="text-xs text-zinc-500 italic mt-4">No pressure. No obligation. Just clarity.</p>
@@ -1211,8 +1276,30 @@ export function QuizFunnel() {
                           second copy in here. */}
                       <div
                         ref={calendlyWrapRef}
-                        style={{ minWidth: '320px', height: '680px' }}
+                        style={{ minWidth: '320px', height: calendlyLoaded ? '680px' : '0', overflow: 'hidden' }}
                       />
+
+                      {/* Adblocker / privacy-extension fallback. Renders
+                          whenever the iframe-detection poll above gives
+                          up after ~6s without finding a Calendly iframe.
+                          Without this, users with strict privacy tools
+                          see a tall empty white box and bounce. */}
+                      {!calendlyLoaded && showFallback && step === 5 && (
+                        <div className="rounded-xl border border-amber-300 bg-amber-50 px-5 py-6 text-center max-w-lg mx-auto">
+                          <p className="text-sm text-zinc-700 mb-3">
+                            <span className="font-semibold">The booking widget didn't load.</span>{' '}
+                            This usually means a browser extension or strict privacy setting is blocking Calendly. You can still book your call in a new tab:
+                          </p>
+                          <a
+                            href={`${CALENDLY_URL}?name=${encodeURIComponent(formData.fullName)}&email=${encodeURIComponent(formData.email)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                          >
+                            Open Calendly in a new tab ↗
+                          </a>
+                        </div>
+                      )}
                       {/* Fallbacks — reCAPTCHA can fail inside the embed for
                           users with strict ad-blockers or 3rd-party-cookie
                           blocking (common on Firefox strict mode, uBlock,
