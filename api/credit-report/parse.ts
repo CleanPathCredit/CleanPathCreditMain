@@ -31,14 +31,15 @@
  * Required env:
  *   CLERK_SECRET_KEY
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
- *   OPENROUTER_API_KEY
+ *   ANTHROPIC_API_KEY
  * Optional env:
- *   OPENROUTER_CREDIT_PARSER_MODEL  (default: anthropic/claude-sonnet-4-6)
+ *   ANTHROPIC_CREDIT_PARSER_MODEL  (default: claude-sonnet-4-6)
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "@clerk/backend";
+import Anthropic from "@anthropic-ai/sdk";
 import type {
   Database, CreditReport, CreditReportParseStatus,
 } from "../../src/types/database";
@@ -47,7 +48,7 @@ import type {
 // and we'd rather occasionally wait a full minute than truncate a parse.
 export const config = { runtime: "nodejs", maxDuration: 60 };
 
-const DEFAULT_PARSER_MODEL = "anthropic/claude-sonnet-4-6";
+const DEFAULT_PARSER_MODEL = "claude-sonnet-4-6";
 const MAX_BODY_BYTES       = 4 * 1024;   // request body is tiny — just a document_id
 const MAX_OUTPUT_TOKENS    = 8000;       // large credit reports have long account lists
 
@@ -252,12 +253,12 @@ export default async function handler(
   const clerkSecretKey     = process.env.CLERK_SECRET_KEY;
   const supabaseUrl        = process.env.SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const openrouterKey      = process.env.OPENROUTER_API_KEY;
+  const anthropicKey       = process.env.ANTHROPIC_API_KEY;
   if (!clerkSecretKey || !supabaseUrl || !supabaseServiceKey) {
     return sendJson(res, 500, { error: "server_misconfigured" });
   }
-  if (!openrouterKey) {
-    return sendJson(res, 500, { error: "openrouter_not_configured" });
+  if (!anthropicKey) {
+    return sendJson(res, 500, { error: "anthropic_not_configured" });
   }
 
   let callerId: string;
@@ -332,59 +333,67 @@ export default async function handler(
   }
   const reportId = reportInsert.data.id;
 
-  // 6. Call OpenRouter → Claude Sonnet with the PDF as a document block.
-  const model = process.env.OPENROUTER_CREDIT_PARSER_MODEL || DEFAULT_PARSER_MODEL;
+  // 6. Call Anthropic directly — Claude Sonnet with the PDF as a native
+  //    document content block. Adaptive thinking lets Claude allocate
+  //    reasoning depth per item; system prompt is cache-controlled so
+  //    repeat parses inside the 5-minute window only pay full price for
+  //    the PDF (Sonnet 4.6 minimum cacheable prefix is 2048 tokens — the
+  //    SYSTEM_PROMPT is around that boundary, so caching is best-effort
+  //    and may show as a no-op until the prompt grows).
+  const model = process.env.ANTHROPIC_CREDIT_PARSER_MODEL || DEFAULT_PARSER_MODEL;
+  const anthropic = new Anthropic({ apiKey: anthropicKey });
 
   let llmContent = "";
   try {
-    const llmResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization:  `Bearer ${openrouterKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://cleanpathcredit.com",
-        "X-Title":      "Clean Path Credit — Credit Report Parser",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens:  MAX_OUTPUT_TOKENS,
-        temperature: 0,   // deterministic extraction, not creative writing
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              {
-                type: "file",
-                file: {
-                  filename:  document.name || "credit-report.pdf",
-                  file_data: `data:application/pdf;base64,${pdfBase64}`,
-                },
+    const message = await anthropic.messages.create({
+      model,
+      max_tokens: MAX_OUTPUT_TOKENS,
+      thinking: { type: "adaptive" },
+      system: [
+        {
+          type: "text",
+          text: SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "document",
+              source: {
+                type: "base64",
+                media_type: "application/pdf",
+                data: pdfBase64,
               },
-              { type: "text", text: USER_PROMPT },
-            ],
-          },
-        ],
-      }),
+            },
+            { type: "text", text: USER_PROMPT },
+          ],
+        },
+      ],
     });
-    if (!llmResp.ok) {
-      const text = await llmResp.text().catch(() => "");
-      const msg  = `openrouter_http_${llmResp.status}: ${sanitizeError(text)}`;
-      await markFailed(supabase, reportId, msg);
-      return sendJson(res, 502, { error: "openrouter_failed", status: llmResp.status });
-    }
-    const llmJson = await llmResp.json() as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    llmContent = llmJson.choices?.[0]?.message?.content ?? "";
+
+    // Concatenate all text blocks; thinking blocks are ignored (Sonnet 4.6
+    // adaptive thinking emits its own block type that we don't surface).
+    llmContent = message.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("");
+
     if (!llmContent) {
       await markFailed(supabase, reportId, "empty_completion");
       return sendJson(res, 502, { error: "empty_completion" });
     }
   } catch (err) {
+    if (err instanceof Anthropic.APIError) {
+      const msg = `anthropic_http_${err.status}: ${sanitizeError(err.message)}`;
+      await markFailed(supabase, reportId, msg);
+      return sendJson(res, 502, { error: "anthropic_failed", status: err.status });
+    }
     const msg = sanitizeError(err instanceof Error ? err.message : String(err));
     await markFailed(supabase, reportId, msg);
-    return sendJson(res, 502, { error: "openrouter_error" });
+    return sendJson(res, 502, { error: "anthropic_error" });
   }
 
   // 7. Parse the LLM output

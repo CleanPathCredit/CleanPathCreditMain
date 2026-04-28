@@ -4,35 +4,37 @@
  * POST /api/admin/lead/[id]/draft-email
  *
  * Generates a personalized follow-up email draft for a specific lead
- * using OpenRouter. Admin-auth required (Clerk session + profiles.role=
- * admin). Returns the drafted subject + body as JSON so the UI can render
- * it in an editable textarea for the admin to tweak before copying.
+ * via the Anthropic API. Admin-auth required (Clerk session +
+ * profiles.role=admin). Returns the drafted subject + body as JSON so
+ * the UI can render it in an editable textarea for the admin to tweak
+ * before copying.
  *
- * Model choice is env-driven via OPENROUTER_MODEL (default:
- * anthropic/claude-3.5-haiku — cheap + fast + coherent for short copy).
- * Max tokens capped at 700 so cost per draft stays in sub-penny territory
+ * Model choice is env-driven via ANTHROPIC_DRAFT_EMAIL_MODEL (default:
+ * claude-haiku-4-5 — cheap + fast + coherent for short copy). Max
+ * tokens capped at 700 so cost per draft stays in sub-penny territory
  * even if the admin spams the button.
  *
- * The draft is NOT sent automatically — we return it, admin copies it to
- * their mail client / GHL. Keeps a human in the loop for anything that
- * actually touches a lead's inbox.
+ * The draft is NOT sent automatically — we return it, admin copies it
+ * to their mail client / GHL. Keeps a human in the loop for anything
+ * that actually touches a lead's inbox.
  *
  * Required env:
  *   CLERK_SECRET_KEY
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
- *   OPENROUTER_API_KEY
+ *   ANTHROPIC_API_KEY
  * Optional:
- *   OPENROUTER_MODEL   (default: anthropic/claude-3.5-haiku)
+ *   ANTHROPIC_DRAFT_EMAIL_MODEL   (default: claude-haiku-4-5)
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
 import { createClient } from "@supabase/supabase-js";
 import { verifyToken } from "@clerk/backend";
+import Anthropic from "@anthropic-ai/sdk";
 import type { Database, LeadSubmission } from "../../../../src/types/database";
 
 export const config = { runtime: "nodejs" };
 
-const DEFAULT_MODEL = "anthropic/claude-3.5-haiku";
+const DEFAULT_MODEL = "claude-haiku-4-5";
 const MAX_TOKENS    = 700;
 
 const DEFAULT_AUTHORIZED_PARTIES = [
@@ -153,12 +155,12 @@ export default async function handler(
   const clerkSecretKey     = process.env.CLERK_SECRET_KEY;
   const supabaseUrl        = process.env.SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const openrouterKey      = process.env.OPENROUTER_API_KEY;
+  const anthropicKey       = process.env.ANTHROPIC_API_KEY;
   if (!clerkSecretKey || !supabaseUrl || !supabaseServiceKey) {
     return sendJson(res, 500, { error: "server_misconfigured" });
   }
-  if (!openrouterKey) {
-    return sendJson(res, 500, { error: "openrouter_not_configured" });
+  if (!anthropicKey) {
+    return sendJson(res, 500, { error: "anthropic_not_configured" });
   }
 
   // Auth: Clerk session → profiles.role='admin'
@@ -198,43 +200,30 @@ export default async function handler(
     return sendJson(res, 404, { error: "lead_not_found" });
   }
 
-  // Call OpenRouter
-  const model  = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
-  const prompt = buildPrompt(lead as LeadSubmission);
+  // Call Anthropic directly. Haiku doesn't support adaptive thinking,
+  // so we omit the thinking field; the workload is short-form copy
+  // generation where temperature=0.7 gives a healthy amount of variation
+  // across regenerations.
+  const model     = process.env.ANTHROPIC_DRAFT_EMAIL_MODEL || DEFAULT_MODEL;
+  const prompt    = buildPrompt(lead as LeadSubmission);
+  const anthropic = new Anthropic({ apiKey: anthropicKey });
 
   try {
-    const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization:  `Bearer ${openrouterKey}`,
-        "Content-Type": "application/json",
-        // OpenRouter attribution headers — helps with leaderboard presence
-        // and ensures proper rate-limit bucketing.
-        "HTTP-Referer": "https://cleanpathcredit.com",
-        "X-Title":      "Clean Path Credit Admin",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: prompt.system },
-          { role: "user",   content: prompt.user   },
-        ],
-        max_tokens:  MAX_TOKENS,
-        temperature: 0.7,
-      }),
+    const message = await anthropic.messages.create({
+      model,
+      max_tokens:  MAX_TOKENS,
+      temperature: 0.7,
+      system:      prompt.system,
+      messages: [
+        { role: "user", content: prompt.user },
+      ],
     });
 
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => "");
-      console.error("[/api/admin/lead/:id/draft-email] openrouter_failed status=%d body=%s",
-        resp.status, text.slice(0, 300));
-      return sendJson(res, 502, { error: "openrouter_failed", status: resp.status });
-    }
+    const content = message.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("");
 
-    const data = await resp.json() as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const content = data.choices?.[0]?.message?.content;
     if (!content) {
       console.error("[/api/admin/lead/:id/draft-email] empty_completion");
       return sendJson(res, 502, { error: "empty_completion" });
@@ -248,7 +237,12 @@ export default async function handler(
       model,
     });
   } catch (err) {
-    console.error("[/api/admin/lead/:id/draft-email] openrouter_error:", err);
-    return sendJson(res, 502, { error: "openrouter_error" });
+    if (err instanceof Anthropic.APIError) {
+      console.error("[/api/admin/lead/:id/draft-email] anthropic_failed status=%d message=%s",
+        err.status, err.message.slice(0, 300));
+      return sendJson(res, 502, { error: "anthropic_failed", status: err.status });
+    }
+    console.error("[/api/admin/lead/:id/draft-email] anthropic_error:", err);
+    return sendJson(res, 502, { error: "anthropic_error" });
   }
 }
