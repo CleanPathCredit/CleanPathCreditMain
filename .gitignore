@@ -11,3 +11,7 @@ Thumbs.db
 !.env.example
 .vscode/
 .idea/
+
+# PostHog wizard artifacts — local-dev only, not runtime config
+.claude/skills/
+posthog-setup-report.md

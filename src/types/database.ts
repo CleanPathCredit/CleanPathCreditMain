@@ -33,6 +33,32 @@ export type DocumentCategory =
 export type DocumentStatus = "pending" | "verified" | "rejected";
 export type MessageSender = "admin" | "client";
 
+// Urgency tiers — higher urgency_score = more action needed. Flipped from
+// the earlier "readiness" direction so the number matches sales intuition
+// (high number = hot lead). Migration 006 renamed the DB columns to match.
+export type UrgencyTier        = "low" | "moderate" | "elevated" | "urgent";
+export type RecommendedOffer   = "diy"    | "accelerated" | "executive";
+export type GHLDelivery        = "api"    | "webhook_fallback" | "failed";
+
+// Credit report ingestion (migration 008). Parse-status machine drives the
+// dashboard UI ("Analyzing your report…" vs "View your scores").
+export type CreditReportParseStatus =
+  | "pending"     // row created, parser hasn't started yet
+  | "processing"  // LLM call in flight
+  | "success"     // scores + accounts populated
+  | "failed";     // parse_error has the reason
+
+// Referrals (migration 009). Lifecycle state machine drives the admin's
+// "pending payouts" view + the referrer's dashboard stats.
+export type ReferralStatus =
+  | "pending"    // visitor clicked /r/<code>, no signup yet
+  | "signup"     // Clerk account created, matched by cookie
+  | "purchased"  // Stripe checkout cleared — commission due
+  | "paid_out"   // admin marked the payout as sent
+  | "void";      // rejected (chargeback, self-referral, fraud)
+
+// Dispute letters (migration 010 — renumbered from 005 on merge to avoid
+// collision with the lead_submissions migration originally numbered 005).
 export type Bureau = "equifax" | "transunion" | "experian";
 export type LetterType = "609" | "611" | "623";
 export type AccountStatus =
@@ -75,6 +101,8 @@ export interface Database {
           ssn_secret_id: string | null;
           negative_items: number | null;
           dispute_probability: number | null;
+          admin_notes: string | null;
+          referral_code: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -99,6 +127,8 @@ export interface Database {
           ssn_secret_id?: string | null;
           negative_items?: number | null;
           dispute_probability?: number | null;
+          admin_notes?: string | null;
+          referral_code?: string | null;
         };
         // Broad Update shape is retained so admin code (which writes via the
         // "profiles: admin full access" RLS policy) continues to type-check.
@@ -178,6 +208,190 @@ export interface Database {
         };
         // Immutable audit record — no valid update columns
         Update: Record<string, never>;
+        Relationships: [];
+      };
+      lead_submissions: {
+        Row: {
+          id: string;
+          email: string;
+          full_name: string | null;
+          phone: string | null;
+          goal: string | null;
+          obstacles: string[];
+          credit_score_range: string | null;
+          income_range: string | null;
+          ideal_score: string | null;
+          timeline: string | null;
+          urgency_score: number | null;
+          urgency_tier: UrgencyTier | null;
+          recommended_offer: RecommendedOffer | null;
+          source: string;
+          ghl_contact_id: string | null;
+          ghl_delivery: GHLDelivery | null;
+          consent: boolean;
+          submitted_at: string;
+          created_at: string;
+          admin_notes: string | null;
+        };
+        // Writes only via service-role (/api/lead). RLS rejects all direct
+        // inserts from client sessions. Kept loose so the server code
+        // type-checks without having to spell every field as optional.
+        Insert: {
+          email: string;
+          full_name?: string | null;
+          phone?: string | null;
+          goal?: string | null;
+          obstacles?: string[];
+          credit_score_range?: string | null;
+          income_range?: string | null;
+          ideal_score?: string | null;
+          timeline?: string | null;
+          urgency_score?: number | null;
+          urgency_tier?: UrgencyTier | null;
+          recommended_offer?: RecommendedOffer | null;
+          source?: string;
+          ghl_contact_id?: string | null;
+          ghl_delivery?: GHLDelivery | null;
+          consent?: boolean;
+          submitted_at?: string;
+          admin_notes?: string | null;
+        };
+        // Admin-side edits via /api/admin/lead/[id]. Shape matches Insert
+        // minus the required email (PATCH allows changing email but it's
+        // still validated to be an email at the endpoint layer).
+        Update: Partial<Database["public"]["Tables"]["lead_submissions"]["Insert"]>;
+        Relationships: [];
+      };
+      credit_reports: {
+        Row: {
+          id: string;
+          profile_id: string;
+          document_id: string | null;
+          source: string;
+          report_date: string | null;
+          score_model: string | null;
+          eq_score: number | null;
+          tu_score: number | null;
+          ex_score: number | null;
+          total_accounts: number | null;
+          open_accounts: number | null;
+          closed_accounts: number | null;
+          negative_items_count: number | null;
+          total_utilization_pct: number | null;
+          inquiries_24mo: number | null;
+          raw_extracted: Record<string, unknown> | null;
+          parse_status: CreditReportParseStatus;
+          parse_error: string | null;
+          parse_model: string | null;
+          created_at: string;
+          processed_at: string | null;
+        };
+        // Writes only via service-role (/api/credit-report/*). RLS rejects
+        // every other path.
+        Insert: {
+          profile_id: string;
+          document_id?: string | null;
+          source?: string;
+          report_date?: string | null;
+          score_model?: string | null;
+          eq_score?: number | null;
+          tu_score?: number | null;
+          ex_score?: number | null;
+          total_accounts?: number | null;
+          open_accounts?: number | null;
+          closed_accounts?: number | null;
+          negative_items_count?: number | null;
+          total_utilization_pct?: number | null;
+          inquiries_24mo?: number | null;
+          raw_extracted?: Record<string, unknown> | null;
+          parse_status?: CreditReportParseStatus;
+          parse_error?: string | null;
+          parse_model?: string | null;
+          processed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["credit_reports"]["Insert"]>;
+        Relationships: [];
+      };
+      credit_report_accounts: {
+        Row: {
+          id: string;
+          credit_report_id: string;
+          profile_id: string;
+          creditor: string | null;
+          account_number_last4: string | null;
+          account_type: string | null;
+          bureau_reporting: string[];
+          status: string | null;
+          balance: number | null;
+          credit_limit: number | null;
+          high_balance: number | null;
+          monthly_payment: number | null;
+          date_opened: string | null;
+          last_reported: string | null;
+          payment_status: string | null;
+          is_negative: boolean;
+          dispute_eligible: boolean;
+          dispute_reason: string | null;
+          raw: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: {
+          credit_report_id: string;
+          profile_id: string;
+          creditor?: string | null;
+          account_number_last4?: string | null;
+          account_type?: string | null;
+          bureau_reporting?: string[];
+          status?: string | null;
+          balance?: number | null;
+          credit_limit?: number | null;
+          high_balance?: number | null;
+          monthly_payment?: number | null;
+          date_opened?: string | null;
+          last_reported?: string | null;
+          payment_status?: string | null;
+          is_negative?: boolean;
+          dispute_eligible?: boolean;
+          dispute_reason?: string | null;
+          raw?: Record<string, unknown> | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["credit_report_accounts"]["Insert"]>;
+        Relationships: [];
+      };
+      referrals: {
+        Row: {
+          id: string;
+          referrer_profile_id: string | null;
+          referral_code_used: string;
+          referred_profile_id: string | null;
+          referred_email: string | null;
+          status: ReferralStatus;
+          amount_cents: number | null;
+          stripe_session_id: string | null;
+          clicked_at: string;
+          signed_up_at: string | null;
+          purchased_at: string | null;
+          paid_out_at: string | null;
+          client_ip: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          referrer_profile_id?: string | null;
+          referral_code_used: string;
+          referred_profile_id?: string | null;
+          referred_email?: string | null;
+          status?: ReferralStatus;
+          amount_cents?: number | null;
+          stripe_session_id?: string | null;
+          clicked_at?: string;
+          signed_up_at?: string | null;
+          purchased_at?: string | null;
+          paid_out_at?: string | null;
+          client_ip?: string | null;
+          user_agent?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["referrals"]["Insert"]>;
         Relationships: [];
       };
       letter_rounds: {
@@ -330,11 +544,15 @@ export interface Database {
 }
 
 // Convenience row type aliases
-export type Profile  = Database["public"]["Tables"]["profiles"]["Row"];
-export type Message  = Database["public"]["Tables"]["messages"]["Row"];
-export type Document = Database["public"]["Tables"]["documents"]["Row"];
-export type AuditLog = Database["public"]["Tables"]["audit_log"]["Row"];
+export type Profile         = Database["public"]["Tables"]["profiles"]["Row"];
+export type Message         = Database["public"]["Tables"]["messages"]["Row"];
+export type Document        = Database["public"]["Tables"]["documents"]["Row"];
+export type AuditLog        = Database["public"]["Tables"]["audit_log"]["Row"];
 export type StripeWebhookEvent = Database["public"]["Tables"]["stripe_webhook_events"]["Row"];
+export type LeadSubmission       = Database["public"]["Tables"]["lead_submissions"]["Row"];
+export type CreditReport         = Database["public"]["Tables"]["credit_reports"]["Row"];
+export type CreditReportAccount  = Database["public"]["Tables"]["credit_report_accounts"]["Row"];
+export type Referral             = Database["public"]["Tables"]["referrals"]["Row"];
 export type LetterRound  = Database["public"]["Tables"]["letter_rounds"]["Row"];
 export type BureauReport = Database["public"]["Tables"]["bureau_reports"]["Row"];
 export type Creditor     = Database["public"]["Tables"]["creditors"]["Row"];

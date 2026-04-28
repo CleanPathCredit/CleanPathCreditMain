@@ -10,3 +10,11 @@ elevenlabs-convai {
   z-index: 99999 !important;
 }
 
+/* Hide the ElevenLabs chatbot while the quiz is on-screen — the widget
+   otherwise fights the "Continue" button for taps on mobile and distracts
+   from the primary funnel action. QuizFunnel.tsx toggles this class via an
+   IntersectionObserver keyed on #quiz-funnel. */
+body.cpc-quiz-active elevenlabs-convai {
+  display: none !important;
+}
+

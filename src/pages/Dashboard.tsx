@@ -4,22 +4,34 @@
  */
 
 import React, { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
+import { posthog } from "@/lib/posthog-client";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
 import { DisputeLettersPanel } from "@/components/dashboard/DisputeLettersPanel";
 import { MasterList } from "@/components/dashboard/MasterList";
 import { TravelResources } from "@/components/dashboard/TravelResources";
 import { PlanGate } from "@/components/dashboard/PlanGate";
-import { CreditScoreWidget } from "@/components/dashboard/CreditScoreWidget";
+// CreditScoreWidget is intentionally no longer imported — it was a
+// pre-pipeline placeholder that showed an "Estimated 620" gauge plus a
+// "Connect your credit bureau — Coming Soon" button. With the real
+// upload → parse → CreditReportView flow live, that widget contradicts
+// the rest of the dashboard. Keep the file around in case we later
+// repurpose it for score-trend viz across multiple reports.
+import { OnboardingWizard } from "@/components/dashboard/OnboardingWizard";
+import { CreditReportView } from "@/components/dashboard/CreditReportView";
+import { ReferralCard } from "@/components/dashboard/ReferralCard";
 import { canAccess, PLAN_LABEL } from "@/lib/planAccess";
-import type { Message } from "@/types/database";
+import type { Message, Plan, CreditReport } from "@/types/database";
 import {
   CheckCircle2, LogOut, Shield, FileText, Download,
   MessageSquare, BookOpen, X, Send, Lock,
-  LayoutDashboard, FolderLock, List, LifeBuoy, Menu, Mail
+  LayoutDashboard, FolderLock, List, LifeBuoy, Menu, Mail, ChevronLeft, Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+
+const ADMIN_PREVIEW_PLANS: Plan[] = ["free", "diy", "standard", "premium"];
 
 type SidebarTab = "dashboard" | "letters" | "vault" | "masterlist" | "support";
 
@@ -47,14 +59,31 @@ function getStepStatus(profileStatus: string, stepKey: string): "completed" | "a
 }
 
 export function Dashboard() {
-  const { clerkUser, profile, logout, supabase } = useAuth();
+  const { clerkUser, profile, isAdmin, logout, supabase } = useAuth();
 
   const [messages, setMessages]               = useState<Message[]>([]);
   const [newMessage, setNewMessage]           = useState("");
   const [activeTab, setActiveTab]             = useState<SidebarTab>("dashboard");
   const [isChatOpen, setIsChatOpen]           = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Admin-only plan preview. null means "use my real plan"; otherwise the
+  // dashboard renders as if the admin were on the selected tier. Session-
+  // scoped (resets on reload) so the admin never accidentally ships in a
+  // stale preview mode.
+  const [previewPlan, setPreviewPlan]         = useState<Plan | null>(null);
+  // Credit-report onboarding state. dismissed=true hides the wizard for
+  // this session even if the user hasn't uploaded yet; it reappears on
+  // next login until a report exists (so the prompt isn't intrusive but
+  // still reliable).
+  const [creditReports, setCreditReports]     = useState<CreditReport[]>([]);
+  const [reportsLoaded, setReportsLoaded]     = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Effective plan used for all gating decisions on this page. Non-admins
+  // always get their real plan — previewPlan is ignored outside admin.
+  const effectivePlan: Plan | undefined =
+    (isAdmin ? previewPlan : null) ?? profile?.plan;
 
   // ── Fetch messages and subscribe to new ones ───────────────────────────────
   useEffect(() => {
@@ -81,9 +110,31 @@ export function Dashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [clerkUser?.id]);
 
+  // Fetch credit reports — drives the onboarding wizard visibility. Simple
+  // fetch-once; real-time subscription overkill since reports are created
+  // rarely. Re-fetches if the wizard completion callback fires.
+  const fetchCreditReports = async () => {
+    if (!clerkUser) return;
+    const { data } = await supabase
+      .from("credit_reports")
+      .select("*")
+      .eq("profile_id", clerkUser.id)
+      .order("created_at", { ascending: false });
+    setCreditReports((data ?? []) as CreditReport[]);
+    setReportsLoaded(true);
+  };
+  useEffect(() => { fetchCreditReports(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [clerkUser?.id]);
+
   useEffect(() => {
     if (isChatOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isChatOpen]);
+
+  // Show the wizard only if: reports fetched, none exist successfully, and
+  // user hasn't clicked "I'll do this later" for this session. Admins see
+  // it too if they don't have reports — useful for eating-your-own-dogfood
+  // testing.
+  const hasSuccessReport = creditReports.some((r) => r.parse_status === "success");
+  const showOnboarding   = reportsLoaded && !hasSuccessReport && !onboardingDismissed;
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !clerkUser) return;
@@ -92,7 +143,13 @@ export function Dashboard() {
       sender: "client",
       body: newMessage.trim(),
     });
+    posthog.capture('support_message_sent', { plan: profile?.plan });
     setNewMessage("");
+  };
+
+  const handleTabChange = (tab: SidebarTab) => {
+    setActiveTab(tab);
+    posthog.capture('dashboard_tab_viewed', { tab, plan: profile?.plan });
   };
 
   const sidebarItems: { id: SidebarTab; label: string; icon: React.ReactNode }[] = [
@@ -122,14 +179,14 @@ export function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {profile?.plan && (
+          {effectivePlan && (
             <span className={`hidden md:inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              profile.plan === "premium"  ? "bg-yellow-500/20 text-yellow-300" :
-              profile.plan === "standard" ? "bg-emerald-500/20 text-emerald-300" :
-              profile.plan === "diy"      ? "bg-blue-500/20 text-blue-300" :
-                                            "bg-zinc-700 text-zinc-300"
+              effectivePlan === "premium"  ? "bg-yellow-500/20 text-yellow-300" :
+              effectivePlan === "standard" ? "bg-emerald-500/20 text-emerald-300" :
+              effectivePlan === "diy"      ? "bg-blue-500/20 text-blue-300" :
+                                             "bg-zinc-700 text-zinc-300"
             }`}>
-              {PLAN_LABEL[profile.plan]}
+              {PLAN_LABEL[effectivePlan]}
             </span>
           )}
           <span className="text-xs text-zinc-400 hidden md:inline-block">{clerkUser?.emailAddresses[0]?.emailAddress}</span>
@@ -140,11 +197,66 @@ export function Dashboard() {
         </div>
       </header>
 
+      {/* Admin preview toolbar — visible only to admin users on the client
+          dashboard. Lets admin render the page as any tier to validate plan
+          gates + copy without needing dummy accounts. Amber accent signals
+          "preview mode" so an admin never forgets they're in a simulated
+          view. Resets on every page load (no persistence by design). */}
+      {isAdmin && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 md:px-6 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-amber-800">
+            <Eye className="h-3.5 w-3.5" />
+            <span className="font-semibold">Admin preview</span>
+            <span className="text-amber-700">
+              {previewPlan
+                ? <>Viewing as <span className="font-semibold">{PLAN_LABEL[previewPlan]}</span></>
+                : <>Viewing your real plan ({profile?.plan ? PLAN_LABEL[profile.plan] : "free"})</>}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-amber-700 hidden sm:inline">Switch view:</span>
+            <div className="flex gap-1">
+              {ADMIN_PREVIEW_PLANS.map((p) => {
+                const active = (previewPlan ?? profile?.plan) === p;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setPreviewPlan(p)}
+                    className={`px-2.5 py-1 rounded-full font-medium transition-colors ${
+                      active
+                        ? "bg-amber-700 text-white"
+                        : "bg-white text-amber-800 border border-amber-300 hover:bg-amber-100"
+                    }`}
+                  >
+                    {PLAN_LABEL[p]}
+                  </button>
+                );
+              })}
+            </div>
+            {previewPlan !== null && (
+              <button
+                onClick={() => setPreviewPlan(null)}
+                className="px-2.5 py-1 rounded-full font-medium text-amber-800 hover:bg-amber-100"
+              >
+                Reset
+              </button>
+            )}
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium bg-zinc-900 text-white hover:bg-zinc-800"
+            >
+              <ChevronLeft className="h-3 w-3" />
+              Admin
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="flex">
         {/* Sidebar — Desktop */}
         <aside className="hidden md:flex flex-col w-56 bg-[#111111] min-h-[calc(100vh-48px)] sticky top-12 p-3 gap-1">
           {sidebarItems.map((item) => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)}
+            <button key={item.id} onClick={() => handleTabChange(item.id)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left w-full ${
                 activeTab === item.id ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-white hover:bg-zinc-800"}`}>
               {item.icon}{item.label}
@@ -166,7 +278,7 @@ export function Dashboard() {
                   <span className="font-bold text-white text-sm">Clean Path Credit</span>
                 </div>
                 {sidebarItems.map((item) => (
-                  <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileSidebarOpen(false); }}
+                  <button key={item.id} onClick={() => { handleTabChange(item.id); setMobileSidebarOpen(false); }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left w-full ${
                       activeTab === item.id ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-white hover:bg-zinc-800"}`}>
                     {item.icon}{item.label}
@@ -177,11 +289,36 @@ export function Dashboard() {
           )}
         </AnimatePresence>
 
-        {/* Main */}
-        <main className="flex-1 p-4 md:p-8 max-w-5xl">
+        {/* Main. pb-28 on mobile leaves ~112px of clearance under the last
+            button so the fixed-position ElevenLabs chatbot widget never
+            covers a CTA at the end of the scroll. Desktop keeps normal
+            padding because the widget sits far enough from content width. */}
+        <main className="flex-1 p-4 md:p-8 pb-28 md:pb-8 max-w-5xl">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-zinc-900">Welcome back, {firstName}</h1>
           </div>
+
+          {/* Onboarding wizard — renders only for users who haven't yet
+              uploaded + parsed a credit report. Self-dismisses on success
+              (via onComplete → re-fetch → hasSuccessReport becomes true)
+              or per-session on explicit user dismiss. */}
+          {showOnboarding && activeTab === "dashboard" && (
+            <div className="mb-8">
+              <OnboardingWizard
+                onComplete={() => fetchCreditReports()}
+                onDismiss={() => setOnboardingDismissed(true)}
+              />
+            </div>
+          )}
+
+          {/* Credit report view — shown once the user has a parsed report
+              (or an in-progress parse). Mounts on the main dashboard tab
+              so it's the first thing they see after the wizard unmounts. */}
+          {reportsLoaded && hasSuccessReport && activeTab === "dashboard" && (
+            <div className="mb-8">
+              <CreditReportView />
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             {/* ── DASHBOARD ── */}
@@ -201,11 +338,8 @@ export function Dashboard() {
                   </div>
                 )}
 
-                {/* Credit Score */}
-                <CreditScoreWidget profile={profile} />
-
                 {/* Dispute Tracker */}
-                <PlanGate feature="dispute_tracker" plan={profile?.plan} lightBlur={true}>
+                <PlanGate feature="dispute_tracker" plan={effectivePlan} lightBlur={true}>
                 <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
                   <h2 className="text-xl font-bold text-zinc-900 mb-6 tracking-tight">Progress Tracker</h2>
                   <div className="space-y-6">
@@ -235,7 +369,7 @@ export function Dashboard() {
                 <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-zinc-200">
                   <h2 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">Resource Library</h2>
                   <p className="text-xs text-zinc-400 mb-6">
-                    {canAccess(profile?.plan, "all_guides") ? "Full library unlocked" : "2 of 6 resources available — upgrade to unlock all"}
+                    {canAccess(effectivePlan, "all_guides") ? "Full library unlocked" : "2 of 6 resources available — upgrade to unlock all"}
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
@@ -246,7 +380,7 @@ export function Dashboard() {
                       { title: "Credit Correction Playbook",                     type: "Playbook",     free: false },
                       { title: "Building Positive Credit History",             type: "Action Plan",  free: false },
                     ].map((r, i) => {
-                      const unlocked = r.free || canAccess(profile?.plan, "all_guides");
+                      const unlocked = r.free || canAccess(effectivePlan, "all_guides");
                       return (
                         <div key={i} className={`flex items-center justify-between p-4 rounded-xl border transition-all group ${unlocked ? "border-zinc-200 hover:border-emerald-500 cursor-pointer" : "border-zinc-100 bg-zinc-50 cursor-not-allowed opacity-60"}`}>
                           <div className="flex items-center gap-4">
@@ -259,7 +393,8 @@ export function Dashboard() {
                             </div>
                           </div>
                           {unlocked ? (
-                            <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-full bg-white hover:bg-zinc-50 border-zinc-200">
+                            <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-full bg-white hover:bg-zinc-50 border-zinc-200"
+                              onClick={() => posthog.capture('resource_download_clicked', { resource_title: r.title, resource_type: r.type, plan: profile?.plan })}>
                               <Download className="h-4 w-4 text-zinc-500" />
                             </Button>
                           ) : (
@@ -269,7 +404,7 @@ export function Dashboard() {
                       );
                     })}
                   </div>
-                  {!canAccess(profile?.plan, "all_guides") && (
+                  {!canAccess(effectivePlan, "all_guides") && (
                     <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-4 flex items-center justify-between gap-4">
                       <p className="text-sm font-medium text-emerald-800">Unlock all 6 resources + Credit Correction Playbook</p>
                       <a href="https://form.cleanpathcredit.com" className="shrink-0 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">
@@ -278,6 +413,11 @@ export function Dashboard() {
                     </div>
                   )}
                 </section>
+
+                {/* Refer & Earn — available on every plan (including free).
+                    Word-of-mouth is the cheapest acquisition channel, so the
+                    card is intentionally not behind PlanGate. */}
+                <ReferralCard />
               </motion.div>
             )}
 
@@ -297,7 +437,7 @@ export function Dashboard() {
             {/* ── VAULT ── */}
             {activeTab === "vault" && (
               <motion.div key="vault" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <PlanGate feature="document_vault" plan={profile?.plan} blurChildren={false}>
+                <PlanGate feature="document_vault" plan={effectivePlan} blurChildren={false}>
                   <DocumentVault />
                 </PlanGate>
               </motion.div>
@@ -311,17 +451,17 @@ export function Dashboard() {
                   <h2 className="text-xl font-bold text-zinc-900 tracking-tight">The Master Financial List</h2>
                   <p className="text-sm text-zinc-500 mt-1">10 curated resources our clients use to rebuild credit fast — secured cards, legal tools, and insider strategies.</p>
                 </div>
-                <PlanGate feature="master_list" plan={profile?.plan} blurChildren={true}>
+                <PlanGate feature="master_list" plan={effectivePlan} blurChildren={true}>
                   <MasterList />
                 </PlanGate>
-                <TravelResources hasAccess={canAccess(profile?.plan, "master_list")} />
+                <TravelResources hasAccess={canAccess(effectivePlan, "master_list")} />
               </motion.div>
             )}
 
             {/* ── SUPPORT ── */}
             {activeTab === "support" && (
               <motion.div key="support" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <PlanGate feature="support_chat" plan={profile?.plan} blurChildren={false}>
+                <PlanGate feature="support_chat" plan={effectivePlan} blurChildren={false}>
                 <ChatPanel
                   messages={messages}
                   newMessage={newMessage}
@@ -337,7 +477,7 @@ export function Dashboard() {
       </div>
 
       {/* Floating chat button — standard/premium only */}
-      {canAccess(profile?.plan, "support_chat") && <button onClick={() => setIsChatOpen(true)}
+      {canAccess(effectivePlan, "support_chat") && <button onClick={() => setIsChatOpen(true)}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-[#111111] text-white shadow-xl hover:shadow-2xl flex items-center justify-center z-30 hover:scale-105 transition-all"
         aria-label="Open support chat">
         <MessageSquare className="h-6 w-6" />

@@ -43,15 +43,15 @@ export function Details() {
   const steps = [
     {
       title: "1. Connect your credit profile",
-      description: "Securely link all 3 credit bureaus. Our AI instantly analyzes your report for negative items, inaccuracies, and quick wins.",
+      description: "Securely link your 3-bureau report so we can identify what's impacting your score — inaccurate, outdated, or unverifiable items.",
     },
     {
-      title: "2. Upload your ID securely",
-      description: "Upload your valid driver's license or passport and social security card. We use bank-level encryption to keep your data safe.",
+      title: "2. Verify your identity securely",
+      description: "Upload your ID so your case is filed properly and your information stays protected. Bank-level encryption at every step.",
     },
     {
-      title: "3. Video verify & submit",
-      description: "Schedule a quick video chat with our online notary. Once verified, we prepare, notarize, and submit your strategically crafted corrections across all 3 bureaus.",
+      title: "3. Review, notarize & submit",
+      description: "Schedule a brief video verification with our online notary. Once complete, we prepare and submit your case across all three bureaus.",
     },
   ];
 
@@ -66,13 +66,21 @@ export function Details() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="mb-6 font-display text-4xl font-semibold tracking-tight text-zinc-900 md:text-5xl">
-              How our system works
+              Your path to a higher score
             </h2>
             <p className="mb-12 text-lg text-zinc-600">
-              We've engineered a system that handles the complexities of credit correction so you don't have to. It's fast, transparent, and structured for results.
+              A guided process that handles the complexity for you — so you always know what's happening and what's next.
             </p>
 
-            <div className="space-y-8">
+            {/* Vertical connector line reads the three steps as a single
+                journey instead of three disconnected rows. Absolutely
+                positioned under the checkmark column so hover states on
+                the step cards remain unaffected. */}
+            <div className="relative space-y-8">
+              <div
+                aria-hidden="true"
+                className="absolute left-[30px] top-8 bottom-8 w-px bg-gradient-to-b from-emerald-200 via-emerald-200 to-transparent"
+              />
               {steps.map((step, index) => (
                 <motion.div
                   key={index}
@@ -80,18 +88,29 @@ export function Details() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.2, duration: 0.5 }}
-                  className="group flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white hover:shadow-sm"
+                  className="group relative flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white hover:shadow-sm"
                 >
-                  <div className="flex-shrink-0 mt-1">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-500 transition-transform duration-300 group-hover:scale-110" />
+                  <div className="flex-shrink-0 mt-1 relative z-10">
+                    {/* Solid white background on the checkmark so the
+                        connector line behind it is masked — otherwise the
+                        line visibly crosses the icon. */}
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
+                      <CheckCircle2 className="h-6 w-6 text-emerald-500 transition-transform duration-300 group-hover:scale-110" />
+                    </div>
                   </div>
                   <div>
-                    <h3 className="mb-2 text-xl font-medium text-zinc-900">{step.title}</h3>
+                    <h3 className="mb-2 text-xl font-semibold text-zinc-900">{step.title}</h3>
                     <p className="text-zinc-600 leading-relaxed">{step.description}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
+
+            {/* Friction-breaker — reassures the user this isn't an all-day
+                ordeal before they commit to clicking Start. */}
+            <p className="mt-10 text-sm text-zinc-500">
+              Most clients complete this in under 10 minutes.
+            </p>
           </motion.div>
 
           {/* Abstract UI Representation */}

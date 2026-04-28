@@ -18,6 +18,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { CheckCircle2, Star, Zap, Shield, Lock } from "lucide-react";
 import type { Plan } from "@/types/database";
+import { posthog } from "@/lib/posthog-client";
 
 const PLAN_COPY: Record<Plan, {
   title: string;
@@ -116,6 +117,11 @@ export function Welcome() {
   function handleProceed() {
     if (isPaidPlan && !bothChecked) return;
     logConsent();
+    posthog.capture('welcome_consent_completed', {
+      plan,
+      stripe_session_id: sessionId ?? undefined,
+      is_paid_plan:      isPaidPlan,
+    });
     setShowAuth(true);
   }
 
