@@ -14,7 +14,7 @@ import type {
 } from "@/types/database";
 import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
-  Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Flame, Plus,
+  Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Mail, Flame, Plus,
   Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, FileDown, Sparkles,
   TrendingUp, Gift,
 } from "lucide-react";
@@ -390,6 +390,10 @@ export function AdminDashboard() {
           <button onClick={() => { setSelected(null); setView("referrals"); setSidebarOpen(false); }}
             className={`flex items-center gap-3 px-4 py-3 w-full rounded-lg transition-colors text-left ${!selected && view === "referrals" ? "bg-zinc-800 text-white" : "hover:bg-zinc-800/50 hover:text-zinc-200"}`}>
             <Gift className="h-5 w-5" /> Referrals
+          </button>
+          <button onClick={() => navigate("/admin/letters")}
+            className="flex items-center gap-3 px-4 py-3 w-full hover:bg-zinc-800/50 hover:text-zinc-200 rounded-lg transition-colors text-left">
+            <Mail className="h-5 w-5" /> Dispute Letters
           </button>
           <button className="flex items-center gap-3 px-4 py-3 w-full hover:bg-zinc-800/50 hover:text-zinc-200 rounded-lg transition-colors text-left opacity-50 cursor-not-allowed" disabled>
             <FileText className="h-5 w-5" /> Documents
