@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useSession } from "@clerk/clerk-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Download,
@@ -22,6 +23,7 @@ import {
   Lock,
   Clock,
   CheckCircle2,
+  CreditCard,
 } from "lucide-react";
 import type {
   LetterRound,
@@ -52,8 +54,11 @@ const TONE_CLASSES: Record<string, string> = {
 
 export function DisputeLettersPanel() {
   const { clerkUser, supabase } = useAuth();
+  const { session } = useSession();
   const [rounds, setRounds] = useState<RoundView[]>([]);
   const [loading, setLoading] = useState(true);
+  const [payingRoundId, setPayingRoundId] = useState<string | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!clerkUser) return;
@@ -98,6 +103,42 @@ export function DisputeLettersPanel() {
     if (signed?.signedUrl) window.open(signed.signedUrl, "_blank");
   };
 
+  /**
+   * Open Stripe Checkout for an unpaid round. The session is created
+   * server-side via /api/letters/checkout with metadata.letter_round_id
+   * pre-set, so when payment completes the existing Stripe webhook
+   * flips this round's payment_cleared_at and unlocks generation.
+   */
+  const payForRound = async (roundId: string) => {
+    if (!session) return;
+    setPayingRoundId(roundId);
+    setPayError(null);
+    try {
+      const token = await session.getToken();
+      const res = await fetch("/api/letters/checkout", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ letter_round_id: roundId }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        setPayError(data.error ?? `Payment unavailable (HTTP ${res.status})`);
+        return;
+      }
+      // Same-tab redirect; Stripe sends them back to /dashboard?paid=true
+      // on success, which will refresh this view and show the unlocked
+      // status next time it mounts.
+      window.location.href = data.url;
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPayingRoundId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500">
@@ -139,8 +180,16 @@ export function DisputeLettersPanel() {
         </div>
       </div>
 
+      {payError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {payError}
+        </div>
+      )}
+
       {rounds.map((r) => {
         const tone = STATUS_COPY[r.status];
+        const needsPayment = !r.payment_cleared_at;
+        const isPaying = payingRoundId === r.id;
         return (
           <section
             key={r.id}
@@ -157,16 +206,28 @@ export function DisputeLettersPanel() {
                     : "Not generated yet"}
                 </p>
               </div>
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${TONE_CLASSES[tone.tone]}`}
-              >
-                {tone.tone === "emerald" ? (
-                  <CheckCircle2 className="h-3 w-3" />
-                ) : (
-                  <Clock className="h-3 w-3" />
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${TONE_CLASSES[tone.tone]}`}
+                >
+                  {tone.tone === "emerald" ? (
+                    <CheckCircle2 className="h-3 w-3" />
+                  ) : (
+                    <Clock className="h-3 w-3" />
+                  )}
+                  {tone.label}
+                </span>
+                {needsPayment && (
+                  <button
+                    onClick={() => payForRound(r.id)}
+                    disabled={isPaying}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    <CreditCard className="h-3 w-3" />
+                    {isPaying ? "Opening checkout…" : `Pay for Round ${r.round_number}`}
+                  </button>
                 )}
-                {tone.label}
-              </span>
+              </div>
             </header>
 
             <div className="px-5 py-4">
