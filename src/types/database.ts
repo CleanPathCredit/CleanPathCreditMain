@@ -22,9 +22,33 @@ export type ClientStatus =
   | "complete";
 
 export type Plan = "free" | "diy" | "standard" | "premium";
-export type DocumentCategory = "id" | "ssn" | "credit_report" | "other";
+export type DocumentCategory =
+  | "id"
+  | "ssn"
+  | "credit_report"
+  | "bureau_response"
+  | "dispute_letter"
+  | "notarized_letter"
+  | "other";
 export type DocumentStatus = "pending" | "verified" | "rejected";
 export type MessageSender = "admin" | "client";
+
+export type Bureau = "equifax" | "transunion" | "experian";
+export type LetterType = "609" | "611" | "623";
+export type AccountStatus =
+  | "charge_off"
+  | "collection"
+  | "not_in_good_standing";
+export type LetterRoundStatus =
+  | "pending_payment"
+  | "pending_report"
+  | "drafting"
+  | "letters_generated"
+  | "pending_notary"
+  | "notarized"
+  | "sent"
+  | "complete";
+export type LetterPacketTarget = "bureau" | "creditor";
 
 export interface Database {
   public: {
@@ -156,6 +180,140 @@ export interface Database {
         Update: Record<string, never>;
         Relationships: [];
       };
+      letter_rounds: {
+        Row: {
+          id: string;
+          profile_id: string;
+          round_number: number;
+          letter_type: LetterType;
+          payment_cleared_at: string | null;
+          payment_stripe_id: string | null;
+          drafted_at: string | null;
+          letters_generated_at: string | null;
+          notary_booked_at: string | null;
+          notarized_at: string | null;
+          sent_at: string | null;
+          status: LetterRoundStatus;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          round_number: number;
+          letter_type: LetterType;
+          payment_cleared_at?: string | null;
+          payment_stripe_id?: string | null;
+          drafted_at?: string | null;
+          letters_generated_at?: string | null;
+          notary_booked_at?: string | null;
+          notarized_at?: string | null;
+          sent_at?: string | null;
+          status?: LetterRoundStatus;
+          notes?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["letter_rounds"]["Insert"]>;
+        Relationships: [];
+      };
+      bureau_reports: {
+        Row: {
+          id: string;
+          letter_round_id: string;
+          bureau: Bureau;
+          source_document_id: string | null;
+          pulled_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          letter_round_id: string;
+          bureau: Bureau;
+          source_document_id?: string | null;
+          pulled_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["bureau_reports"]["Insert"]>;
+        Relationships: [];
+      };
+      creditors: {
+        Row: {
+          id: string;
+          profile_id: string;
+          name: string;
+          dispute_address: string | null;
+          city: string | null;
+          state: string | null;
+          zip: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          name: string;
+          dispute_address?: string | null;
+          city?: string | null;
+          state?: string | null;
+          zip?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["creditors"]["Insert"]>;
+        Relationships: [];
+      };
+      negative_items: {
+        Row: {
+          id: string;
+          bureau_report_id: string;
+          creditor_id: string | null;
+          account_name: string;
+          account_number: string;
+          account_status: AccountStatus;
+          dispute_reason: string | null;
+          believed_correct: string | null;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          bureau_report_id: string;
+          creditor_id?: string | null;
+          account_name: string;
+          account_number: string;
+          account_status: AccountStatus;
+          dispute_reason?: string | null;
+          believed_correct?: string | null;
+          display_order?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["negative_items"]["Insert"]>;
+        Relationships: [];
+      };
+      letter_packets: {
+        Row: {
+          id: string;
+          letter_round_id: string;
+          target_type: LetterPacketTarget;
+          bureau: Bureau | null;
+          creditor_id: string | null;
+          document_id: string | null;
+          notarized_document_id: string | null;
+          version: number;
+          is_current: boolean;
+          certified_mail_tracking: string | null;
+          generated_at: string;
+        };
+        Insert: {
+          id?: string;
+          letter_round_id: string;
+          target_type: LetterPacketTarget;
+          bureau?: Bureau | null;
+          creditor_id?: string | null;
+          document_id?: string | null;
+          notarized_document_id?: string | null;
+          version?: number;
+          is_current?: boolean;
+          certified_mail_tracking?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["letter_packets"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -177,6 +335,11 @@ export type Message  = Database["public"]["Tables"]["messages"]["Row"];
 export type Document = Database["public"]["Tables"]["documents"]["Row"];
 export type AuditLog = Database["public"]["Tables"]["audit_log"]["Row"];
 export type StripeWebhookEvent = Database["public"]["Tables"]["stripe_webhook_events"]["Row"];
+export type LetterRound  = Database["public"]["Tables"]["letter_rounds"]["Row"];
+export type BureauReport = Database["public"]["Tables"]["bureau_reports"]["Row"];
+export type Creditor     = Database["public"]["Tables"]["creditors"]["Row"];
+export type NegativeItem = Database["public"]["Tables"]["negative_items"]["Row"];
+export type LetterPacket = Database["public"]["Tables"]["letter_packets"]["Row"];
 
 /** Profile with its Supabase row id — used in admin list views */
 export type ClientRecord = Profile;

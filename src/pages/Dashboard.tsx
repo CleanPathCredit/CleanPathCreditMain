@@ -7,6 +7,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
+import { DisputeLettersPanel } from "@/components/dashboard/DisputeLettersPanel";
 import { MasterList } from "@/components/dashboard/MasterList";
 import { TravelResources } from "@/components/dashboard/TravelResources";
 import { PlanGate } from "@/components/dashboard/PlanGate";
@@ -16,11 +17,11 @@ import type { Message } from "@/types/database";
 import {
   CheckCircle2, LogOut, Shield, FileText, Download,
   MessageSquare, BookOpen, X, Send, Lock,
-  LayoutDashboard, FolderLock, List, LifeBuoy, Menu
+  LayoutDashboard, FolderLock, List, LifeBuoy, Menu, Mail
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-type SidebarTab = "dashboard" | "vault" | "masterlist" | "support";
+type SidebarTab = "dashboard" | "letters" | "vault" | "masterlist" | "support";
 
 const STATUS_STEPS = [
   { key: "deep_dive_audit",    label: "Deep-Dive Audit",             description: "Full analysis of all 3 bureau reports." },
@@ -96,6 +97,7 @@ export function Dashboard() {
 
   const sidebarItems: { id: SidebarTab; label: string; icon: React.ReactNode }[] = [
     { id: "dashboard",   label: "Dashboard",       icon: <LayoutDashboard className="h-5 w-5" /> },
+    { id: "letters",     label: "Dispute Letters", icon: <Mail className="h-5 w-5" /> },
     { id: "vault",       label: "Document Vault",  icon: <FolderLock className="h-5 w-5" /> },
     { id: "masterlist",  label: "The Master List", icon: <List className="h-5 w-5" /> },
     { id: "support",     label: "Support & Tickets", icon: <LifeBuoy className="h-5 w-5" /> },
@@ -276,6 +278,19 @@ export function Dashboard() {
                     </div>
                   )}
                 </section>
+              </motion.div>
+            )}
+
+            {/* ── DISPUTE LETTERS ── */}
+            {activeTab === "letters" && (
+              <motion.div key="letters" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <div className="mb-4 px-1">
+                  <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Dispute Letters</h2>
+                  <p className="text-sm text-zinc-500 mt-1">Your generated FCRA dispute letter packets, organized by round.</p>
+                </div>
+                <PlanGate feature="dispute_letters" plan={profile?.plan} blurChildren={true}>
+                  <DisputeLettersPanel />
+                </PlanGate>
               </motion.div>
             )}
 

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import type { ClientRecord, Message, ClientStatus, Document as DocRow } from "@/types/database";
 import {
   LogOut, Users, FileText, Settings, ChevronLeft, Send, Download,
-  Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X
+  Eye, ShieldCheck, CheckCircle2, AlertCircle, Menu, X, Mail
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -138,6 +138,10 @@ export function AdminDashboard() {
           <button onClick={() => { setSelected(null); setSidebarOpen(false); }}
             className={`flex items-center gap-3 px-4 py-3 w-full rounded-lg transition-colors text-left ${!selected ? "bg-zinc-800 text-white" : "hover:bg-zinc-800/50 hover:text-zinc-200"}`}>
             <Users className="h-5 w-5" /> CRM Dashboard
+          </button>
+          <button onClick={() => navigate("/admin/letters")}
+            className="flex items-center gap-3 px-4 py-3 w-full hover:bg-zinc-800/50 hover:text-zinc-200 rounded-lg transition-colors text-left">
+            <Mail className="h-5 w-5" /> Dispute Letters
           </button>
           <button className="flex items-center gap-3 px-4 py-3 w-full hover:bg-zinc-800/50 hover:text-zinc-200 rounded-lg transition-colors text-left opacity-50 cursor-not-allowed" disabled>
             <FileText className="h-5 w-5" /> Documents

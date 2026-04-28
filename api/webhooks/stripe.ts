@@ -183,6 +183,54 @@ export default async function handler(
   const name       = session.customer_details?.name ?? "";
   const customerId = typeof session.customer === "string" ? session.customer : null;
 
+  // 4a. Round-payment branch — when the checkout session was created with
+  // `metadata.letter_round_id`, this isn't a new purchase / plan upgrade
+  // but a payment that unlocks generation of a specific dispute letter
+  // round (R2, R3, R4 typically). Flip payment_cleared_at on the
+  // matching letter_rounds row and short-circuit. The customer's Clerk
+  // user, profile, and plan all already exist — don't disturb them.
+  const roundId = typeof session.metadata?.letter_round_id === "string"
+    ? session.metadata.letter_round_id
+    : null;
+  if (roundId) {
+    const { data: round, error: roundLookupErr } = await supabase
+      .from("letter_rounds")
+      .select("id, profile_id, status, payment_cleared_at")
+      .eq("id", roundId)
+      .single();
+    if (roundLookupErr || !round) {
+      console.error(
+        `[/api/webhooks/stripe] letter_round not found for metadata.letter_round_id=${roundId}`,
+        roundLookupErr,
+      );
+      // ACK so Stripe doesn't retry — the event is already deduped.
+      return sendJson(res, 200, { ok: true, kind: "letter_round_not_found" });
+    }
+    if (round.payment_cleared_at) {
+      // Already cleared (manual mark, or a prior race). Idempotent ACK.
+      return sendJson(res, 200, { ok: true, kind: "letter_round_already_paid" });
+    }
+    const { error: updErr } = await supabase
+      .from("letter_rounds")
+      .update({
+        payment_cleared_at: new Date().toISOString(),
+        payment_stripe_id:  session.id,
+        // Move the round forward only if it's still waiting on payment;
+        // if the admin already advanced it manually, leave the status alone.
+        ...(round.status === "pending_payment" ? { status: "pending_report" as const } : {}),
+      })
+      .eq("id", round.id);
+    if (updErr) {
+      console.error("[/api/webhooks/stripe] letter_round payment update failed", updErr);
+      return sendJson(res, 500, { error: "letter_round_update_failed" });
+    }
+    console.log(
+      `[/api/webhooks/stripe] letter_round payment cleared: roundId=${round.id} sessionId=${session.id}`,
+    );
+    return sendJson(res, 200, { ok: true, kind: "letter_round_paid", round_id: round.id });
+  }
+
+  // 4b. Standard new-purchase / plan-upgrade branch (existing behavior).
   if (!email) {
     console.error("[/api/webhooks/stripe] no email in session", session.id);
     return sendText(res, 400, "No email");
