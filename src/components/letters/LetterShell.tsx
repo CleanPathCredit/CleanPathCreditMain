@@ -60,21 +60,23 @@ export function LetterHeader({
 /**
  * Boilerplate footer + signature placeholder.
  *
- * Round 4 also closes with a thank-you-and-signature block; the only
- * round that omits the inquiry/promotional-suppression bullets is none
- * of the current six — so this footer is universal across 609 R1-R4.
+ * `showBoilerplate` defaults to true (Round 1 + Round 2 use it). Round 3
+ * and Round 4 in the source playbook drop the inquiry/promotional-
+ * suppression bullets — pass `showBoilerplate={false}` for those.
  */
-export function LetterFooter() {
+export function LetterFooter({ showBoilerplate = true }: { showBoilerplate?: boolean } = {}) {
   return (
     <>
-      <View style={styles.boilerplate}>
-        <Text style={styles.boilerplateLine}>
-          *  Please remove all <Text style={styles.bold}>non-account holding inquiries</Text> over 30 days old.
-        </Text>
-        <Text style={styles.boilerplateLine}>
-          *  Please add a <Text style={styles.bold}>Promotional Suppression</Text> to my credit file.
-        </Text>
-      </View>
+      {showBoilerplate ? (
+        <View style={styles.boilerplate}>
+          <Text style={styles.boilerplateLine}>
+            *  Please remove all <Text style={styles.bold}>non-account holding inquiries</Text> over 30 days old.
+          </Text>
+          <Text style={styles.boilerplateLine}>
+            *  Please add a <Text style={styles.bold}>Promotional Suppression</Text> to my credit file.
+          </Text>
+        </View>
+      ) : null}
 
       <View style={styles.signatureBlock}>
         <Text>Thank You,</Text>
