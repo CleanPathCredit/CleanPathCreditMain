@@ -157,7 +157,7 @@ export function Methodology() {
               </div>
               <h3 className="text-2xl font-semibold mb-4 text-zinc-900">Step 4: Optimization & Positioning</h3>
               <p className="text-zinc-600 leading-relaxed">
-                We don't just remove negatives. We guide you on what to do (and not do), how to build positive accounts, and how to position yourself for approvals.
+                Beyond challenging inaccurate items, we guide you on what to do (and not do), how to build positive accounts, and how to position your credit profile for better approval odds.
               </p>
             </motion.div>
           </div>

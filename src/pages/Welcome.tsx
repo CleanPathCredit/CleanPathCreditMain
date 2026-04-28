@@ -36,7 +36,7 @@ const PLAN_COPY: Record<Plan, {
   },
   diy: {
     title: "DIY Blueprint — Activated!",
-    subtitle: "You've unlocked the tools and strategy to correct and remove negative items yourself.",
+    subtitle: "You've unlocked the tools and strategy to challenge inaccurate or unverifiable items yourself.",
     icon: <Zap className="h-8 w-8" />,
     color: "text-emerald-600",
     features: [
@@ -52,11 +52,11 @@ const PLAN_COPY: Record<Plan, {
     icon: <Star className="h-8 w-8" />,
     color: "text-emerald-600",
     features: [
-      "Done-for-you 4-round credit correction system",
+      "4-round structured credit-improvement workflow",
       "Full submission handling included",
       "Document vault access",
       "Direct messaging with your advisor",
-      "120-day money-back guarantee",
+      "Cancel anytime — billed per round after completion",
     ],
   },
   premium: {

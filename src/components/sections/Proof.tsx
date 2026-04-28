@@ -48,12 +48,21 @@ export function Proof() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-20 text-center">
           <h2 className="mb-4 font-display text-3xl font-semibold tracking-tight text-zinc-900 md:text-5xl">
-            Real people. Real results.
+            Real people. Real stories.
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-zinc-600">
-            Our clients don't just see better scores — they get approved for homes, cars, and funding they were denied for before. See what's possible when you stop hoping and start fighting.
+            Our clients work toward better approvals — for homes, cars, and funding they were denied for before. Their experiences below describe what was possible for them; results vary by file.
           </p>
         </div>
+
+        {/* Required disclaimer near outcome-bearing testimonials per
+            FTC Endorsement Guides + CROA §404. Outcomes mentioned in
+            individual stories below are the experiences of those
+            individuals; we make no claim that other users will see
+            similar results. */}
+        <p className="mx-auto mb-12 max-w-3xl text-center text-xs text-zinc-500 italic">
+          The testimonials below describe individual customer experiences. They are not typical and should not be interpreted as a promise or prediction of the results you will achieve. Individual outcomes vary based on the accuracy of reported information, creditor and bureau responses, and your continued participation. Clean Path Credit does not guarantee any specific score change, item removal, approval outcome, or interest-rate savings.
+        </p>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((testimonial, index) => (
