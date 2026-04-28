@@ -33,6 +33,8 @@ import {
   Trash2,
   Download,
   Clock,
+  DollarSign,
+  CheckCircle2,
 } from "lucide-react";
 import type {
   Profile,
@@ -181,6 +183,29 @@ export function AdminLetters() {
     else if (selectedClientId) reloadRounds(selectedClientId);
   };
 
+  /**
+   * Manually mark a round's payment as cleared. Use this for offline /
+   * out-of-band payments (cash, ACH outside Stripe, comp'd rounds for
+   * existing clients). Sets the same `payment_cleared_at` column that
+   * the Stripe webhook would set, so the API gate sees both paths the
+   * same way. The "PAID OFFLINE" tracking string lets you distinguish
+   * manual vs Stripe-driven clears later.
+   */
+  const markPaid = async (roundId: string) => {
+    if (!confirm("Mark this round as paid? Use only when payment was collected outside Stripe.")) return;
+    setError(null);
+    const { error } = await supabase
+      .from("letter_rounds")
+      .update({
+        payment_cleared_at: new Date().toISOString(),
+        payment_stripe_id:  "PAID_OFFLINE",
+        status:             "drafting",
+      })
+      .eq("id", roundId);
+    if (error) setError(error.message);
+    else if (selectedClientId) reloadRounds(selectedClientId);
+  };
+
   const deleteItem = async (id: string) => {
     if (!confirm("Delete this item?")) return;
     await supabase.from("negative_items").delete().eq("id", id);
@@ -312,6 +337,7 @@ export function AdminLetters() {
                   onAddItem={(brId, item) => addItem(brId, item)}
                   onDeleteItem={deleteItem}
                   onGenerate={() => generate(r)}
+                  onMarkPaid={() => markPaid(r.id)}
                   onDownload={downloadPacket}
                 />
               ))}
@@ -387,6 +413,7 @@ function RoundCard({
   onAddItem,
   onDeleteItem,
   onGenerate,
+  onMarkPaid,
   onDownload,
 }: {
   round: RoundWithChildren;
@@ -406,6 +433,7 @@ function RoundCard({
   ) => void;
   onDeleteItem: (id: string) => void;
   onGenerate: () => void;
+  onMarkPaid: () => void;
   onDownload: (p: LetterPacket) => void;
 }) {
   const usedBureaus = new Set(round.bureauReports.map((b) => b.bureau));
@@ -421,7 +449,15 @@ function RoundCard({
   const contractDt = new Date(contractDate);
   const inHold = isInCroaHold(contractDt, round.round_number);
   const holdUntil = croaHoldUntil(contractDt, round.round_number);
-  const generateDisabled = busy || totalItems === 0 || inHold;
+
+  // Payment gate — mirrors the server check in /api/letters/generate.
+  // The Stripe webhook flips payment_cleared_at when a checkout session
+  // with metadata.letter_round_id completes; "Mark as paid" is the
+  // manual override for offline payments. Either path unlocks generation.
+  const paid = !!round.payment_cleared_at;
+  const paidOffline = round.payment_stripe_id === "PAID_OFFLINE";
+
+  const generateDisabled = busy || totalItems === 0 || inHold || !paid;
 
   return (
     <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
@@ -439,12 +475,28 @@ function RoundCard({
               </>
             )}
           </p>
-          {inHold && holdUntil && (
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
-              <Clock className="h-3 w-3" />
-              CROA hold — generation unlocks {holdUntil.toLocaleDateString()}
-            </p>
-          )}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {inHold && holdUntil && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                <Clock className="h-3 w-3" />
+                CROA hold — unlocks {holdUntil.toLocaleDateString()}
+              </span>
+            )}
+            {paid ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+                <CheckCircle2 className="h-3 w-3" />
+                Paid {paidOffline ? "(offline)" : ""}
+                {round.payment_cleared_at && (
+                  <> · {new Date(round.payment_cleared_at).toLocaleDateString()}</>
+                )}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-800">
+                <DollarSign className="h-3 w-3" />
+                Awaiting payment
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {remainingBureaus.length > 0 && (
@@ -466,6 +518,16 @@ function RoundCard({
               ))}
             </select>
           )}
+          {!paid && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onMarkPaid}
+            >
+              <DollarSign className="h-4 w-4" />
+              Mark paid
+            </Button>
+          )}
           <Button
             variant="primary"
             size="sm"
@@ -473,7 +535,13 @@ function RoundCard({
             disabled={generateDisabled}
           >
             <Sparkles className="h-4 w-4" />
-            {busy ? "Generating…" : inHold ? "Held (CROA)" : "Generate letters"}
+            {busy
+              ? "Generating…"
+              : inHold
+                ? "Held (CROA)"
+                : !paid
+                  ? "Awaiting payment"
+                  : "Generate letters"}
           </Button>
         </div>
       </div>

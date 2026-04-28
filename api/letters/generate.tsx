@@ -60,6 +60,7 @@ import { Letter611 } from "../../src/components/letters/Letter611";
 import { BUREAU_ADDRESSES } from "../../src/lib/letters/bureaus";
 import { isDisputable } from "../../src/lib/letters/filtering";
 import { isInCroaHold, croaHoldUntil } from "../../src/lib/letters/croaHold";
+import { sendLettersReadyEmail } from "../lib/email";
 import type {
   ConsumerIdentity,
   LetterRenderInput,
@@ -189,7 +190,7 @@ export default async function handler(
   // 7. Load case profile (for consumer identity defaults + CROA contract date)
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, address, created_at")
+    .select("id, full_name, email, plan, address, created_at")
     .eq("id", round.profile_id)
     .single();
   if (!profile) {
@@ -205,6 +206,21 @@ export default async function handler(
       error: "croa_hold_active",
       hold_until: until?.toISOString(),
       hint: "Letters cannot be generated during the 3-business-day CROA cancellation window.",
+    });
+  }
+
+  // 7b. Payment gate — CROA §404 prohibits charging for credit-repair
+  // services that haven't been performed; the inverse is also true in
+  // our model: don't perform (generate letters) until payment for this
+  // specific round has cleared. `payment_cleared_at` is set by:
+  //   - the Stripe webhook when a checkout session completes with
+  //     `metadata.letter_round_id = round.id`, or
+  //   - the admin clicking "Mark as paid" in /admin/letters (manual
+  //     offline-payment recording — same column, same effect).
+  if (!round.payment_cleared_at) {
+    return sendJson(res, 402, {
+      error: "payment_required",
+      hint: "This round's payment hasn't cleared. Either wait for the Stripe webhook or mark it paid in admin.",
     });
   }
 
@@ -394,6 +410,26 @@ export default async function handler(
         letters_generated_at: new Date().toISOString(),
       })
       .eq("id", round.id);
+
+    // DIY notification — email the client that their letters are ready
+    // (no PDFs attached; link back to the dashboard). Fire-and-forget:
+    // a Resend failure must not turn a successful generation into a 500.
+    // Standard / premium clients are admin-driven — admin handles their
+    // mailing, no auto-email needed.
+    if (profile.plan === "diy" && profile.email) {
+      const firstName = profile.full_name?.split(" ")[0] ?? null;
+      sendLettersReadyEmail({
+        to:               profile.email,
+        firstName,
+        letterType:       round.letter_type,
+        roundNumber:      round.round_number,
+        bureausIncluded:  packetsOut.map((p) => p.bureau),
+        // 609s require notarization; 611 + 623 don't.
+        needsNotary:      round.letter_type === "609",
+      }).catch((err) =>
+        console.error("[/api/letters/generate] letters-ready email failed", err),
+      );
+    }
   }
 
   return sendJson(res, 200, {
