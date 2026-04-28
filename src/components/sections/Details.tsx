@@ -135,10 +135,13 @@ export function Details() {
               <div className="flex items-center gap-2">
                 <span className="text-emerald-400">~</span>
                 <span className="text-zinc-300">cleanpath analyze --report=latest</span>
-                {/* Blinking cursor */}
+                {/* Blinking cursor — hard on/off via stepped keyframes
+                    (Motion has no `steps()` easing; identical adjacent
+                    values + matching `times` give an instantaneous flip
+                    at the midpoint). */}
                 <motion.span
-                  animate={{ opacity: [1, 0] }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: "steps(1)" }}
+                  animate={{ opacity: [1, 1, 0, 0] }}
+                  transition={{ duration: 0.8, repeat: Infinity, times: [0, 0.5, 0.5, 1] }}
                   className="inline-block w-2 h-4 bg-emerald-400 ml-0.5"
                 />
               </div>
