@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { AddLeadModal } from "@/components/admin/AddLeadModal";
 import { EditLeadModal } from "@/components/admin/EditLeadModal";
 import { EditClientModal } from "@/components/admin/EditClientModal";
+import { InviteClientModal } from "@/components/admin/InviteClientModal";
 import { DraftEmailModal } from "@/components/admin/DraftEmailModal";
 import { AdminReferralsView } from "@/components/admin/AdminReferralsView";
 import { CreditReportView } from "@/components/dashboard/CreditReportView";
@@ -174,6 +175,15 @@ export function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen]     = useState(false);
   const [view, setView]                   = useState<"clients" | "leads" | "referrals">("clients");
   const [addLeadOpen, setAddLeadOpen]     = useState(false);
+  // Invite-Client modal — opens from "Add Client" (clients tab,
+  // empty form) and "Convert to Client" (leads tab, pre-filled). The
+  // payload doubles as the open flag; null = closed.
+  const [inviteClient, setInviteClient]   = useState<{
+    leadId?:    string;
+    email?:     string;
+    fullName?:  string;
+    phone?:     string;
+  } | null>(null);
   // Inline modals for edit/delete flows. Keyed on the specific row so
   // opening "Manage" on a different lead while a modal is already open
   // swaps the payload rather than stacking modals.
@@ -429,10 +439,19 @@ export function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => setInviteClient({})}
+                      title="Send a Clerk invitation to a new client"
+                      aria-label="Add client"
+                      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm transition-colors"
+                    >
+                      <Mail className="h-4 w-4" />
+                      <span className="hidden sm:inline">Add Client</span>
+                    </button>
+                    <button
                       onClick={() => setAddLeadOpen(true)}
                       title="Add lead manually"
                       aria-label="Add lead manually"
-                      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm transition-colors"
+                      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-sm font-medium shadow-sm transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                       <span className="hidden sm:inline">Add Lead</span>
@@ -692,6 +711,21 @@ export function AdminDashboard() {
                                 >
                                   <Sparkles className="h-3.5 w-3.5" />
                                 </button>
+                                {!registered && (
+                                  <button
+                                    onClick={() => setInviteClient({
+                                      leadId:    l.id,
+                                      email:     l.email ?? "",
+                                      fullName:  l.full_name ?? "",
+                                      phone:     l.phone ?? "",
+                                    })}
+                                    title="Send Clerk invitation to convert this lead into a client"
+                                    aria-label="Convert to client"
+                                    className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-white border border-zinc-200 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 text-zinc-500 shadow-sm transition-colors"
+                                  >
+                                    <Mail className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
                                 <Button
                                   variant="outline"
                                   className="h-8 px-3 text-xs bg-white hover:bg-zinc-50 shadow-sm"
@@ -887,6 +921,18 @@ export function AdminDashboard() {
           on success; the realtime INSERT subscription on lead_submissions
           pushes the new row into the table with no explicit refetch. */}
       <AddLeadModal open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
+
+      {/* Invite-Client modal — opens from "Add Client" (Clients tab,
+          empty form) and from the Convert-to-Client icon on each lead
+          row (Leads tab, pre-filled). One render covers both cases. */}
+      <InviteClientModal
+        open={inviteClient !== null}
+        onClose={() => setInviteClient(null)}
+        leadId={inviteClient?.leadId}
+        prefillEmail={inviteClient?.email}
+        prefillFullName={inviteClient?.fullName}
+        prefillPhone={inviteClient?.phone}
+      />
 
       {/* Edit / delete flows for a single lead. Optimistic list updates on
           save (realtime INSERT channel doesn't catch UPDATE events) and on
