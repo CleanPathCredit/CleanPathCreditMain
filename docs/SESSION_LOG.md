@@ -7,6 +7,22 @@ This document captures everything that landed across the 9-PR work cycle that re
 
 ---
 
+## Operator environment
+
+So future sessions don't guess wrong about paths or shell:
+
+- **OS:** Windows 10
+- **Hardware:** HP Pavilion m6-1035dx
+- **User home:** `C:\Users\serra\`
+- **Default shell:** PowerShell (not Bash — `curl ... | sh` installer patterns won't work directly)
+- **Claude Code config:** `C:\Users\serra\.claude.json`
+- **Tooling installed locally:**
+  - Ghost CLI at `C:\Users\serra\.local\bin\ghost.exe` (serverless Postgres + MCP — see https://ghost.build)
+  - "Godmode" multi-model orchestration (Codex + Gemini + DeepSeek)
+- **Note for installers:** `~/.local/bin` is NOT on Windows PATH by default — check `ghost version` works before running `ghost mcp install`
+
+---
+
 ## Summary of what shipped
 
 ### `cleanpathcreditmain` — 6 PRs merged
