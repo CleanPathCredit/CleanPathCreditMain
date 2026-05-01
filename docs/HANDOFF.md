@@ -28,6 +28,28 @@ None merged yet. Standing instruction from user is "merge when green" — but th
 
 **On a fresh session, first ask:** "Are PRs #11-#14 still open or have any merged? Any new review comments?" Don't assume.
 
+### Repo locations
+
+- **In this cloud Claude Code session:** `/home/user/cleanpathcreditmain` (Linux sandbox path — only valid here, not on the user's machine)
+- **GitHub remote (source of truth):** `https://github.com/CleanPathCredit/CleanPathCreditMain.git`
+- **On the user's Windows laptop:** path TBD by user. Suggested: `C:\Users\serra\projects\cleanpathcreditmain`. To find an existing clone, run in PowerShell:
+  ```powershell
+  Get-ChildItem -Path $env:USERPROFILE -Recurse -Filter cleanpathcreditmain -Directory -ErrorAction SilentlyContinue | Select FullName
+  ```
+- To set up a fresh local clone:
+  ```powershell
+  cd $env:USERPROFILE\projects   # or wherever
+  git clone https://github.com/CleanPathCredit/CleanPathCreditMain.git
+  cd cleanpathcreditmain
+  npm install
+  cp .env.example .env.local     # then fill in secrets
+  ```
+- To update an existing local clone after cloud-session work:
+  ```powershell
+  git fetch origin
+  git checkout <branch-name>     # e.g. claude/session-log-update-sePyK
+  ```
+
 ### Active environment + tooling
 
 - User is on Windows 10 / HP Pavilion m6-1035dx / `C:\Users\serra\` / PowerShell.
@@ -36,6 +58,7 @@ None merged yet. Standing instruction from user is "merge when green" — but th
   - **User's local laptop** — Windows, has the Ghost MCP loaded
 - These are different machines. Tools installed in one are NOT visible to the other. Don't try to `ghost mcp` from this session — won't work.
 - User has installed **godmode** (multi-model: Codex / Gemini / DeepSeek). Useful for independent code review of PRs before merge. **Loaded in their LOCAL Claude Code only — NOT in this cloud session.** Confirmed via `ToolSearch` (no godmode/gemini/codex tools visible here). Don't try to invoke it from this session — recommend the user run godmode prompts in their local session and paste results back.
+- User has installed **3brain** skill (and other plugins). **Local Claude Code only — same constraint as Ghost MCP and godmode.** Confirmed via `ToolSearch` (no 3brain tools visible here). Pattern: every plugin/skill the user installs via `claude plugin install` (or wherever) lives on their Windows laptop, not in this cloud sandbox. Don't try to "refresh" — there's nothing to refresh; the tool inventory is fixed at session start by the environment.
 - User has a NotebookLM notebook called "Clean Path Credit". They upload `docs/SESSION_LOG.md` to it as a source. Don't pretend to "save to NotebookLM" — there's no API.
 
 ### Highest-value godmode prompts to run in local session
