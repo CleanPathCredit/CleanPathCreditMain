@@ -35,8 +35,26 @@ None merged yet. Standing instruction from user is "merge when green" — but th
   - **This session** — Anthropic cloud sandbox, Linux, working dir `/home/user/cleanpathcreditmain`
   - **User's local laptop** — Windows, has the Ghost MCP loaded
 - These are different machines. Tools installed in one are NOT visible to the other. Don't try to `ghost mcp` from this session — won't work.
-- User has installed **godmode** (multi-model: Codex / Gemini / DeepSeek). Useful for independent code review of PRs before merge. Not directly callable from this session unless an MCP exposes it.
+- User has installed **godmode** (multi-model: Codex / Gemini / DeepSeek). Useful for independent code review of PRs before merge. **Loaded in their LOCAL Claude Code only — NOT in this cloud session.** Confirmed via `ToolSearch` (no godmode/gemini/codex tools visible here). Don't try to invoke it from this session — recommend the user run godmode prompts in their local session and paste results back.
 - User has a NotebookLM notebook called "Clean Path Credit". They upload `docs/SESSION_LOG.md` to it as a source. Don't pretend to "save to NotebookLM" — there's no API.
+
+### Highest-value godmode prompts to run in local session
+
+**Independent PR review (especially PR #12 — security-relevant):**
+
+> Use godmode (Gemini and Codex independently — don't show them each other's responses). Pull the diff for cleanpathcredit/cleanpathcreditmain PR #12. Critique it as a senior engineer reviewing a security-relevant change. Concerns to address per model:
+> 1. Auth model on `/api/cron/data-retention-purge` — is the timing-safe Bearer compare correct?
+> 2. The SECURITY DEFINER RPC `purge_profile_pii` — any privilege-escalation or search_path issues?
+> 3. The order of operations in `purge_profile_pii` (return query before subsequent statements) — does plpgsql actually run the post-RETURN-QUERY statements, or is this a bug?
+> 4. Storage delete error handling — can it leave orphans we'd never find?
+
+**Compliance copy tiebreaker:**
+
+> Use godmode to ask Gemini whether \[specific line\] is sufficient as an FTC outcome-disclaimer. Counter-argue, don't validate.
+
+**Bulk arbitrage:**
+
+> Use godmode to route this task to Gemini Flash: \[task\]. Don't use Opus.
 
 ### Ghost (project tracker DB) — work delegated to local session
 
