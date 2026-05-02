@@ -4,13 +4,15 @@ Workflow for collecting verified testimonials and Google Business Profile review
 
 **Goal:** 5-10 verified Google reviews + 3-6 site testimonials in the next 14 days.
 
+**GMB review-form link:** https://g.page/r/CYp-SDplr2wMEBM/review
+
 ---
 
 ## 1. Pre-Send Checklist
 
 Before you start texting past clients:
 
-- [ ] Google Business Profile is verified and review link is live (`g.page/r/[your-id]/review`)
+- [x] Google Business Profile is verified and review link is live (`https://g.page/r/CYp-SDplr2wMEBM/review`)
 - [ ] You have written consent on file from each client to contact them post-engagement (CTIA / TCPA — informational text to past clients is generally allowed, but pull the consent record before you send)
 - [ ] You have a method to log who agreed to a public testimonial vs. a private review only (use a simple Google Sheet: name, contact, date asked, response, GMB link sent, GMB review left, site testimonial granted)
 - [ ] You're prepared to NOT use any testimonial that mentions specific score numbers, dollar amounts, or guaranteed outcomes — even if the client volunteers them, because under FTC Endorsement Guides and CROA §404, you can only feature outcomes you can substantiate with documentary evidence (screenshots, written client confirmation, dated records)
@@ -28,7 +30,7 @@ Hey [First Name] — Alex from Clean Path Credit. Hope life's been good since we
 
 Quick favor: would you share a 30-second testimonial about your experience? Just what the process felt like, no specific numbers needed.
 
-We're updating the website with real client voices, and yours would mean a lot. Even a quick Google review would help — link's here: [GMB link]
+We're updating the website with real client voices, and yours would mean a lot. Even a quick Google review would help — link's here: https://g.page/r/CYp-SDplr2wMEBM/review
 
 Appreciate you either way.
 ```
@@ -40,7 +42,7 @@ Hey [First Name], Alex here from Clean Path. I'm collecting client experience st
 
 1. Reply to this text — even one sentence works
 2. 60-second voice memo back
-3. Drop a Google review: [GMB link]
+3. Drop a Google review: https://g.page/r/CYp-SDplr2wMEBM/review
 
 No pressure either way. Thanks for trusting me with your credit work.
 ```
@@ -52,11 +54,13 @@ No pressure either way. Thanks for trusting me with your credit work.
 
 Two asks, totally optional:
 
-1. Could you leave a Google review? Takes 60 sec: [GMB link]
+1. Could you leave a Google review? Takes 60 sec: https://g.page/r/CYp-SDplr2wMEBM/review
 2. If you're up for it, share what the process felt like for you (any 1-2 sentences I can quote on the site, with first name + city only)
 
 Means a lot. Thanks for being one of the originals.
 ```
+
+**Tip:** Some carriers strip URL previews from `g.page` links, which can lower tap-rate. If you want a branded short URL, set up a redirect at `cleanpathcredit.com/review` that 301s to `https://g.page/r/CYp-SDplr2wMEBM/review` and use that in the SMS instead. Either works, but the branded one looks less spammy in a bulk send.
 
 ---
 
@@ -101,11 +105,11 @@ Default to Option 1 unless you have a complete substantiation file ready to defe
 
 ## 6. Google My Business Review Workflow
 
-1. **Find your unique review link.** In Google Business Profile dashboard → Home → "Get more reviews" card → Share button. Format is `g.page/r/[unique-id]/review`. Save it as a short URL (Bitly or your own domain redirect).
+1. **Review-form link is live:** `https://g.page/r/CYp-SDplr2wMEBM/review` — use this in every outreach SMS.
 
-2. **Send the link in every SMS.** Even if they don't write a site testimonial, a Google review still surfaces in local search and the GMB review CTA on the website pulls them in.
+2. **Optional: branded short URL.** Set up `cleanpathcredit.com/review` to 301-redirect to the GMB link. Looks cleaner in SMS sends and survives carrier URL-stripping better.
 
-3. **Respond to every review.** Within 48 hours. CROA-compliant response template:
+3. **Respond to every review** within 48 hours. CROA-compliant response template:
 
    ```
    Thank you, [First Name]. We're glad the process worked for you. — Alex
