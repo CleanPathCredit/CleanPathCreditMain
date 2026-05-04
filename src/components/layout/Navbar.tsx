@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
-import { Shield, Menu, X } from "lucide-react";
+import { Shield, Menu, X, Globe } from "lucide-react";
 
 export function Navbar() {
   const location = useLocation();
@@ -28,6 +28,15 @@ export function Navbar() {
         <div className="hidden items-center gap-8 md:flex">
           <Link to="/" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900">Home</Link>
           <Link to="/how-it-works" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900">How It Works</Link>
+          <Link
+            to="/es-comprador"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition-colors hover:text-emerald-700"
+            lang="es"
+            aria-label="Ver en español"
+          >
+            <Globe className="h-4 w-4" />
+            Español
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">
@@ -72,6 +81,15 @@ export function Navbar() {
                 className="rounded-lg px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
               >
                 How It Works
+              </Link>
+              <Link
+                to="/es-comprador"
+                onClick={() => setMobileOpen(false)}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
+                lang="es"
+              >
+                <Globe className="h-4 w-4" />
+                Español
               </Link>
               <Link
                 to="/login"

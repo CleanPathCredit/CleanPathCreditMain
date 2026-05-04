@@ -22,6 +22,7 @@ const Welcome     = lazy(() => import("@/pages/Welcome").then(m => ({ default: m
 const Terms       = lazy(() => import("@/pages/Terms").then(m => ({ default: m.Terms })));
 const Privacy     = lazy(() => import("@/pages/Privacy").then(m => ({ default: m.Privacy })));
 const Unlock      = lazy(() => import("@/pages/Unlock").then(m => ({ default: m.Unlock })));
+const EsComprador = lazy(() => import("@/pages/EsComprador").then(m => ({ default: m.EsComprador })));
 
 function LoadingFallback() {
   return (
@@ -51,6 +52,12 @@ export default function App() {
               <Route path="/unlock"   element={<Unlock />} />
               {/* Alias: marketing teams sometimes reach for /upgrade instead */}
               <Route path="/upgrade"  element={<Unlock />} />
+              {/* Spanish consumer-facing landing page — Track A4/B2 funnel
+                  destination. Do NOT point paid ads/SMS/leave-behinds at
+                  this URL until Texas CSO registration is approved and the
+                  number is filled into EsComprador.tsx footer. See file
+                  header for full compliance gate list. */}
+              <Route path="/es-comprador" element={<EsComprador />} />
               <Route
                 path="/dashboard"
                 element={
