@@ -63,14 +63,14 @@ Translation: a buyer with a 580 traditional score may have a qualifying score un
 
 **15-minute partnership call:** [Calendly link]
 
-**Have a denied file this week?** Send it for a free pre-screen — reply to [email] or text [phone].
+**Have a denied file this week?** Send it for a free pre-screen — reply to hello@cleanpathcredit.com or text (346) 399-5606.
 
 ---
 
 ## Footer
 
 Clean Path Credit
-cleanpathcredit.com | [phone] | [email]
+cleanpathcredit.com | (346) 399-5606 | hello@cleanpathcredit.com
 San Antonio, TX
 Texas CSO Registration #[FILL IN AFTER APPROVAL]
 Surety Bond: [CARRIER NAME, $10,000 — FILL IN AFTER PLACEMENT]
@@ -91,3 +91,5 @@ The following items are deliberately handled this way for legal safety. Do not c
 4. **CSO registration must be live before distribution.** Texas Finance Code Chapter 393 requires registration with the Texas Secretary of State and a $10,000 surety bond before offering credit-repair services in Texas. Distributing this one-pager to LOs before registration is itself a violation — it constitutes "offering" the service.
 
 5. **Bilingual disclosures.** If you market in Spanish, all consumer disclosures (CROA Consumer Credit File Rights notice, contract, cancellation notice) must also be available in Spanish. CFPB has flagged English-only disclosures with Spanish-language marketing as a UDAAP risk.
+
+6. **Phone and email currently in use.** Current contact: (346) 399-5606 / hello@cleanpathcredit.com. The phone number is provisional ("for now" per the original brief). When swapped, find/replace across `docs/launch/`, `docs/runbooks/`, and the `EsComprador.tsx` env-var fallbacks.

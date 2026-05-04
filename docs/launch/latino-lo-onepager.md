@@ -30,7 +30,7 @@ Tú lo vives todos los días. Compradores Latinos trabajadores, con buen ingreso
 Los números lo confirman:
 
 - **24% de los consumidores en EE.UU.** atrasó o no pagó una obligación de crédito en los últimos 12 meses. *(FICO Spring 2026)*
-- **El score promedio FICO bajo a 714**, dos puntos menos que hace un año. *(FICO Spring 2026)*
+- **El score promedio FICO bajó a 714**, dos puntos menos que hace un año. *(FICO Spring 2026)*
 - **Las morosidades hipotecarias subieron 58%** desde 2021. *(FICO Spring 2026)*
 - **25.3 millones de adultos en EE.UU.** — 9.8% de la población adulta — no tienen historial crediticio puntuable. *(CFPB Office of Research, Junio 2025)*
 
@@ -90,14 +90,14 @@ Tú lo sabes porque has visto archivos morir por estas razones. Tu comprador tam
 
 **Llamada de asociación de 15 minutos:** [Calendly link]
 
-**¿Tienes un archivo denegado esta semana?** Mándalo para un pre-screen gratis — responde a [email] o manda texto al [phone].
+**¿Tienes un archivo denegado esta semana?** Mándalo para un pre-screen gratis — responde a hello@cleanpathcredit.com o manda texto al (346) 399-5606.
 
 ---
 
 ## Pie de página
 
 Clean Path Credit
-cleanpathcredit.com | [phone] | [email]
+cleanpathcredit.com | (346) 399-5606 | hello@cleanpathcredit.com
 San Antonio, TX
 Registro CSO de Texas: #[FILL IN AFTER APPROVAL]
 Fianza: [CARRIER NAME, $10,000 — FILL IN AFTER PLACEMENT]
@@ -143,7 +143,7 @@ HANDOFF FLOW
 WHO TO CONTACT
 
 Alex Serratos, Founder
-[phone] | [email] | cleanpathcredit.com
+(346) 399-5606 | hello@cleanpathcredit.com | cleanpathcredit.com
 ```
 
 This English panel doubles as a quick reference if a Latino LO wants to bring the partnership idea to a non-Spanish-speaking sales manager or broker before booking the Calendly call.
@@ -161,3 +161,5 @@ This English panel doubles as a quick reference if a Latino LO wants to bring th
 4. **CSO registration must be live before distribution.** Texas Finance Code Chapter 393 requires registration before offering credit-repair services. This applies whether the marketing is in English or Spanish.
 
 5. **Bilingual native review required.** Mexican-American Spanish register has specific cadence and vocabulary that translation software gets wrong. Have a native speaker (preferably a fellow Latino LO or a credit/mortgage professional whose first language is Spanish) read the copy out loud before printing. Any awkward phrasing kills trust with this audience instantly — they've been pitched by gringo companies trying to fake Spanish their entire careers and they can hear it.
+
+6. **Phone and email currently in use.** Current contact: (346) 399-5606 / hello@cleanpathcredit.com. The phone number is provisional ("for now" per the original brief). When swapped, find/replace across `docs/launch/`, `docs/runbooks/`, and the `EsComprador.tsx` env-var fallbacks.

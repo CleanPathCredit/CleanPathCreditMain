@@ -2,7 +2,7 @@
 
 Dual-purpose Spanish-language asset for Track A4 (LO referral pipeline) and Track A4/B2 hybrid (Spanish content + funnel):
 
-1. **B2B2C handoff:** What an LO/real estate agent hands to a Latino buyer at the moment of credit denial. Lives as a printed leave-behind AND as a landing page (`cleanpathcredit.com/es-comprador` or similar).
+1. **B2B2C handoff:** What an LO/real estate agent hands to a Latino buyer at the moment of credit denial. Lives as a printed leave-behind AND as a landing page (`cleanpathcredit.com/es-comprador`).
 2. **B2C direct funnel destination:** The page IG/TikTok/FB Spanish-language video ads point at. Quiz / Calendly conversion at the bottom.
 
 Written to a specific avatar — Mexican-American working-class first-time buyer — not as a literal translation of the English page. Vocabulary, register, cultural references, and unspoken concerns are all calibrated to that buyer, with vocabulary universal enough to scale beyond Houston/SA into Phoenix, LA, Chicago, Miami.
@@ -15,13 +15,13 @@ Written to a specific avatar — Mexican-American working-class first-time buyer
 
 ---
 
-## Page Copy (Spanish)
+## Page Copy (Spanish, Mexican register)
 
 ### Hero
 
 **Una casa para tu familia. Empieza con tu crédito.**
 
-*Programa biligüe de preparación hipotecaria para familias trabajadoras.*
+*Programa bilingüe de preparación hipotecaria para familias trabajadoras.*
 
 ---
 
@@ -29,7 +29,7 @@ Written to a specific avatar — Mexican-American working-class first-time buyer
 
 **Has trabajado duro. Has pagado renta por años. Y todavía te dicen que tu crédito no califica.**
 
-Llevas años pagando $1,500, $2,000, $2,500 al mes en renta — plata que no vuelve. Has cuidado a tus padres, a tus hijos, a tu familia. Has trabajado dos turnos, side jobs, lo que se necesita.
+Llevas años pagando $1,500, $2,000, $2,500 al mes en renta — dinero que no vuelve. Has cuidado a tus papás, a tus hijos, a tu familia. Has trabajado dos turnos, side jobs, lo que se necesita.
 
 Y cuando llegas con el loan officer a preguntar por una casa, te dicen que tu credit score está muy bajo, que te falta historial, o que tu ingreso de cash no califica.
 
@@ -66,11 +66,11 @@ Para muchos en nuestra comunidad, esto es lo más cerca que hemos estado de la c
 
 **Tu situación no es un problema. Es lo normal en nuestra comunidad.**
 
-- **¿Tienes ITIN en lugar de Social Security?** Sí, te ayudamos. Hay préstamos hipotecarios específicamente para borrowers con ITIN — te conectamos con los LOs que los hacen.
-- **¿Tu ingreso es de cash, side jobs, o múltiples trabajos?** Sí, hay formas de calificar. Te ayudamos a documentarlo correctamente para que el LO lo pueda usar.
-- **¿Vives con tus padres, hermanos, o tienes una familia mixta?** Sin problema. La hipoteca puede ser para uno, dos, o más miembros de la familia.
+- **¿Tienes ITIN en lugar de Social?** Sí, te ayudamos. Hay préstamos hipotecarios para ITIN — te conectamos con los LOs que los hacen.
+- **¿Tu ingreso es de cash, side jobs, o múltiples trabajos?** Sí, hay maneras de calificar. Te ayudamos a documentarlo correctamente.
+- **¿Vives con tus papás, hermanos, o familia mixta?** Eso no es problema. La hipoteca puede ser para uno, dos, o más miembros de la familia.
 - **¿Mandas dinero a la familia en México u otro país?** Eso afecta tu DTI — lo sabemos y lo planeamos contigo.
-- **¿Nunca has tenido tarjeta de crédito?** No es un obstaculo. Los nuevos puntajes (FICO 10T) cuentan tu renta y tus biles — no necesitas tarjetas.
+- **¿Nunca has tenido tarjeta de crédito?** No es un obstáculo. Los nuevos puntajes (FICO 10T) cuentan tu renta y tus biles — no necesitas tarjetas.
 
 ---
 
@@ -78,15 +78,15 @@ Para muchos en nuestra comunidad, esto es lo más cerca que hemos estado de la c
 
 **¿Cómo somos diferentes de las "compañías de crédito" que escuchaste en la radio?**
 
-Sabemos que las has escuchado. Las que prometen "borrar tu crédito malo en 30 días" y luego te cobran $2,000 por adelantado y desaparecen. Las que llaman a tus padres y les dicen que firmen sin entender el contrato.
+Sabemos que las has escuchado. Las que prometen "borrar tu crédito malo en 30 días" y luego te cobran $2,000 por adelantado y desaparecen. Las que llaman a tus papás y les dicen que firmen sin entender el contrato.
 
-Nosotros operamos diferente — y no es opción nuestra, es la ley:
+Nosotros somos diferentes:
 
-- **Por ley federal (CROA), no podemos cobrarte ni un dólar por adelantado.** Cobramos solo después de que ves resultados documentados.
+- **Por ley federal (CROA)**, no podemos cobrarte ni un dólar por adelantado. Cobramos solo después de que ves resultados documentados.
 - **Tienes 3 días hábiles** para cancelar el contrato sin pagar nada — sin preguntas.
-- **Una persona** se encarga de tu caso de principio a fin. No te van a pasar de agent en agent.
+- **Una persona** se encarga de tu caso de principio a fin — no te van a pasar de un agent a otro.
 - **Reporte por escrito cada semana** — ves todas las cartas que enviamos a los burós, todas las respuestas que recibimos, y qué sigue.
-- **Todo en español.** Si prefieres inglés o ambos, también. Tu eliges.
+- **Todo en español** — el contrato, las disputas, las cartas, las llamadas.
 
 ---
 
@@ -94,13 +94,13 @@ Nosotros operamos diferente — y no es opción nuestra, es la ley:
 
 **Próximo paso: Llamada gratis de 15 minutos. En español. Sin compromiso.**
 
-Te decimos en 48 horas si creemos que podemos ayudarte, cuánto tiempo aproximadamente toma, y qué esperar.
+Te avisamos en 48 horas si te podemos ayudar y aproximadamente cuánto tiempo tomaría.
 
 [Botón grande — verde Clean Path]
-**Agendar mi llamada gratis →**
+**Reservar mi llamada gratis →**
 
-*¿Prefieres mensaje de texto?* Texto al **[phone]** — contestamos en español.
-*¿Prefieres email?* **hola@cleanpathcredit.com**
+*¿Prefieres mensaje de texto?* Texto al **(346) 399-5606** — contestamos en español.
+*¿Prefieres email?* **hello@cleanpathcredit.com**
 
 ---
 
@@ -151,23 +151,25 @@ When you're ready, you come back to me. I keep your file open. We close on a hou
 
 ## Cultural QA Notes (do not print or publish)
 
-Reviewer-facing notes on the cultural choices made in the copy. If a bilingual reviewer wants to push back on any of these, the reasoning is documented here.
+Reviewer-facing notes on the cultural and dialect choices made in the copy. If a bilingual reviewer wants to push back on any of these, the reasoning is documented here.
 
-1. **"Tú" not "usted."** Mexican-American working-class register skews informal and community-oriented. "Usted" reads as cold, corporate, or bureaucratic — like the bank that just denied them. "Tú" reads as a comadre or compadre helping out. Higher trust per word.
+1. **Mexican-American Spanish register, not generic LatAm Spanish.** Specifically: "dinero" not "plata" ("plata" reads as Argentine / Andean), "papás" not "padres" for "parents" ("padres" reads textbook-formal; "papás" is the Mexican working-class warm register), "te avisamos" not "te decimos" (more natural Mexican usage), "reservar" preferred over "agendar" for consumer-facing CTAs (warmer, less corporate).
 
-2. **Spanglish on purpose.** "Renting," "loan officer," "credit score," "medical bills," "side jobs," "biles" — these are the words this avatar actually uses. Translating them to formal Spanish ("alquiler," "oficial de préstamos," "puntaje crediticio," "facturas médicas," "trabajos secundarios," "facturas") reads as artificial or as if the writer doesn't speak the dialect. Compromise: include both where the formal term is widely understood ("renta" alongside "renting").
+2. **"Tú" not "usted."** Mexican-American working-class register skews informal and community-oriented. "Usted" reads as cold, corporate, or bureaucratic — like the bank that just denied them. "Tú" reads as a comadre or compadre helping out. Higher trust per word.
 
-3. **Family-first framing.** Hero is "una casa para tu familia," not "compra tu próxima casa." Section 4 explicitly addresses mixed-status households, supporting parents, sending money home, and multi-generational living. These are the unspoken concerns this avatar has when reading any home-buying material.
+3. **Spanglish on purpose.** "Renting," "loan officer," "credit score," "medical bills," "side jobs," "biles" — these are the words this avatar actually uses. Translating them to formal Spanish ("alquiler," "oficial de préstamos," "puntaje crediticio," "facturas médicas," "trabajos secundarios," "facturas") reads as artificial or as if the writer doesn't speak the dialect. Compromise: include both where the formal term is widely understood ("renta" alongside "renting").
 
-4. **The "radio scammers" trust block (Section 5).** This avatar has been burned — by Spanish-language radio credit-repair ads that take $2K upfront and disappear, by predatory bilingual loan officers, by relatives recommending sketchy programs. Naming this fear directly and showing how Clean Path is structurally different (CROA-required, not optional) is the single highest-trust move on the page. Without this block, the page reads as just another scammer.
+4. **Family-first framing.** Hero is "una casa para tu familia," not "compra tu próxima casa." Section 4 explicitly addresses mixed-status households, supporting parents, sending money home, and multi-generational living. These are the unspoken concerns this avatar has when reading any home-buying material.
 
-5. **ITIN, cash income, mixed-status — named explicitly.** The dominant English-language credit-repair sites either ignore these or hide them in fine print. Naming them on the front page signals: "we already know your situation, we already work with this, you don't have to explain." This is the single most-converting element for ITIN borrowers in particular.
+5. **The "radio scammers" trust block (Section 5).** This avatar has been burned — by Spanish-language radio credit-repair ads that take $2K upfront and disappear, by predatory bilingual loan officers, by relatives recommending sketchy programs. Naming this fear directly and showing how Clean Path is structurally different (CROA-required, not optional) is the single highest-trust move on the page. Without this block, the page reads as just another scammer.
 
-6. **No specific locations mentioned.** Per the brief, the cultural register is Houston/SA but the page works for Latino buyers in Phoenix, LA, Chicago, Miami too. The Spanish itself — Mexican Spanish with Mexican-American Spanglish — will read as native to ~70% of US Latinos. Cuban, Puerto Rican, Dominican, Central American, and South American Latinos will recognize it as US-Latino register, which is also the right read.
+6. **ITIN, cash income, mixed-status — named explicitly.** The dominant English-language credit-repair sites either ignore these or hide them in fine print. Naming them on the front page signals: "we already know your situation, we already work with this, you don't have to explain." This is the single most-converting element for ITIN borrowers in particular.
 
-7. **CROA compliance in plain Spanish, not legalese.** Section 5 translates the CROA §404 prohibitions into the buyer's own language: "no podemos cobrarte por adelantado," "tienes 3 días para cancelar." This serves double duty: legal compliance AND the trust-building "we're different from the scammers" message.
+7. **No specific locations mentioned.** Per the brief, the cultural register is Houston/SA but the page works for Latino buyers in Phoenix, LA, Chicago, Miami too. The Spanish itself — Mexican Spanish with Mexican-American Spanglish — will read as native to ~70% of US Latinos.
 
-8. **"En 60 a 90 días en promedio" — "on average" not "guaranteed."** This phrasing is deliberate. Stating an average without a guarantee survives CROA §404(a)(3) scrutiny. Stating "in 90 days" without "on average" would be an outcome guarantee. The Spanish "en promedio" carries the same meaning and the same legal protection.
+8. **CROA compliance in plain Spanish, not legalese.** Section 5 translates the CROA §404 prohibitions into the buyer's own language: "no podemos cobrarte por adelantado," "tienes 3 días para cancelar." This serves double duty: legal compliance AND the trust-building "we're different from the scammers" message.
+
+9. **"En 60 a 90 días en promedio" — "on average" not "guaranteed."** This phrasing is deliberate. Stating an average without a guarantee survives CROA §404(a)(3) scrutiny. Stating "in 90 days" without "on average" would be an outcome guarantee.
 
 ---
 
@@ -179,14 +181,13 @@ Reviewer-facing notes on the cultural choices made in the copy. If a bilingual r
 - Back: English LO-handoff talking points (so the LO can read them while sitting at the desk with the buyer)
 - Print 100 copies for the first walk-in batch
 
-**For the landing-page version (`cleanpathcredit.com/es-comprador` or equivalent):**
+**For the landing-page version (`cleanpathcredit.com/es-comprador`):**
+- Lives at `src/pages/EsComprador.tsx` — mirror this doc when copy changes
 - Mobile-first (this avatar lives on phone, not desktop)
-- Same content as the leave-behind front, no LO talking points section
 - CTA button is a Calendly embed pre-set to Spanish-language LO/coach availability
-- Add a sticky bottom CTA bar on mobile: "Llamada gratis →" + "Texto: [phone]"
-- Set `<html lang="es">` on this page (not `en`) so screen readers and search engines treat it as Spanish
-- Add `hreflang` alternates so this page and the English equivalent cross-reference each other
-- Track conversions in GA4 with a separate event for Spanish-funnel attribution (`event: contact_request, params: {language: 'es', source: 'es-comprador'}`)
+- Sticky bottom CTA bar on mobile: "Llamada gratis →" + "Texto: (346) 399-5606"
+- Sets `<html lang="es">` on this page (not `en`) so screen readers and search engines treat it as Spanish
+- Tracks conversions in GA4 with the `spanish_funnel_view` event for Spanish-funnel attribution
 - A/B test variants: hero "Una casa para tu familia" vs. "Sal del renting. Compra tu casa." vs. "El sueño no debe esperar."
 
 **For the IG/TikTok/FB ad funnel:**

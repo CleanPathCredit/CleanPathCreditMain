@@ -77,7 +77,7 @@ Most dealerships have NO structured recovery channel for bumped buyers. The buye
 
 **15-minute partnership call:** [Calendly link]
 
-**Have a bumped file this week?** Send it for a free pre-screen — reply to [email] or text [phone].
+**Have a bumped file this week?** Send it for a free pre-screen — reply to hello@cleanpathcredit.com or text (346) 399-5606.
 
 **Or scan the QR code on this flyer** to go straight to the buyer intake page.
 
@@ -86,7 +86,7 @@ Most dealerships have NO structured recovery channel for bumped buyers. The buye
 ## Footer
 
 Clean Path Credit
-cleanpathcredit.com | [phone] | [email]
+cleanpathcredit.com | (346) 399-5606 | hello@cleanpathcredit.com
 San Antonio, TX
 Texas CSO Registration #[FILL IN AFTER APPROVAL]
 Surety Bond: [CARRIER NAME, $10,000 — FILL IN AFTER PLACEMENT]
@@ -113,3 +113,5 @@ The following items are deliberately handled this way for legal safety. Do not c
 7. **No TILA advertising trigger.** The flyer does not advertise auto financing terms (APR, monthly payment, down payment). If we ever do, Reg Z §1026.24 advertising rules apply (full TILA-compliant disclosures).
 
 8. **Dealership-branded handoff page — compliance posture.** When we co-brand a buyer-intake page with a dealership, the page must clearly identify Clean Path Credit as the CROA-licensed party providing the credit services. The dealership's branding is for buyer trust, not for misrepresenting who's regulated. Specifically: the CROA Consumer Credit File Rights notice and the 3-day cancellation language must be Clean Path's, in plain English (and Spanish where applicable), regardless of dealership branding.
+
+9. **Phone and email currently in use.** Current contact: (346) 399-5606 / hello@cleanpathcredit.com. The phone number is provisional ("for now" per the original brief). When swapped, find/replace across `docs/launch/`, `docs/runbooks/`, and the `EsComprador.tsx` env-var fallbacks.
