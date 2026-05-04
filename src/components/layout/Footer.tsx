@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield } from "lucide-react";
+import { Globe } from "lucide-react";
 
 export function Footer() {
   return (
@@ -13,11 +13,19 @@ export function Footer() {
               <span className="text-[9px] font-medium text-zinc-500 tracking-widest uppercase leading-tight">Powered by AI</span>
             </div>
           </a>
-          <p className="max-w-xs text-sm text-zinc-500">
+          <p className="max-w-xs text-sm text-zinc-500 mb-4">
             Developer-grade credit optimization powered by artificial intelligence. Faster, smarter, and more transparent.
           </p>
+          <a
+            href="/es-comprador"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+            lang="es"
+          >
+            <Globe className="h-4 w-4" />
+            Versión en español
+          </a>
         </div>
-        
+
         <div>
           <h4 className="mb-4 font-medium text-white">Platform</h4>
           <ul className="space-y-2 text-sm">
