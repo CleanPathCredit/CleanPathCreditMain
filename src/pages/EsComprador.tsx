@@ -32,9 +32,9 @@
  *   - VITE_CALENDLY_URL_ES — Spanish-language Calendly URL. Falls
  *     back to the existing English audit-call URL if unset, so the
  *     page never ships with a broken CTA.
- *   - VITE_PUBLIC_SMS_NUMBER — SMS contact (defaults to placeholder).
- *   - VITE_PUBLIC_HOLA_EMAIL — Spanish-routing email (defaults to
- *     hola@cleanpathcredit.com).
+ *   - VITE_PUBLIC_SMS_NUMBER — SMS contact (defaults to current line).
+ *   - VITE_PUBLIC_CONTACT_EMAIL — contact email (defaults to
+ *     hello@cleanpathcredit.com).
  */
 
 import React, { useEffect } from "react";
@@ -55,10 +55,10 @@ const CALENDLY_URL_ES =
   "https://calendly.com/cleanpathcredit/free-15-min-credit-audit-strategy-call";
 
 const SMS_NUMBER =
-  (import.meta.env.VITE_PUBLIC_SMS_NUMBER as string | undefined) ?? "(210) 555-0100";
+  (import.meta.env.VITE_PUBLIC_SMS_NUMBER as string | undefined) ?? "(346) 399-5606";
 
-const HOLA_EMAIL =
-  (import.meta.env.VITE_PUBLIC_HOLA_EMAIL as string | undefined) ?? "hola@cleanpathcredit.com";
+const CONTACT_EMAIL =
+  (import.meta.env.VITE_PUBLIC_CONTACT_EMAIL as string | undefined) ?? "hello@cleanpathcredit.com";
 
 // gtag is loaded globally by index.html; declare its window shape so
 // the spanish_funnel_view event can be fired without a type error.
@@ -125,7 +125,7 @@ export function EsComprador() {
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center h-14 px-8 rounded-xl bg-emerald-600 text-white text-base font-semibold shadow-md hover:bg-emerald-700 transition-colors"
           >
-            Agendar mi llamada gratis →
+            Reservar mi llamada gratis →
           </a>
           <p className="mt-3 text-sm text-zinc-500">
             15 minutos · En español · Sin compromiso
@@ -138,7 +138,7 @@ export function EsComprador() {
             Has trabajado duro. Has pagado renta por años.
           </h2>
           <p className="text-lg text-zinc-700 leading-relaxed mb-3">
-            Llevas años pagando $1,500, $2,000, $2,500 al mes en renta — plata que no vuelve. Has cuidado a tus padres, a tus hijos, a tu familia. Has trabajado dos turnos, side jobs, lo que se necesita.
+            Llevas años pagando $1,500, $2,000, $2,500 al mes en renta — dinero que no vuelve. Has cuidado a tus papás, a tus hijos, a tu familia. Has trabajado dos turnos, side jobs, lo que se necesita.
           </p>
           <p className="text-lg text-zinc-700 leading-relaxed mb-3">
             Y cuando llegas con el loan officer a preguntar por una casa, te dicen que tu credit score está muy bajo, que te falta historial, o que tu ingreso de cash no califica.
@@ -217,7 +217,7 @@ export function EsComprador() {
                 a: "Sí, hay formas de calificar. Te ayudamos a documentarlo correctamente para que el LO lo pueda usar.",
               },
               {
-                q: "¿Vives con tus padres, hermanos, o tienes una familia mixta?",
+                q: "¿Vives con tus papás, hermanos, o tienes una familia mixta?",
                 a: "Sin problema. La hipoteca puede ser para uno, dos, o más miembros de la familia.",
               },
               {
@@ -246,7 +246,7 @@ export function EsComprador() {
             ¿Por qué somos diferentes?
           </h2>
           <p className="text-zinc-600 mb-3 max-w-2xl mx-auto text-center">
-            Sabemos que las has escuchado. Las que prometen “borrar tu crédito malo en 30 días” y luego te cobran $2,000 por adelantado y desaparecen. Las que llaman a tus padres y les dicen que firmen sin entender el contrato.
+            Sabemos que las has escuchado. Las que prometen “borrar tu crédito malo en 30 días” y luego te cobran $2,000 por adelantado y desaparecen. Las que llaman a tus papás y les dicen que firmen sin entender el contrato.
           </p>
           <p className="text-zinc-700 mb-8 max-w-2xl mx-auto text-center font-semibold">
             Nosotros operamos diferente — y no es opción nuestra, es la ley:
@@ -290,7 +290,7 @@ export function EsComprador() {
             Llamada gratis de 15 minutos. En español. Sin compromiso.
           </p>
           <p className="opacity-80 mb-8">
-            Te decimos en 48 horas si creemos que podemos ayudarte y cuánto tiempo aproximadamente toma.
+            Te avisamos en 48 horas si te podemos ayudar y aproximadamente cuánto tiempo tomaría.
           </p>
           <a
             href={CALENDLY_URL_ES}
@@ -298,7 +298,7 @@ export function EsComprador() {
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center h-14 px-8 rounded-xl bg-white text-emerald-700 text-base font-semibold shadow-md hover:bg-emerald-50 transition-colors"
           >
-            Agendar mi llamada gratis →
+            Reservar mi llamada gratis →
           </a>
           <div className="mt-8 flex flex-col sm:flex-row sm:justify-center gap-4 sm:gap-8 text-sm opacity-90">
             <a
@@ -309,11 +309,11 @@ export function EsComprador() {
               Texto: {SMS_NUMBER}
             </a>
             <a
-              href={`mailto:${HOLA_EMAIL}`}
+              href={`mailto:${CONTACT_EMAIL}`}
               className="inline-flex items-center justify-center gap-2 hover:opacity-100"
             >
               <Mail className="h-4 w-4" />
-              {HOLA_EMAIL}
+              {CONTACT_EMAIL}
             </a>
           </div>
         </section>
