@@ -19,7 +19,7 @@ ese es alguien más en el equipo?
 
 [Si dice sí]
 
-Perfecto. Razon de la llamada — la mayoría de los LOs Latinos con
+Perfecto. Razón de la llamada — la mayoría de los LOs Latinos con
 los que trabajamos perdían 25 a 40 por ciento de sus archivos por
 crédito y no tenían un partner que realmente entienda al comprador
 Latino. La mayoría de las compañías de credit-repair son inglés-only
@@ -167,7 +167,7 @@ Nos vemos [día/hora].
 
 Alex Serratos
 Clean Path Credit
-[phone] | cleanpathcredit.com
+(346) 399-5606 | cleanpathcredit.com
 ```
 
 ---
@@ -180,7 +180,7 @@ Mismo script base, abre con la pena específica del archetype.
 
 **Perfil:** Broker propietario o broker pequeño, 1-3 LOs, base de clientes mayoritariamente Latina (a veces 100% Latina). El LO mismo es el que pierde la comisión cuando se le cae un archivo. Sin red corporativa de credit-repair partners. Escucha radio en español, conoce las compañías de credit-repair de la radio AM y desconfía de ellas — lo cual es bueno para nosotros.
 
-**Lead-in tweak:** *"La mayoría de los brokers Latinos independientes con los que trabajamos son los que más pierden por archivos denegados — cada comisión cae directo en tu bolsillo, no hay piso salarial. Y la mayoría no tiene un partner bilingüe de credit-repair en el que confî. Eso es lo que llenamos."*
+**Lead-in tweak:** *"La mayoría de los brokers Latinos independientes con los que trabajamos son los que más pierden por archivos denegados — cada comisión cae directo en tu bolsillo, no hay piso salarial. Y la mayoría no tiene un partner bilingüe de credit-repair en el que confíe. Eso es lo que llenamos."*
 
 **Mejor hook para reservar la llamada:** "Te puedo hacer pre-screen gratis en cualquier archivo denegado que tengas en el escritorio ahora mismo — 48 horas. ¿Me mandas uno?"
 
