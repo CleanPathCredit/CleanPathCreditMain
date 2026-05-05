@@ -117,7 +117,7 @@ See you [day/time].
 
 Alex Serratos
 Clean Path Credit
-[phone] | cleanpathcredit.com
+(346) 399-5606 | cleanpathcredit.com
 ```
 
 ---
