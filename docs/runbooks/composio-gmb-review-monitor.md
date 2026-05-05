@@ -86,7 +86,7 @@ short, we'd love to hear specifics so we can keep improving. — Alex
 ```
 Thank you for the feedback, [First Name]. We'd like to understand what
 fell short and make it right. Please reach me directly at
-[support@cleanpathcredit.com] or [phone] so we can discuss. — Alex
+hello@cleanpathcredit.com or (346) 399-5606 so we can discuss. — Alex
 ```
 
 **Why this template:** Don't argue in public. Don't acknowledge specific complaints in writing (FCRA §616 risk if it discloses anything about a real client file). Route to private channel where the conversation can be handled with the actual file in front of you.
@@ -105,7 +105,7 @@ Mirror the same structure but in Spanish:
 
 - 5-star: `Gracias, [Primer Nombre]. Nos alegra que el proceso te haya funcionado. — Alex`
 - 4-star: `Gracias, [Primer Nombre] — valoramos tu feedback. Si algo se quedó corto, nos gustaría entender los detalles para seguir mejorando. — Alex`
-- 1-3 star: `Gracias por el feedback, [Primer Nombre]. Nos gustaría entender qué se quedó corto. Contáctame directo a [support@cleanpathcredit.com] o [phone] para platicarlo. — Alex`
+- 1-3 star: `Gracias por el feedback, [Primer Nombre]. Nos gustaría entender qué se quedó corto. Contáctame directo a hello@cleanpathcredit.com o (346) 399-5606 para platicarlo. — Alex`
 
 ---
 
