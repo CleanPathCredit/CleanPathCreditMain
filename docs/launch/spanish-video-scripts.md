@@ -88,7 +88,7 @@ FICO 10T / VantageScore 4.0 explainers. Average view-time on educational explain
 > "Por 30 años, pagar tu renta a tiempo no te servía de nada para comprar casa. Eso cambió este año."
 
 **Body (0:03–0:45):**
-> "Por décadas podías pagar $1,500, $2,000 al mes en renta — perfecto, sin fallar un mes — y para los burós de crédito era como si esa plata no existiera. Llegabas con el loan officer a preguntar por una casa y te decían que tu crédito no califica, que no tienes historial."
+> "Por décadas podías pagar $1,500, $2,000 al mes en renta — perfecto, sin fallar un mes — y para los burós de crédito era como si ese dinero no existiera. Llegabas con el loan officer a preguntar por una casa y te decían que tu crédito no califica, que no tienes historial."
 >
 > "En 2025, Fannie Mae y Freddie Mac — los dos prestamistas más grandes del país — empezaron a aceptar dos puntajes nuevos: FICO 10T y VantageScore 4.0. Estos sí ven tu renta. Tu luz. Tu agua. Tus biles."
 >
@@ -256,7 +256,7 @@ Myth-busting for ITIN borrowers, cash-income earners, and mixed-status families.
 **Theme:** Bucket B · **Length:** ~50 sec · **Filming session:** 1 (talking-head, kitchen)
 
 **Hook (0:00–0:03):**
-> "Si vives con tus papas o tu familia es mixta — escucha. La hipoteca sí es para ti."
+> "Si vives con tus papás o tu familia es mixta — escucha. La hipoteca sí es para ti."
 
 **Body (0:03–0:45):**
 > "Mucha gente Latina vive en familias multi-generacionales o de status mixto. Eso a veces los hace sentir que la hipoteca americana 'no es para ellos.' No es así."
@@ -337,7 +337,7 @@ Trust block. Names the radio scammer fear directly and shows what real CROA-comp
 >
 > "Lo que es legal: cobrar después. Cobrar por trabajo hecho y documentado. Eso es lo que dice la ley."
 >
-> "Si una compañía no respeta eso, las demás reglas tampoco las respetan. Huíle."
+> "Si una compañía no respeta eso, las demás reglas tampoco las respetan. Huye."
 
 **CTA (0:45–0:50):**
 > "Link en mi bio. Sin pagos por adelantado. Sin trampas. En español."
