@@ -1,5 +1,5 @@
 import React from "react";
-import { Globe } from "lucide-react";
+import { Globe, Briefcase } from "lucide-react";
 
 export function Footer() {
   return (
@@ -16,14 +16,23 @@ export function Footer() {
           <p className="max-w-xs text-sm text-zinc-500 mb-4">
             Developer-grade credit optimization powered by artificial intelligence. Faster, smarter, and more transparent.
           </p>
-          <a
-            href="/es-comprador"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
-            lang="es"
-          >
-            <Globe className="h-4 w-4" />
-            Versión en español
-          </a>
+          <div className="flex flex-col gap-2">
+            <a
+              href="/partners"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              <Briefcase className="h-4 w-4" />
+              Partner with us
+            </a>
+            <a
+              href="/es-comprador"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+              lang="es"
+            >
+              <Globe className="h-4 w-4" />
+              Versión en español
+            </a>
+          </div>
         </div>
 
         <div>
@@ -39,6 +48,7 @@ export function Footer() {
         <div>
           <h4 className="mb-4 font-medium text-white">Company</h4>
           <ul className="space-y-2 text-sm">
+            <li><a href="/partners" className="transition-colors hover:text-white">Partner Program</a></li>
             <li><a href="#" className="transition-colors hover:text-white">About Us</a></li>
             <li><a href="#" className="transition-colors hover:text-white">Careers</a></li>
             <li><a href="/privacy" className="transition-colors hover:text-white">Privacy Policy</a></li>

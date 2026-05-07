@@ -24,6 +24,7 @@ const Privacy     = lazy(() => import("@/pages/Privacy").then(m => ({ default: m
 const Unlock      = lazy(() => import("@/pages/Unlock").then(m => ({ default: m.Unlock })));
 const EsComprador = lazy(() => import("@/pages/EsComprador").then(m => ({ default: m.EsComprador })));
 const SmsConsent  = lazy(() => import("@/pages/SmsConsent").then(m => ({ default: m.SmsConsent })));
+const Partners    = lazy(() => import("@/pages/Partners").then(m => ({ default: m.Partners })));
 
 function LoadingFallback() {
   return (
@@ -66,6 +67,12 @@ export default function App() {
                   the Twilio A2P registration. Update all three together
                   or A2P review will reject the registration. */}
               <Route path="/sms-consent" element={<SmsConsent />} />
+              {/* Partners program intake page — Track A4/A6 inbound.
+                  Public marketing + application form for mortgage LOs,
+                  brokers, real estate agents, and dealership F&I managers.
+                  See file header for compliance posture (RESPA §8,
+                  CROA §404, TCPA). */}
+              <Route path="/partners" element={<Partners />} />
               <Route
                 path="/dashboard"
                 element={
