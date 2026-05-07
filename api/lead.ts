@@ -19,6 +19,12 @@
  *      the API call fails. Preserves revert safety: unset the PIT env var
  *      and behavior reverts to the prior webhook-only flow.
  *
+ * After successful delivery, fires a Meta Conversions API `Lead` event
+ * server-side for ad attribution. _fbp and _fbc cookies (set client-side
+ * by the Meta Pixel) are captured from the request and forwarded so Meta
+ * can match the lead back to the original ad click. Best-effort — failure
+ * is logged but never blocks the lead submission ack.
+ *
  * Bot protection (audit finding C-4):
  *   - Honeypot field `website` — if non-empty we silently 200 so bots think
  *     the submission succeeded and don't adapt. Nothing is forwarded.
@@ -41,6 +47,11 @@
  *                                   the API call)
  * Optional env:
  *   TURNSTILE_SECRET_KEY            Cloudflare Turnstile secret (enables verify)
+ *   META_CAPI_INTERNAL_SECRET       Required to fire CAPI Lead events.
+ *                                   Without it, the Meta call is silently
+ *                                   skipped (logged as info, not error).
+ *   META_CAPI_BASE_URL              Base URL for the /api/meta-capi endpoint.
+ *                                   Defaults to https://cleanpathcredit.com.
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
@@ -135,6 +146,32 @@ function getClientIp(req: IncomingMessage): string | undefined {
   // First entry in the XFF chain is the original client on Vercel.
   const first = header.split(",")[0]?.trim();
   return first || undefined;
+}
+
+/**
+ * Parse the request's Cookie header into a name→value map. We only need
+ * Meta's _fbp / _fbc cookies for CAPI attribution, but the helper is
+ * generic so it can be reused if other server-side cookie reads are
+ * needed later.
+ */
+function parseCookies(req: IncomingMessage): Record<string, string> {
+  const header = req.headers.cookie;
+  if (!header) return {};
+  const out: Record<string, string> = {};
+  for (const pair of header.split(";")) {
+    const idx = pair.indexOf("=");
+    if (idx < 0) continue;
+    const name = pair.slice(0, idx).trim();
+    const val  = pair.slice(idx + 1).trim();
+    if (!name) continue;
+    try {
+      out[name] = decodeURIComponent(val);
+    } catch {
+      // Malformed percent-encoding — keep the raw value rather than drop.
+      out[name] = val;
+    }
+  }
+  return out;
 }
 
 function str(value: unknown): string {
@@ -396,6 +433,111 @@ async function coSendWebhook(webhookUrl: string, lead: SanitizedLead): Promise<b
   }
 }
 
+/**
+ * Fire a Meta Conversions API Lead event server-side.
+ *
+ * Best-effort. Failure is logged but never blocks the lead submission —
+ * Meta CAPI is supplemental to the browser-side Pixel, not load-bearing.
+ *
+ * event_id design:
+ *   - When GHL returned a contact ID, use a deterministic
+ *     `lead-${ghlContactId}-${submittedAt}` so re-submissions on the
+ *     same minute don't double-count and a future browser-side Pixel
+ *     firing can construct the same ID for dedup.
+ *   - Without a GHL contact ID (webhook-fallback delivery path), fall
+ *     back to email + submittedAt. Email is already a deterministic
+ *     identifier per submission.
+ *
+ * _fbp / _fbc cookie capture:
+ *   - The Meta Pixel sets _fbp on first page-load and _fbc when the
+ *     visitor lands with ?fbclid=... from a Meta ad. Without these,
+ *     server-side Lead events have a much lower chance of attributing
+ *     back to the originating ad click.
+ *   - Caller passes both from req.cookies; we forward unchanged.
+ *
+ * Calls /api/meta-capi over HTTP with the X-Internal-Secret header so
+ * the same auth gate that protects the proxy from public abuse covers
+ * this internal call. Response parsing matches the Stripe webhook
+ * pattern: log success only when body.ok === true.
+ */
+async function fireMetaCapiLead(args: {
+  lead:          SanitizedLead;
+  ghlContactId?: string;
+  fbp?:          string;
+  fbc?:          string;
+  ipAddress?:    string;
+  userAgent?:    string;
+}): Promise<void> {
+  const internalSecret = process.env.META_CAPI_INTERNAL_SECRET;
+  if (!internalSecret) {
+    console.info("[/api/lead] meta_capi_skip — no META_CAPI_INTERNAL_SECRET");
+    return;
+  }
+
+  const baseUrl = process.env.META_CAPI_BASE_URL ?? "https://cleanpathcredit.com";
+  const url     = `${baseUrl}/api/meta-capi`;
+
+  const eventId = args.ghlContactId
+    ? `lead-${args.ghlContactId}-${args.lead.submittedAt}`
+    : `lead-${args.lead.email}-${args.lead.submittedAt}`;
+
+  try {
+    const resp = await fetch(url, {
+      method:  "POST",
+      headers: {
+        "Content-Type":      "application/json",
+        "X-Internal-Secret": internalSecret,
+      },
+      body: JSON.stringify({
+        event_name:    "Lead",
+        event_id:      eventId,
+        action_source: "website",
+        user_data: {
+          email:             args.lead.email,
+          phone:             args.lead.phone || undefined,
+          external_id:       args.ghlContactId,
+          fbp:               args.fbp,
+          fbc:               args.fbc,
+          client_ip_address: args.ipAddress,
+          client_user_agent: args.userAgent,
+        },
+        custom_data: {
+          // Meta Lead events don't have a fixed value field; we surface
+          // the funnel context via content_name (goal) and
+          // content_category (the first obstacle) so segments can be
+          // built in Ads Manager based on lead intent.
+          content_name:     args.lead.goal || undefined,
+          content_category: args.lead.obstacles[0] || undefined,
+        },
+      }),
+    });
+
+    const respBody = (await resp.json().catch(() => ({}))) as {
+      ok?: boolean;
+      reason?: string;
+      status?: number;
+      event_id?: string;
+    };
+
+    if (!resp.ok || respBody.ok !== true) {
+      console.warn(
+        "[/api/lead] meta_capi_lead_not_delivered http_status=%d ok=%s reason=%s upstream_status=%s",
+        resp.status,
+        respBody.ok,
+        respBody.reason ?? "—",
+        respBody.status ?? "—",
+      );
+      return;
+    }
+
+    console.log(
+      `[/api/lead] meta_capi_lead_fired event_id=${eventId} fbp=${args.fbp ? "yes" : "no"} fbc=${args.fbc ? "yes" : "no"}`,
+    );
+  } catch (err) {
+    console.error("[/api/lead] meta_capi_lead_error:", err);
+  }
+}
+
 export default async function handler(
   req: IncomingMessage,
   res: ServerResponse,
@@ -536,6 +678,23 @@ export default async function handler(
   // admin to see the row immediately on the next dashboard refresh.
   const delivery: GHLDelivery = apiResult?.ok === true ? "api" : "webhook_fallback";
   await persistLeadSubmission(lead, apiResult?.contactId, delivery);
+
+  // Fire Meta CAPI Lead event for ad attribution. Best-effort — failure
+  // is logged but doesn't block the 200 ack to the client. _fbp / _fbc
+  // cookies are read off the request: the Meta Pixel sets _fbp on first
+  // page-load and _fbc when the visitor lands with ?fbclid=... from an
+  // ad. Without these, server-side Lead events have a much lower chance
+  // of matching back to the original ad click.
+  const cookies   = parseCookies(req);
+  const userAgent = req.headers["user-agent"];
+  await fireMetaCapiLead({
+    lead,
+    ghlContactId: apiResult?.contactId,
+    fbp:          cookies._fbp,
+    fbc:          cookies._fbc,
+    ipAddress:    getClientIp(req),
+    userAgent:    typeof userAgent === "string" ? userAgent : undefined,
+  });
 
   return sendJson(res, 200, {
     ok: true,
