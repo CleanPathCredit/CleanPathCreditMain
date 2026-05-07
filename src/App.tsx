@@ -23,6 +23,7 @@ const Terms       = lazy(() => import("@/pages/Terms").then(m => ({ default: m.T
 const Privacy     = lazy(() => import("@/pages/Privacy").then(m => ({ default: m.Privacy })));
 const Unlock      = lazy(() => import("@/pages/Unlock").then(m => ({ default: m.Unlock })));
 const EsComprador = lazy(() => import("@/pages/EsComprador").then(m => ({ default: m.EsComprador })));
+const SmsConsent  = lazy(() => import("@/pages/SmsConsent").then(m => ({ default: m.SmsConsent })));
 
 function LoadingFallback() {
   return (
@@ -58,6 +59,13 @@ export default function App() {
                   number is filled into EsComprador.tsx footer. See file
                   header for full compliance gate list. */}
               <Route path="/es-comprador" element={<EsComprador />} />
+              {/* SMS opt-in capture page for A2P 10DLC compliance.
+                  Public, no-auth, noindex. The exact opt-in language
+                  rendered next to the consent checkbox MUST stay in
+                  lockstep with api/sms-consent.ts CONSENT_TEXT_V1 and
+                  the Twilio A2P registration. Update all three together
+                  or A2P review will reject the registration. */}
+              <Route path="/sms-consent" element={<SmsConsent />} />
               <Route
                 path="/dashboard"
                 element={
