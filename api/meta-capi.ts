@@ -7,6 +7,15 @@
  * to recover ~25-40% of conversions blocked by iOS 14+ browser-side
  * Pixel restrictions and ad-blockers.
  *
+ * SERVER-TO-SERVER ONLY. Internet-facing but not browser-callable.
+ * Codex review on PR #20 (P1) flagged the unauthenticated original —
+ * any internet caller could inject arbitrary Lead/Purchase events using
+ * our Pixel credentials and poison attribution/optimization data. The
+ * fix: require X-Internal-Secret header that matches
+ * META_CAPI_INTERNAL_SECRET env var. The known callers
+ * (api/webhooks/stripe.ts, api/lead.ts, etc.) include the header;
+ * anyone hitting the endpoint from a browser or third-party gets 403.
+ *
  * Why server-side:
  *   - iOS 14+ Mail Privacy Protection + ITP block the Pixel cookie
  *   - Browser ad-blockers strip the Pixel script entirely
@@ -14,24 +23,32 @@
  *   - Meta deduplicates by event_id when the same event fires both
  *     Pixel + CAPI, so no double-counting
  *
- * Callers (current + planned):
+ * Callers (current + planned) — each must include the X-Internal-Secret
+ * header on their fetch:
  *   - api/webhooks/stripe.ts  → Purchase event after checkout completes
  *   - api/lead.ts              → Lead event after form submit
- *   - src/pages/EsComprador.tsx → SpanishFunnelView (browser-side; mirrored
- *                                 here only for Composio runbook driven
- *                                 backfills, not for normal page views)
+ *   - Composio runbook         → backfill batches (server-side cron)
+ *   NOTE: src/pages/EsComprador.tsx and other browser pages MUST NOT
+ *   call this endpoint directly — the secret would be exposed in the
+ *   client bundle. Browser-side events go through the Pixel only.
  *
  * Required env (set in Vercel):
- *   META_CAPI_ACCESS_TOKEN  System User access token from Meta Business
- *                           Manager → Settings → Users → System Users →
- *                           generate token with `ads_management` and
- *                           `business_management` scopes.
- *   META_PIXEL_ID           Numeric Pixel ID (same as VITE_META_PIXEL_ID).
+ *   META_CAPI_ACCESS_TOKEN     System User access token from Meta Business
+ *                              Manager → Settings → Users → System Users
+ *                              → generate token with `ads_management` and
+ *                              `business_management` scopes.
+ *   META_PIXEL_ID              Numeric Pixel ID (same as VITE_META_PIXEL_ID).
+ *   META_CAPI_INTERNAL_SECRET  Random high-entropy string. Required to
+ *                              authenticate calls from our own server
+ *                              functions; without it, the endpoint
+ *                              returns 500 server_misconfigured even if
+ *                              ACCESS_TOKEN + PIXEL_ID are set.
+ *                              Generate with: `openssl rand -hex 32`
+ *
  * Optional env:
- *   META_CAPI_TEST_EVENT_CODE
- *                           Pass-through to Meta's Test Events tab so you
- *                           can verify deliveries without polluting prod
- *                           attribution. Format: TEST12345
+ *   META_CAPI_TEST_EVENT_CODE  Pass-through to Meta's Test Events tab so
+ *                              you can verify deliveries without
+ *                              polluting prod attribution. Format: TEST12345
  *
  * Compliance posture:
  *   - All PII (email, phone) is SHA-256 hashed BEFORE leaving this
@@ -42,6 +59,9 @@
  *     requires lowercase hex on the wire.
  *   - No raw PII is logged. On failure, only HTTP status + truncated
  *     response body are logged.
+ *   - Access token is sent via Authorization: Bearer header, NOT as a
+ *     query string param — prevents the secret from leaking into URL
+ *     logs, error telemetry, and intermediary traces (Codex P2).
  *   - Edge runtime (no Node `crypto` module). Web Crypto API is used
  *     via globalThis.crypto.subtle.digest('SHA-256', ...).
  *
@@ -65,6 +85,9 @@
  *     custom_data?: { ... }                // pass-through to Meta (currency,
  *                                          // value, content_ids, etc.)
  *   }
+ *
+ * Required header:
+ *   X-Internal-Secret: <META_CAPI_INTERNAL_SECRET value>
  */
 
 export const config = { runtime: "edge" };
@@ -118,21 +141,62 @@ function normalizePhone(phone: string): string {
   return phone.replace(/[^\d]/g, "");
 }
 
+/**
+ * Constant-time-ish string comparison. Falls back to length check + char-
+ * by-char xor accumulation so a timing attack can't determine the secret
+ * one character at a time. We're on edge runtime without
+ * crypto.timingSafeEqual; this is the standard JS approximation.
+ */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
-  const pixelId     = process.env.META_PIXEL_ID;
-  const testCode    = process.env.META_CAPI_TEST_EVENT_CODE;
+  const accessToken    = process.env.META_CAPI_ACCESS_TOKEN;
+  const pixelId        = process.env.META_PIXEL_ID;
+  const internalSecret = process.env.META_CAPI_INTERNAL_SECRET;
+  const testCode       = process.env.META_CAPI_TEST_EVENT_CODE;
 
   if (!accessToken || !pixelId) {
     // Fail-open for partial config — log and ack 200 so callers don't
     // retry. Meta CAPI is supplemental; the Pixel is the primary signal.
+    // This branch is reached when the env was never set up (e.g., a
+    // staging deploy without Meta), not when the secret is misconfigured.
     console.warn("[/api/meta-capi] disabled — missing META_CAPI_ACCESS_TOKEN or META_PIXEL_ID");
     return new Response(JSON.stringify({ ok: false, reason: "not_configured" }), {
       status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (!internalSecret) {
+    // META is configured BUT the internal-secret gate isn't — fail closed.
+    // Without the secret, anyone on the internet could POST and forward
+    // events to Meta using our credentials. The endpoint stays unusable
+    // until the operator sets META_CAPI_INTERNAL_SECRET in Vercel env.
+    console.error("[/api/meta-capi] server_misconfigured — missing META_CAPI_INTERNAL_SECRET");
+    return new Response(JSON.stringify({ ok: false, reason: "server_misconfigured" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Authentication: require the X-Internal-Secret header. Server-to-server
+  // callers (api/webhooks/stripe.ts, api/lead.ts) include this. Without
+  // a valid header the request is rejected as forbidden.
+  const providedSecret = req.headers.get("x-internal-secret");
+  if (!providedSecret || !safeEqual(providedSecret, internalSecret)) {
+    return new Response(JSON.stringify({ ok: false, reason: "forbidden" }), {
+      status: 403,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -179,11 +243,18 @@ export default async function handler(req: Request): Promise<Response> {
   if (testCode) body.test_event_code = testCode;
 
   try {
-    const url = `https://graph.facebook.com/${META_API_VERSION}/${pixelId}/events?access_token=${accessToken}`;
+    // Access token is sent in the Authorization header (Bearer scheme),
+    // NOT as a ?access_token=... query param — prevents URL logging
+    // (Vercel logs, Sentry breadcrumbs, ingress traces) from capturing
+    // the secret. Codex P2 fix.
+    const url = `https://graph.facebook.com/${META_API_VERSION}/${pixelId}/events`;
     const resp = await fetch(url, {
       method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(body),
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(body),
     });
     if (!resp.ok) {
       const text = await resp.text().catch(() => "");
