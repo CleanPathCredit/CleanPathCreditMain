@@ -8,6 +8,8 @@
  *   2. Look up or create a Clerk user for the payer's email
  *   3. Set plan tier on Clerk metadata (Clerk webhook syncs to Supabase profiles)
  *   4. Generate a Clerk sign-in token so /welcome can auto-sign-in the user
+ *   5. Fire Meta Conversions API Purchase event for ad attribution
+ *      (server-side, supplements the browser-side Pixel)
  *
  * Hardening vs prior version (audit finding C-3):
  *   - Node.js runtime with raw-body stream read — fixes TypeError: req.text
@@ -32,6 +34,13 @@
  * Optional env:
  *   STRIPE_PRICE_PLAN_MAP    price_abc=diy,price_def=standard,price_ghi=premium
  *   GHL_WEBHOOK_URL          owner-notification webhook (falls back to VITE_LEAD_WEBHOOK_URL)
+ *   META_CAPI_INTERNAL_SECRET  Required to fire CAPI Purchase events.
+ *                              Without it, the Meta call is silently
+ *                              skipped (logged as info, not error).
+ *   META_CAPI_BASE_URL         Base URL for the /api/meta-capi endpoint.
+ *                              Defaults to https://cleanpathcredit.com.
+ *                              Override on preview/staging deploys to
+ *                              avoid polluting production attribution.
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
@@ -104,6 +113,96 @@ function sendText(res: ServerResponse, status: number, body: string): void {
   res.statusCode = status;
   res.setHeader("Content-Type", "text/plain");
   res.end(body);
+}
+
+/**
+ * Fire a Meta Conversions API Purchase event server-side.
+ *
+ * Best-effort. Failure is logged but never blocks the webhook ack —
+ * Meta CAPI is supplemental to the browser-side Pixel, not
+ * load-bearing on the purchase flow.
+ *
+ * The event_id is the Stripe checkout session ID (stable, idempotent),
+ * which lets a future browser-side Pixel firing on /welcome dedupe
+ * with this server event by passing the same session ID as event_id.
+ *
+ * Calls /api/meta-capi over HTTP with the X-Internal-Secret header so
+ * the same allowlist that protects /api/meta-capi from public abuse
+ * also covers this internal call.
+ */
+async function fireMetaCapiPurchase(args: {
+  sessionId:    string;
+  email:        string;
+  name?:        string;
+  phone?:       string | null;
+  amountTotal?: number | null;  // cents
+  currency?:    string | null;
+  plan:         Plan;
+  clerkUserId:  string;
+  ipAddress?:   string;
+  userAgent?:   string;
+}): Promise<void> {
+  const internalSecret = process.env.META_CAPI_INTERNAL_SECRET;
+  if (!internalSecret) {
+    // No secret — likely Meta isn't configured in this environment.
+    // Don't error; just skip (consistent with /api/meta-capi's
+    // not_configured fail-open).
+    console.info("[/api/webhooks/stripe] meta_capi_skip — no META_CAPI_INTERNAL_SECRET");
+    return;
+  }
+
+  const baseUrl = process.env.META_CAPI_BASE_URL ?? "https://cleanpathcredit.com";
+  const url     = `${baseUrl}/api/meta-capi`;
+
+  try {
+    const resp = await fetch(url, {
+      method:  "POST",
+      headers: {
+        "Content-Type":     "application/json",
+        "X-Internal-Secret": internalSecret,
+      },
+      body: JSON.stringify({
+        event_name:    "Purchase",
+        event_id:      args.sessionId,  // dedup with browser Pixel via same ID
+        action_source: "website",
+        user_data: {
+          email:             args.email,
+          phone:             args.phone || undefined,
+          external_id:       args.clerkUserId,
+          client_ip_address: args.ipAddress,
+          client_user_agent: args.userAgent,
+        },
+        custom_data: {
+          currency:    (args.currency ?? "USD").toUpperCase(),
+          value:       (args.amountTotal ?? 0) / 100,
+          content_name: args.plan,
+          content_type: "product",
+        },
+      }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      console.error(
+        "[/api/webhooks/stripe] meta_capi_purchase_failed status=%d body=%s",
+        resp.status,
+        text.slice(0, 300),
+      );
+      return;
+    }
+    console.log(
+      `[/api/webhooks/stripe] meta_capi_purchase_fired event_id=${args.sessionId} value=${(args.amountTotal ?? 0) / 100} ${(args.currency ?? "USD").toUpperCase()}`,
+    );
+  } catch (err) {
+    console.error("[/api/webhooks/stripe] meta_capi_purchase_error:", err);
+  }
+}
+
+function getClientIp(req: IncomingMessage): string | undefined {
+  const xff = req.headers["x-forwarded-for"];
+  const header = Array.isArray(xff) ? xff[0] : xff;
+  if (!header) return undefined;
+  const first = header.split(",")[0]?.trim();
+  return first || undefined;
 }
 
 export default async function handler(
@@ -186,6 +285,7 @@ export default async function handler(
   const session    = event.data.object as Stripe.Checkout.Session;
   const email      = session.customer_details?.email;
   const name       = session.customer_details?.name ?? "";
+  const phone      = session.customer_details?.phone ?? null;
   const customerId = typeof session.customer === "string" ? session.customer : null;
 
   // 4a. Round-payment branch — when the checkout session was created with
@@ -391,6 +491,24 @@ export default async function handler(
     await posthog.shutdown();
   }
 
+  // 10. Meta Conversions API — fire Purchase event server-side for ad
+  //     attribution. Best-effort; the event_id is the Stripe session ID
+  //     so a future browser-side Pixel firing on /welcome can dedupe by
+  //     passing the same value as event_id. Skip if META_CAPI_INTERNAL_SECRET
+  //     is unset (Meta likely isn't configured in this env).
+  await fireMetaCapiPurchase({
+    sessionId:   session.id,
+    email,
+    name:        name || undefined,
+    phone,
+    amountTotal: session.amount_total,
+    currency:    session.currency,
+    plan,
+    clerkUserId,
+    ipAddress:   getClientIp(req),
+    userAgent:   typeof req.headers["user-agent"] === "string" ? req.headers["user-agent"] : undefined,
+  });
+
   console.log(
     `[/api/webhooks/stripe] purchase processed: email=${email} plan=${plan} userId=${clerkUserId} eventId=${event.id}`,
   );
@@ -400,6 +518,10 @@ export default async function handler(
     token:  signInToken.token,
     plan,
     userId: clerkUserId,
+    // Surface the session ID so /welcome can fire Pixel Purchase event
+    // with the same event_id and Meta will dedupe vs the server-side
+    // CAPI call we just made.
+    purchaseEventId: session.id,
   });
 }
 
