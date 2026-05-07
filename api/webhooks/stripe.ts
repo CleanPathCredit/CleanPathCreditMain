@@ -59,6 +59,30 @@ const AMOUNT_PLAN_MAP: [number, Plan][] = [
   [9700,   "diy"],
 ];
 
+// Stripe currency exponent groups. Source: https://docs.stripe.com/currencies
+// Used to convert session.amount_total (smallest unit integer) to the major
+// unit value Meta wants (e.g. 4.97 USD, not 497 cents).
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  "BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW",
+  "MGA", "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF",
+]);
+const THREE_DECIMAL_CURRENCIES = new Set([
+  "BHD", "JOD", "KWD", "LYD", "OMR", "TND",
+]);
+
+/**
+ * Convert a Stripe smallest-unit amount to its major-unit value using
+ * the currency's exponent. Two-decimal currencies (USD, EUR, GBP, etc.)
+ * divide by 100; zero-decimal (JPY, KRW, ...) by 1; three-decimal
+ * (BHD, KWD, ...) by 1000. Defaults to 100 when currency is unknown.
+ */
+function stripeAmountToMajor(amount: number, currency: string | null | undefined): number {
+  const cur = (currency ?? "USD").toUpperCase();
+  if (ZERO_DECIMAL_CURRENCIES.has(cur))  return amount;
+  if (THREE_DECIMAL_CURRENCIES.has(cur)) return amount / 1000;
+  return amount / 100;
+}
+
 function parsePricePlanMap(raw: string | undefined): Record<string, Plan> {
   if (!raw) return {};
   const validPlans: readonly Plan[] = ["free", "diy", "standard", "premium"] as const;
@@ -129,13 +153,19 @@ function sendText(res: ServerResponse, status: number, body: string): void {
  * Calls /api/meta-capi over HTTP with the X-Internal-Secret header so
  * the same allowlist that protects /api/meta-capi from public abuse
  * also covers this internal call.
+ *
+ * Success/failure parsing: /api/meta-capi intentionally returns HTTP 200
+ * with `{ok: false, reason: ...}` for several non-fatal cases (Meta env
+ * unset, downstream Graph API error). Treating any 2xx as success would
+ * mask attribution delivery failures in production logs, so we parse
+ * the JSON body and only log success when `body.ok === true`.
  */
 async function fireMetaCapiPurchase(args: {
   sessionId:    string;
   email:        string;
   name?:        string;
   phone?:       string | null;
-  amountTotal?: number | null;  // cents
+  amountTotal?: number | null;  // Stripe smallest unit (e.g. cents for USD)
   currency?:    string | null;
   plan:         Plan;
   clerkUserId:  string;
@@ -151,14 +181,16 @@ async function fireMetaCapiPurchase(args: {
     return;
   }
 
-  const baseUrl = process.env.META_CAPI_BASE_URL ?? "https://cleanpathcredit.com";
-  const url     = `${baseUrl}/api/meta-capi`;
+  const baseUrl  = process.env.META_CAPI_BASE_URL ?? "https://cleanpathcredit.com";
+  const url      = `${baseUrl}/api/meta-capi`;
+  const value    = stripeAmountToMajor(args.amountTotal ?? 0, args.currency);
+  const currency = (args.currency ?? "USD").toUpperCase();
 
   try {
     const resp = await fetch(url, {
       method:  "POST",
       headers: {
-        "Content-Type":     "application/json",
+        "Content-Type":      "application/json",
         "X-Internal-Secret": internalSecret,
       },
       body: JSON.stringify({
@@ -173,24 +205,37 @@ async function fireMetaCapiPurchase(args: {
           client_user_agent: args.userAgent,
         },
         custom_data: {
-          currency:    (args.currency ?? "USD").toUpperCase(),
-          value:       (args.amountTotal ?? 0) / 100,
+          currency,
+          value,
           content_name: args.plan,
           content_type: "product",
         },
       }),
     });
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => "");
-      console.error(
-        "[/api/webhooks/stripe] meta_capi_purchase_failed status=%d body=%s",
+
+    // Parse response body. /api/meta-capi can return 200 + {ok: false}
+    // for not_configured / fetch_error / meta_api_failed cases — those
+    // are non-fatal but should NOT be logged as success.
+    const respBody = (await resp.json().catch(() => ({}))) as {
+      ok?: boolean;
+      reason?: string;
+      status?: number;
+      event_id?: string;
+    };
+
+    if (!resp.ok || respBody.ok !== true) {
+      console.warn(
+        "[/api/webhooks/stripe] meta_capi_purchase_not_delivered http_status=%d ok=%s reason=%s upstream_status=%s",
         resp.status,
-        text.slice(0, 300),
+        respBody.ok,
+        respBody.reason ?? "—",
+        respBody.status ?? "—",
       );
       return;
     }
+
     console.log(
-      `[/api/webhooks/stripe] meta_capi_purchase_fired event_id=${args.sessionId} value=${(args.amountTotal ?? 0) / 100} ${(args.currency ?? "USD").toUpperCase()}`,
+      `[/api/webhooks/stripe] meta_capi_purchase_fired event_id=${args.sessionId} value=${value} ${currency}`,
     );
   } catch (err) {
     console.error("[/api/webhooks/stripe] meta_capi_purchase_error:", err);
