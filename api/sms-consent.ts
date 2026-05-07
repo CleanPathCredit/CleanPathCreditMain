@@ -9,7 +9,9 @@
  * Submissions land in two places (best-effort — either may be unset):
  *   1. Supabase lead_submissions table — source="sms_consent_v1",
  *      consent=true. Permanent audit trail readable from the admin
- *      dashboard.
+ *      dashboard. The lead_submissions.email column is NOT NULL, which
+ *      is why email is a required field on this form (mirrors the
+ *      /api/lead.ts contract).
  *   2. GoHighLevel — contact upsert with cpc_sms_consent_v1 + sms_consent
  *      (always) and sms_marketing_opt_in (if checked) tags, plus a
  *      detailed note containing IP, user agent, exact consent text
@@ -25,14 +27,19 @@
  * Bot protection:
  *   - Honeypot field `website` — if non-empty we silently 200 (mirrors
  *     /api/lead.ts pattern).
- *   - Cloudflare Turnstile — if TURNSTILE_SECRET_KEY is configured, we
- *     verify cf_turnstile_token. Missing/invalid token returns 400.
+ *   - Cloudflare Turnstile is intentionally NOT wired on this endpoint.
+ *     This is a low-volume compliance form; honeypot alone is sufficient,
+ *     and adding Turnstile here without also wiring the client widget
+ *     would silently break submissions in any environment where
+ *     TURNSTILE_SECRET_KEY is set globally. If you want Turnstile on
+ *     this page later, do it as a paired change: add the widget +
+ *     site key to SmsConsent.tsx AND re-introduce the server-side
+ *     verify here, both gated on a dedicated env var so the page works
+ *     in environments without Turnstile.
  *
  * Required env (best-effort — any missing channel is logged and skipped):
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  Persistent audit trail
  *   GHL_PRIVATE_INTEGRATION_TOKEN, GHL_LOCATION_ID  Contact upsert + note
- * Optional:
- *   TURNSTILE_SECRET_KEY  Cloudflare Turnstile bot-verify
  *
  * NOTE: This endpoint accepts submissions BEFORE A2P 10DLC is approved.
  * No SMS is sent until the campaign is live; the welcome message after
@@ -47,9 +54,8 @@ export const config = { runtime: "nodejs" };
 
 const MAX_BODY_BYTES = 16 * 1024;
 
-const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-const GHL_API_BASE         = "https://services.leadconnectorhq.com";
-const GHL_API_VERSION      = "2021-07-28";
+const GHL_API_BASE    = "https://services.leadconnectorhq.com";
+const GHL_API_VERSION = "2021-07-28";
 
 // MUST match the text rendered next to the service-consent checkbox in
 // SmsConsent.tsx and the opt-in language registered in Twilio A2P. If you
@@ -61,15 +67,14 @@ const CONSENT_TEXT_V1 =
   "Reply STOP to unsubscribe, HELP for help.";
 
 interface ConsentPayload {
-  firstName?:          unknown;
-  lastName?:           unknown;
-  phone?:              unknown;
-  email?:              unknown;
-  serviceConsent?:     unknown;
-  marketingConsent?:   unknown;
-  consentVersion?:     unknown;
-  website?:            unknown;  // honeypot
-  cf_turnstile_token?: unknown;
+  firstName?:        unknown;
+  lastName?:         unknown;
+  phone?:            unknown;
+  email?:            unknown;
+  serviceConsent?:   unknown;
+  marketingConsent?: unknown;
+  consentVersion?:   unknown;
+  website?:          unknown;  // honeypot
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -138,36 +143,12 @@ function normalizePhone(raw: string): string | null {
   return null;
 }
 
-async function verifyTurnstile(
-  token: string,
-  secret: string,
-  remoteIp: string | undefined,
-): Promise<boolean> {
-  const form = new URLSearchParams();
-  form.set("secret", secret);
-  form.set("response", token);
-  if (remoteIp) form.set("remoteip", remoteIp);
-  try {
-    const resp = await fetch(TURNSTILE_VERIFY_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: form.toString(),
-    });
-    if (!resp.ok) return false;
-    const data = (await resp.json()) as { success?: boolean };
-    return data.success === true;
-  } catch (err) {
-    console.error("[/api/sms-consent] turnstile_verify_failed:", err);
-    return false;
-  }
-}
-
 interface ConsentRecord {
   firstName:        string;
   lastName:         string;
   fullName:         string;
   phone:            string;       // E.164
-  email:            string;
+  email:            string;       // required, lowercase
   serviceConsent:   boolean;
   marketingConsent: boolean;
   consentText:      string;
@@ -188,11 +169,11 @@ async function upsertGHLContact(
 
   const payload: Record<string, unknown> = {
     locationId,
+    email:  record.email,
     phone:  record.phone,
     source: "Clean Path SMS Consent",
     tags,
   };
-  if (record.email)     payload.email     = record.email;
   if (record.firstName) payload.firstName = record.firstName;
   if (record.lastName)  payload.lastName  = record.lastName;
 
@@ -250,7 +231,7 @@ function buildNoteBody(record: ConsentRecord): string {
     `SMS Consent — ${record.consentVersion}`,
     `Recorded: ${record.consentedAt}`,
     `Phone: ${record.phone}`,
-    `Email: ${record.email || "—"}`,
+    `Email: ${record.email}`,
     `Name: ${record.fullName}`,
     `Service consent: ${record.serviceConsent ? "YES" : "no"}`,
     `Marketing consent: ${record.marketingConsent ? "yes (opted in)" : "no (declined)"}`,
@@ -274,7 +255,9 @@ async function persistConsent(record: ConsentRecord, ghlContactId: string | unde
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const { error } = await supabase.from("lead_submissions").insert({
-      email:              record.email || null,
+      // email is NOT NULL in the schema; the endpoint enforces this above
+      // by rejecting empty/missing email with a 400.
+      email:              record.email,
       full_name:          record.fullName || null,
       phone:              record.phone,
       goal:               null,
@@ -323,8 +306,8 @@ export default async function handler(
     return sendJson(res, 200, { ok: true });
   }
 
-  // 2. Required-field validation (mirror client-side validation; we re-
-  //    check because the endpoint is publicly reachable).
+  // 2. Required-field validation. Email is required because
+  //    lead_submissions.email is NOT NULL in the schema.
   const firstName        = str(body.firstName);
   const lastName         = str(body.lastName);
   const phoneRaw         = str(body.phone);
@@ -343,27 +326,14 @@ export default async function handler(
   if (!phone) {
     return sendJson(res, 400, { error: "invalid_phone" });
   }
-  if (email && !isEmail(email)) {
+  if (!email) {
+    return sendJson(res, 400, { error: "email_required" });
+  }
+  if (!isEmail(email)) {
     return sendJson(res, 400, { error: "invalid_email" });
   }
 
-  // 3. Turnstile (optional). Skip when no secret is configured — useful
-  //    for environments where the site key is also absent. In production
-  //    the secret MUST be set; otherwise we silently accept submissions
-  //    behind only the honeypot.
-  const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-  if (turnstileSecret) {
-    const token = str(body.cf_turnstile_token);
-    if (!token) {
-      return sendJson(res, 400, { error: "turnstile_missing" });
-    }
-    const ok = await verifyTurnstile(token, turnstileSecret, getClientIp(req));
-    if (!ok) {
-      return sendJson(res, 400, { error: "turnstile_failed" });
-    }
-  }
-
-  // 4. Build the consent record.
+  // 3. Build the consent record.
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
   const record: ConsentRecord = {
     firstName,
@@ -380,7 +350,7 @@ export default async function handler(
     consentedAt:    new Date().toISOString(),
   };
 
-  // 5. Deliver to GHL (best-effort).
+  // 4. Deliver to GHL (best-effort).
   let ghlContactId: string | undefined;
   const pit         = process.env.GHL_PRIVATE_INTEGRATION_TOKEN;
   const locationId  = process.env.GHL_LOCATION_ID;
@@ -396,7 +366,7 @@ export default async function handler(
     console.warn("[/api/sms-consent] ghl_not_configured");
   }
 
-  // 6. Persist to Supabase (best-effort).
+  // 5. Persist to Supabase (best-effort).
   await persistConsent(record, ghlContactId);
 
   console.log(

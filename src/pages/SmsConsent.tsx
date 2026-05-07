@@ -64,6 +64,8 @@ const INITIAL_FORM: FormState = {
   marketingConsent: false,
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function SmsConsent() {
   const [form, setForm]               = useState<FormState>(INITIAL_FORM);
   const [submitting, setSubmitting]   = useState(false);
@@ -91,6 +93,7 @@ export function SmsConsent() {
   const canSubmit =
     form.firstName.trim().length > 0 &&
     form.phone.trim().length >= 10 &&
+    EMAIL_REGEX.test(form.email.trim()) &&
     form.serviceConsent &&
     !submitting;
 
@@ -109,7 +112,7 @@ export function SmsConsent() {
           firstName:        form.firstName.trim(),
           lastName:         form.lastName.trim() || undefined,
           phone:            form.phone.trim(),
-          email:            form.email.trim().toLowerCase() || undefined,
+          email:            form.email.trim().toLowerCase(),
           serviceConsent:   form.serviceConsent,
           marketingConsent: form.marketingConsent,
           consentVersion:   "v1",
@@ -121,6 +124,8 @@ export function SmsConsent() {
         setError(
           data?.error === "invalid_phone"
             ? "That phone number doesn't look right. Please use a US 10-digit number."
+            : data?.error === "invalid_email" || data?.error === "email_required"
+            ? "Please enter a valid email address."
             : data?.error === "service_consent_required"
             ? "Please check the box agreeing to receive text messages."
             : data?.error === "first_name_required"
@@ -316,16 +321,20 @@ export function SmsConsent() {
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-zinc-900 mb-1">
-              Email <span className="text-zinc-400">(optional)</span>
+              Email <span className="text-rose-600">*</span>
             </label>
             <input
               type="email"
               id="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
               autoComplete="email"
               className="w-full h-11 px-3 rounded-lg border border-zinc-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition-colors"
             />
+            <p className="text-xs text-zinc-500 mt-1">
+              Used to confirm your opt-in and as a backup channel if your phone changes.
+            </p>
           </div>
 
           {/* Service consent (REQUIRED) — EXACT TEXT MUST MATCH api/sms-consent.ts CONSENT_TEXT_V1 */}
