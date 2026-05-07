@@ -61,6 +61,10 @@ export function InviteClientModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [hint, setHint]         = useState<string | null>(null);
+  // When the API returns 409 invitation_pending, surface a "Resend
+  // invitation" affordance instead of just the error message. The
+  // resend POST revokes the old invite and creates a fresh one.
+  const [pendingInvite, setPendingInvite] = useState<boolean>(false);
   const [success, setSuccess]   = useState<{ url: string | null; email: string } | null>(null);
 
   // Reset form whenever the modal is reopened — pre-fills win.
@@ -71,6 +75,7 @@ export function InviteClientModal({
       setPhone(prefillPhone);
       setError(null);
       setHint(null);
+      setPendingInvite(false);
       setSuccess(null);
       setSubmitting(false);
     }
@@ -78,7 +83,7 @@ export function InviteClientModal({
 
   if (!open) return null;
 
-  const submit = async () => {
+  const submit = async (resend = false) => {
     if (!session) return;
     if (!email.trim() || !email.includes("@")) {
       setError("Please enter a valid email address.");
@@ -87,6 +92,7 @@ export function InviteClientModal({
     setSubmitting(true);
     setError(null);
     setHint(null);
+    setPendingInvite(false);
     try {
       const token = await session.getToken();
       const res = await fetch("/api/admin/invite-client", {
@@ -100,12 +106,18 @@ export function InviteClientModal({
           fullName: fullName.trim() || undefined,
           phone:    phone.trim()    || undefined,
           lead_id:  leadId          || undefined,
+          resend:   resend          || undefined,
         }),
       });
       const data = (await res.json()) as InviteResponse;
       if (!res.ok) {
         setError(data.error ?? `HTTP ${res.status}`);
         if (data.hint) setHint(data.hint);
+        // 409 invitation_pending → flip the action button to "Resend
+        // invitation". On click, we POST again with resend=true.
+        if (res.status === 409 && data.error === "invitation_pending") {
+          setPendingInvite(true);
+        }
         return;
       }
       setSuccess({
@@ -252,13 +264,23 @@ export function InviteClientModal({
               <Button variant="outline" onClick={onClose} disabled={submitting}>
                 Cancel
               </Button>
-              <Button
-                variant="primary"
-                onClick={submit}
-                disabled={submitting || !email.trim() || !email.includes("@")}
-              >
-                {submitting ? "Sending…" : leadId ? "Send invitation" : "Add Client"}
-              </Button>
+              {pendingInvite ? (
+                <Button
+                  variant="primary"
+                  onClick={() => submit(true)}
+                  disabled={submitting || !email.trim() || !email.includes("@")}
+                >
+                  {submitting ? "Resending…" : "Resend invitation"}
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  onClick={() => submit(false)}
+                  disabled={submitting || !email.trim() || !email.includes("@")}
+                >
+                  {submitting ? "Sending…" : leadId ? "Send invitation" : "Add Client"}
+                </Button>
+              )}
             </div>
           </div>
         )}

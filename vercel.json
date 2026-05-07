@@ -3,5 +3,11 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/r/:code",  "destination": "/api/r/:code" },
     { "source": "/((?!api/|r/).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/data-retention-purge",
+      "schedule": "17 4 * * *"
+    }
   ]
 }

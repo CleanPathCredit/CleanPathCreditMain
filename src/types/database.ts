@@ -103,6 +103,11 @@ export interface Database {
           dispute_probability: number | null;
           admin_notes: string | null;
           referral_code: string | null;
+          // Migration 015 — data-retention purge schedule. NULL until the
+          // client moves to status='complete'; cron purges sensitive PII
+          // when data_retention_until <= now() and stamps purged_at.
+          data_retention_until: string | null;
+          data_retention_purged_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -129,6 +134,8 @@ export interface Database {
           dispute_probability?: number | null;
           admin_notes?: string | null;
           referral_code?: string | null;
+          data_retention_until?: string | null;
+          data_retention_purged_at?: string | null;
         };
         // Broad Update shape is retained so admin code (which writes via the
         // "profiles: admin full access" RLS policy) continues to type-check.
@@ -536,6 +543,13 @@ export interface Database {
       log_audit_event: {
         Args: { p_action: string; p_target?: string; p_metadata?: Record<string, unknown> };
         Returns: void;
+      };
+      // Migration 015 — wipes a profile's sensitive PII atomically and
+      // returns the documents.storage_path values for the caller to
+      // delete from Supabase Storage.
+      purge_profile_pii: {
+        Args: { p_profile_id: string };
+        Returns: { storage_path: string }[];
       };
     };
     Enums: Record<string, never>;

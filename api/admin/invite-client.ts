@@ -83,6 +83,13 @@ interface InviteRequest {
    *  to bind to. Auto-link by email also works; this is a precision
    *  hint when multiple leads share an email. */
   lead_id?:  string;
+  /** When true, revoke any pending invitation for this email before
+   *  creating a fresh one. Used by the admin UI's "Resend invitation"
+   *  action — covers the case where the original magic link expired
+   *  or the recipient lost the email. Default false: a pending invite
+   *  causes the endpoint to return 409 invitation_pending so the admin
+   *  can decide whether to resend. */
+  resend?:   boolean;
 }
 
 export default async function handler(
@@ -138,6 +145,7 @@ export default async function handler(
   const fullName = typeof body.fullName === "string" ? body.fullName.trim() : "";
   const phone    = typeof body.phone === "string" ? body.phone.trim() : "";
   const leadId   = typeof body.lead_id === "string" ? body.lead_id.trim() : "";
+  const resend   = body.resend === true;
 
   // 5. Admin gate (service-role lookup)
   const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
@@ -169,6 +177,57 @@ export default async function handler(
   } catch (err) {
     console.error("[/api/admin/invite-client] clerk lookup failed:", err);
     return sendJson(res, 502, { error: "clerk_lookup_failed" });
+  }
+
+  // 6b. Pending-invitation handling. Clerk rejects createInvitation when a
+  // pending invite already exists for the email; without this branch we'd
+  // surface a generic 502 to the admin and they'd never get the right
+  // affordance ("resend"). Two paths:
+  //   - resend=false (default): tell the admin a pending invite exists
+  //     and let them choose. UI shows a "Resend invitation" button.
+  //   - resend=true:           revoke any pending invitations for this
+  //     email and continue to create a fresh one. Used when the original
+  //     magic link expired or the recipient lost the email.
+  try {
+    // Clerk's invitations.getInvitationList accepts a `status` filter.
+    // Page size of 100 is plenty — the same email won't realistically
+    // have more than a couple of pending invites at once.
+    const pendingList = await clerk.invitations.getInvitationList({
+      status: "pending",
+      limit:  100,
+    });
+    const pendingForEmail = pendingList.data.filter(
+      (inv) => inv.emailAddress?.toLowerCase() === email,
+    );
+
+    if (pendingForEmail.length > 0) {
+      if (!resend) {
+        return sendJson(res, 409, {
+          error: "invitation_pending",
+          invitation_id:  pendingForEmail[0].id,
+          invitation_url: pendingForEmail[0].url ?? null,
+          hint: "A pending invitation already exists for this email. Resend it to send a fresh magic link.",
+        });
+      }
+      // resend=true → revoke each pending invite. We don't fail the
+      // overall request if a single revocation fails; the new invite
+      // creation below will surface any genuine blocker.
+      for (const inv of pendingForEmail) {
+        try {
+          await clerk.invitations.revokeInvitation(inv.id);
+        } catch (revokeErr) {
+          console.warn(
+            "[/api/admin/invite-client] revoke failed id=%s err=%s",
+            inv.id,
+            revokeErr instanceof Error ? revokeErr.message : String(revokeErr),
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[/api/admin/invite-client] pending lookup failed:", err);
+    // Don't bail — fall through to createInvitation. Worst case it
+    // throws and we surface clerk_invitation_failed below.
   }
 
   // 7. Create the Clerk invitation. Clerk emails the recipient
