@@ -39,7 +39,13 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <elevenlabs-convai agent-id="agent_5401kp5w96nqf65rw5wd46np1p4d"></elevenlabs-convai>
-    <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+    <!-- ElevenLabs ConvAI widget — pinned to major version 1.x to mitigate
+         supply-chain compromise via unpkg latest-tag changes. Follow-up:
+         pin to exact version + add SRI hash:
+           curl -s https://unpkg.com/@elevenlabs/convai-widget-embed@<exact-version> \
+             | openssl dgst -sha384 -binary | openssl base64 -A
+         then add integrity="sha384-..." crossorigin="anonymous". -->
+    <script src="https://unpkg.com/@elevenlabs/convai-widget-embed@1" async type="text/javascript"></script>
     <script async src="https://js.stripe.com/v3/buy-button.js"></script>
   </body>
 </html>

@@ -17,10 +17,14 @@
  *   - Plan mapping via STRIPE_PRICE_PLAN_MAP env (stable Price IDs), not Buy
  *     Button IDs (which rotate whenever a button is rewritten).
  *   - Sign-in token is NOT logged (it is an auth credential).
- *
- * Follow-up hardening tracked separately:
- *   - H-2: migrate `plan` writes from Clerk unsafeMetadata (client-writable)
- *     to privateMetadata (server-only).
+ *   - H-2 (security audit 2026-05-05) closed: writes plan +
+ *     stripe_session_id + stripe_customer_id to privateMetadata
+ *     (server-only-writable). Previous version wrote to unsafeMetadata,
+ *     which is client-writable via Clerk's frontend updateUser API — a
+ *     signed-in free user could self-promote to premium. Migration also
+ *     clears the same fields out of unsafeMetadata for any pre-migration
+ *     records on the next purchase event (using `null` per Clerk's
+ *     deep-merge semantics; `undefined` would no-op).
  *
  * Required env:
  *   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, CLERK_SECRET_KEY,
@@ -242,7 +246,13 @@ export default async function handler(
 
   const clerk = createClerkClient({ secretKey: CLERK_SECRET_KEY });
 
-  // 5. Find or create Clerk user; set plan via metadata
+  // 5. Find or create Clerk user; set plan via privateMetadata.
+  //
+  // privateMetadata is server-only-writable. Closes H-2 (security audit
+  // 2026-05-05): a signed-in user cannot reach this field via Clerk's
+  // frontend updateUser API, so they cannot self-promote to premium.
+  // The user.updated webhook (api/webhooks/clerk.ts) reads plan ONLY
+  // from private_metadata and ignores unsafe_metadata.plan entirely.
   let clerkUserId: string;
   const existingUsers = await clerk.users.getUserList({ emailAddress: [email] });
   const existingUser  = existingUsers.data[0];
@@ -250,12 +260,25 @@ export default async function handler(
   if (existingUser) {
     clerkUserId = existingUser.id;
     await clerk.users.updateUserMetadata(clerkUserId, {
-      // TODO(H-2): migrate to privateMetadata (server-only).
-      unsafeMetadata: {
-        ...existingUser.unsafeMetadata,
+      privateMetadata: {
+        ...existingUser.privateMetadata,
         plan,
         stripe_customer_id: customerId,
         stripe_session_id:  session.id,
+      },
+      // Belt-and-suspenders: clear any pre-migration plan / stripe IDs
+      // out of unsafeMetadata so legacy data can never accidentally
+      // re-apply via the user.updated handler. Other unsafeMetadata
+      // fields (e.g. quiz_data set client-side at signup) are preserved.
+      //
+      // Use `null`, NOT `undefined` — Clerk's updateUserMetadata performs
+      // a deep merge and only deletes keys when they are set to null;
+      // undefined values are skipped, leaving the legacy data in place.
+      unsafeMetadata: {
+        ...existingUser.unsafeMetadata,
+        plan:               null,
+        stripe_customer_id: null,
+        stripe_session_id:  null,
       },
     });
   } else {
@@ -264,8 +287,7 @@ export default async function handler(
       emailAddress: [email],
       firstName:    firstName ?? "",
       lastName:     rest.join(" ") || undefined,
-      // TODO(H-2): migrate to privateMetadata (server-only).
-      unsafeMetadata: {
+      privateMetadata: {
         plan,
         stripe_customer_id: customerId,
         stripe_session_id:  session.id,
