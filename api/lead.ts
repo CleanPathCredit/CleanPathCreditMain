@@ -23,7 +23,8 @@
  * server-side for ad attribution. _fbp and _fbc cookies (set client-side
  * by the Meta Pixel) are captured from the request and forwarded so Meta
  * can match the lead back to the original ad click. Best-effort — failure
- * is logged but never blocks the lead submission ack.
+ * is logged but never blocks the lead submission ack. Fired fire-and-
+ * forget so a slow/hung Meta call doesn't delay the 200 to the client.
  *
  * Bot protection (audit finding C-4):
  *   - Honeypot field `website` — if non-empty we silently 200 so bots think
@@ -55,6 +56,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
+import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, UrgencyTier, RecommendedOffer, GHLDelivery } from "../src/types/database";
 
@@ -434,19 +436,48 @@ async function coSendWebhook(webhookUrl: string, lead: SanitizedLead): Promise<b
 }
 
 /**
+ * Build a deterministic event_id for Meta CAPI Lead events.
+ *
+ * Constraints:
+ *   - Must NOT contain raw PII (email, phone, name). Meta receives event_id
+ *     unchanged and we already SHA-256-hash everything in user_data; the
+ *     event_id field needs the same posture.
+ *   - Must be reproducible client-side so a future browser-side Pixel can
+ *     fire the same event_id and let Meta dedupe the two events against
+ *     each other.
+ *
+ * Strategy:
+ *   - When a GHL contact ID is available (API delivery path), use it
+ *     directly — it's an opaque server-generated identifier with no PII.
+ *   - When only the webhook-fallback path is available, hash
+ *     `email||submittedAt` with SHA-256 and use the hex digest. The
+ *     browser-side Pixel can compute the same hash with Web Crypto's
+ *     subtle.digest("SHA-256", ...) and produce the same event_id for
+ *     dedup.
+ */
+function buildLeadEventId(args: { ghlContactId?: string; email: string; submittedAt: string }): string {
+  if (args.ghlContactId) {
+    return `lead-${args.ghlContactId}-${args.submittedAt}`;
+  }
+  const hash = crypto
+    .createHash("sha256")
+    .update(`${args.email}||${args.submittedAt}`)
+    .digest("hex");
+  return `lead-${hash}`;
+}
+
+/**
  * Fire a Meta Conversions API Lead event server-side.
  *
  * Best-effort. Failure is logged but never blocks the lead submission —
  * Meta CAPI is supplemental to the browser-side Pixel, not load-bearing.
+ * Designed to be invoked fire-and-forget by the caller (no await, with
+ * a `.catch()` to swallow unhandled rejections) so submit latency isn't
+ * gated on attribution delivery.
  *
- * event_id design:
- *   - When GHL returned a contact ID, use a deterministic
- *     `lead-${ghlContactId}-${submittedAt}` so re-submissions on the
- *     same minute don't double-count and a future browser-side Pixel
- *     firing can construct the same ID for dedup.
- *   - Without a GHL contact ID (webhook-fallback delivery path), fall
- *     back to email + submittedAt. Email is already a deterministic
- *     identifier per submission.
+ * event_id design (see buildLeadEventId):
+ *   - GHL contact ID when available; SHA-256(email||submittedAt) otherwise.
+ *   - Never contains raw email or other PII.
  *
  * _fbp / _fbc cookie capture:
  *   - The Meta Pixel sets _fbp on first page-load and _fbc when the
@@ -477,9 +508,11 @@ async function fireMetaCapiLead(args: {
   const baseUrl = process.env.META_CAPI_BASE_URL ?? "https://cleanpathcredit.com";
   const url     = `${baseUrl}/api/meta-capi`;
 
-  const eventId = args.ghlContactId
-    ? `lead-${args.ghlContactId}-${args.lead.submittedAt}`
-    : `lead-${args.lead.email}-${args.lead.submittedAt}`;
+  const eventId = buildLeadEventId({
+    ghlContactId: args.ghlContactId,
+    email:        args.lead.email,
+    submittedAt:  args.lead.submittedAt,
+  });
 
   try {
     const resp = await fetch(url, {
@@ -679,21 +712,28 @@ export default async function handler(
   const delivery: GHLDelivery = apiResult?.ok === true ? "api" : "webhook_fallback";
   await persistLeadSubmission(lead, apiResult?.contactId, delivery);
 
-  // Fire Meta CAPI Lead event for ad attribution. Best-effort — failure
-  // is logged but doesn't block the 200 ack to the client. _fbp / _fbc
-  // cookies are read off the request: the Meta Pixel sets _fbp on first
-  // page-load and _fbc when the visitor lands with ?fbclid=... from an
-  // ad. Without these, server-side Lead events have a much lower chance
-  // of matching back to the original ad click.
+  // Fire Meta CAPI Lead event for ad attribution. FIRE-AND-FORGET — we
+  // don't await so the 200 ack to the client isn't gated on Meta's
+  // response time. Meta CAPI is supplemental; failure or slowness here
+  // must not regress submit latency. The promise has its own try/catch
+  // internally; the outer .catch() is a defensive net for anything
+  // unexpected (e.g. a synchronous throw before the try block).
+  //
+  // _fbp / _fbc cookies are read off the request: the Meta Pixel sets
+  // _fbp on first page-load and _fbc when the visitor lands with
+  // ?fbclid=... from an ad. Without these, server-side Lead events have
+  // a much lower chance of matching back to the original ad click.
   const cookies   = parseCookies(req);
   const userAgent = req.headers["user-agent"];
-  await fireMetaCapiLead({
+  void fireMetaCapiLead({
     lead,
     ghlContactId: apiResult?.contactId,
     fbp:          cookies._fbp,
     fbc:          cookies._fbc,
     ipAddress:    getClientIp(req),
     userAgent:    typeof userAgent === "string" ? userAgent : undefined,
+  }).catch((err) => {
+    console.error("[/api/lead] meta_capi_lead_unhandled_error:", err);
   });
 
   return sendJson(res, 200, {
