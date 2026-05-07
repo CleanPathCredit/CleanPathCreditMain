@@ -23,7 +23,8 @@
  *     which is client-writable via Clerk's frontend updateUser API — a
  *     signed-in free user could self-promote to premium. Migration also
  *     clears the same fields out of unsafeMetadata for any pre-migration
- *     records on the next purchase event.
+ *     records on the next purchase event (using `null` per Clerk's
+ *     deep-merge semantics; `undefined` would no-op).
  *
  * Required env:
  *   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, CLERK_SECRET_KEY,
@@ -269,11 +270,15 @@ export default async function handler(
       // out of unsafeMetadata so legacy data can never accidentally
       // re-apply via the user.updated handler. Other unsafeMetadata
       // fields (e.g. quiz_data set client-side at signup) are preserved.
+      //
+      // Use `null`, NOT `undefined` — Clerk's updateUserMetadata performs
+      // a deep merge and only deletes keys when they are set to null;
+      // undefined values are skipped, leaving the legacy data in place.
       unsafeMetadata: {
         ...existingUser.unsafeMetadata,
-        plan:               undefined,
-        stripe_customer_id: undefined,
-        stripe_session_id:  undefined,
+        plan:               null,
+        stripe_customer_id: null,
+        stripe_session_id:  null,
       },
     });
   } else {

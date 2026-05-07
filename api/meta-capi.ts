@@ -36,8 +36,10 @@
  * Compliance posture:
  *   - All PII (email, phone) is SHA-256 hashed BEFORE leaving this
  *     function. Meta requires hashed user_data and rejects raw PII.
- *   - external_id is treated as opaque (not hashed if it already looks
- *     like a SHA-256 hex string).
+ *   - external_id is treated as opaque (not re-hashed if it already
+ *     looks like a SHA-256 hex string — case-insensitive). Pre-hashed
+ *     values are normalized to lowercase before send because Meta
+ *     requires lowercase hex on the wire.
  *   - No raw PII is logged. On failure, only HTTP status + truncated
  *     response body are logged.
  *   - Edge runtime (no Node `crypto` module). Web Crypto API is used
@@ -54,6 +56,7 @@
  *       email?:             string,        // hashed before send
  *       phone?:             string,        // E.164 normalized then hashed
  *       external_id?:       string,        // already-hashed values pass through
+ *                                          // (case-insensitive); else hashed
  *       fbp?:               string,        // _fbp cookie value (raw, not hashed)
  *       fbc?:               string,        // _fbc cookie value (raw, not hashed)
  *       client_user_agent?: string,
@@ -94,10 +97,19 @@ async function sha256(value: string): Promise<string> {
     .join("");
 }
 
-/** If `value` already looks like a SHA-256 hex string, pass through; else hash it. */
+/**
+ * If `value` already looks like a SHA-256 hex string, pass through
+ * (normalized to lowercase since Meta requires lowercase hex on the wire
+ * and is case-sensitive on hash matching). Otherwise, hash it.
+ *
+ * The regex is case-insensitive so uppercase SHA-256 values from upstream
+ * systems (e.g. SQL Server's UPPER(HASHBYTES('SHA2_256',...)) are not
+ * re-hashed — re-hashing an already-hashed value would produce a
+ * different identifier and break Meta's deterministic match / dedup.
+ */
 async function hashIfPresent(value: string | undefined): Promise<string | undefined> {
   if (!value) return undefined;
-  if (/^[a-f0-9]{64}$/.test(value)) return value;
+  if (/^[a-f0-9]{64}$/i.test(value)) return value.toLowerCase();
   return await sha256(value);
 }
 
