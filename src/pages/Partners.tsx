@@ -65,6 +65,11 @@ interface FormState {
   spanishSpeaking:  boolean;
   howHeard:         string;
   consent:          boolean;
+  // Honeypot — real users never see this field; bots that autofill
+  // every input trip it. Wired into form state + posted to the server
+  // so /api/partners can detect and silently 200-but-skip the bot's
+  // submission.
+  website:          string;
 }
 
 const INITIAL_FORM: FormState = {
@@ -80,6 +85,7 @@ const INITIAL_FORM: FormState = {
   spanishSpeaking:  false,
   howHeard:         "",
   consent:          false,
+  website:          "",
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -140,6 +146,10 @@ export function Partners() {
           spanishSpeaking: form.spanishSpeaking,
           howHeard:        form.howHeard.trim() || undefined,
           consent:         form.consent,
+          // Honeypot — forwarded so the server-side anti-bot check actually
+          // gets the value the bot typed. Without this in the payload, a
+          // bot that fills hidden inputs would bypass the check entirely.
+          website:         form.website,
         }),
       });
 
@@ -154,6 +164,8 @@ export function Partners() {
             ? "Please select your role."
             : data?.error === "nmls_required"
             ? "NMLS # is required for loan officers and mortgage brokers."
+            : data?.error === "upstream_failed"
+            ? "We had trouble saving your application. Please try again in a moment."
             : "Submission failed. Please try again.",
         );
         setSubmitting(false);
@@ -366,10 +378,14 @@ export function Partners() {
                 onSubmit={handleSubmit}
                 className="bg-white rounded-2xl border border-zinc-200 p-6 sm:p-8 shadow-sm space-y-5"
               >
-                {/* Honeypot — hidden, traps form-fill bots */}
+                {/* Honeypot — hidden, traps form-fill bots. Controlled input
+                    with state binding so the value gets posted to the
+                    server, where /api/partners checks for non-empty. */}
                 <input
                   type="text"
                   name="website"
+                  value={form.website}
+                  onChange={(e) => setForm({ ...form, website: e.target.value })}
                   tabIndex={-1}
                   autoComplete="off"
                   aria-hidden="true"

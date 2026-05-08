@@ -9,13 +9,16 @@
  * partner-specific fields and a separate GHL pipeline so partner leads
  * stay cleanly separated from consumer quiz leads.
  *
- * Delivery paths (in priority order):
- *   1. GHL Contacts API (via Private Integration Token) — PRIMARY.
- *      Upserts the contact with partner-specific tags and a structured
- *      note containing all application fields.
- *   2. GHL Inbound Webhook (GHL_WEBHOOK_URL) — fire-and-forget co-send
- *      so any existing partner-onboarding workflows keep firing.
- *   3. Webhook-only fallback when the PIT + locationId aren't configured.
+ * Delivery:
+ *   - GHL Contacts API (via Private Integration Token) is the only
+ *     delivery channel today. Required — if PIT + locationId aren't
+ *     configured, the endpoint returns 500 server_misconfigured (fail
+ *     closed). If they are configured but the upsert fails, returns
+ *     502 upstream_failed and persists the attempt to lead_submissions
+ *     with delivery="failed" so admin can see partner inquiries that
+ *     didn't reach GHL.
+ *   - On success, persists with delivery="api" and posts a structured
+ *     note (fire-and-forget) with all application fields.
  *
  * Persists to Supabase lead_submissions with source="partner_application_v1"
  * so the admin dashboard sees every partner application alongside
@@ -24,20 +27,24 @@
  *
  * Bot protection:
  *   - Honeypot field `website` — silently 200 on hit (matches /api/lead).
+ *     Real users never see this field; bots that autofill hidden inputs
+ *     trip it. The /partners form posts the value with the rest of the
+ *     payload so this check actually runs.
  *   - Cloudflare Turnstile is intentionally NOT wired here in V1; the
  *     partners form is low-volume and honeypot is sufficient. Add
  *     Turnstile later as a paired client-side widget + server-side verify.
  *
- * Required env (best-effort overall — the page doesn't break if any
- * are unset):
- *   GHL_PRIVATE_INTEGRATION_TOKEN, GHL_LOCATION_ID  Contact upsert + note
- *   GHL_WEBHOOK_URL                                 Co-send / fallback
- *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY         Audit trail
+ * Required env (delivery is fail-closed without them):
+ *   GHL_PRIVATE_INTEGRATION_TOKEN  Required.
+ *   GHL_LOCATION_ID                Required.
+ * Best-effort env (audit trail only):
+ *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  Logs partner app to admin
+ *                                            dashboard.
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../src/types/database";
+import type { Database, GHLDelivery } from "../src/types/database";
 
 export const config = { runtime: "nodejs" };
 
@@ -180,7 +187,7 @@ async function upsertGHLContact(
   token: string,
   locationId: string,
   p: SanitizedPartner,
-): Promise<{ ok: boolean; contactId?: string }> {
+): Promise<{ ok: boolean; contactId?: string; status?: number }> {
   const tags: string[] = [
     "cpc_partner_application",
     `partner_role:${p.role}`,
@@ -191,12 +198,12 @@ async function upsertGHLContact(
 
   const payload: Record<string, unknown> = {
     locationId,
-    email:     p.email,
-    phone:     p.phone,
-    firstName: p.firstName || undefined,
-    lastName:  p.lastName  || undefined,
-    companyName: p.company || undefined,
-    source:    "Clean Path Partner Application",
+    email:       p.email,
+    phone:       p.phone,
+    firstName:   p.firstName || undefined,
+    lastName:    p.lastName  || undefined,
+    companyName: p.company   || undefined,
+    source:      "Clean Path Partner Application",
     tags,
   };
 
@@ -218,7 +225,7 @@ async function upsertGHLContact(
         resp.status,
         text.slice(0, 500),
       );
-      return { ok: false };
+      return { ok: false, status: resp.status };
     }
     const data = (await resp.json().catch(() => ({}))) as { contact?: { id?: string }; id?: string };
     return { ok: true, contactId: data.contact?.id ?? data.id };
@@ -245,7 +252,11 @@ async function postGHLNote(token: string, contactId: string, body: string): Prom
   }
 }
 
-async function persistPartner(p: SanitizedPartner, ghlContactId: string | undefined): Promise<void> {
+async function persistPartner(
+  p: SanitizedPartner,
+  ghlContactId: string | undefined,
+  delivery: GHLDelivery,
+): Promise<void> {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
@@ -274,7 +285,7 @@ async function persistPartner(p: SanitizedPartner, ghlContactId: string | undefi
       recommended_offer:  "accelerated",
       source:             "partner_application_v1",
       ghl_contact_id:     ghlContactId ?? null,
-      ghl_delivery:       ghlContactId ? "api" : "failed",
+      ghl_delivery:       delivery,
       consent:            p.consent,
       submitted_at:       p.submittedAt,
     });
@@ -357,24 +368,42 @@ export default async function handler(
     submittedAt:     new Date().toISOString(),
   };
 
-  // 4. Deliver to GHL (best-effort).
-  let ghlContactId: string | undefined;
+  // 4. Deliver to GHL. Required — fail closed if not configured, fail
+  //    closed if upsert fails. We don't have a webhook fallback path for
+  //    partner applications today; if that changes (e.g., we add a
+  //    GHL_PARTNER_WEBHOOK_URL co-send), mirror the /api/lead.ts
+  //    success-if-any-channel-confirmed pattern.
   const pit         = process.env.GHL_PRIVATE_INTEGRATION_TOKEN;
   const locationId  = process.env.GHL_LOCATION_ID;
-  if (pit && locationId) {
-    const result = await upsertGHLContact(pit, locationId, partner);
-    if (result.ok && result.contactId) {
-      ghlContactId = result.contactId;
-      // Fire-and-forget note post; the contact already exists whether
-      // this succeeds or not.
-      postGHLNote(pit, result.contactId, buildNoteBody(partner)).catch(() => { /* logged */ });
-    }
-  } else {
-    console.warn("[/api/partners] ghl_not_configured");
+
+  if (!pit || !locationId) {
+    console.error("[/api/partners] server_misconfigured — GHL not configured");
+    return sendJson(res, 500, { error: "server_misconfigured" });
+  }
+
+  const apiResult = await upsertGHLContact(pit, locationId, partner);
+
+  if (!apiResult.ok) {
+    // Persist the attempt so admin can see partner inquiries that
+    // didn't reach GHL — otherwise these would vanish without a trace.
+    await persistPartner(partner, undefined, "failed");
+    return sendJson(res, 502, {
+      error: "upstream_failed",
+      ghl_status: apiResult.status,
+    });
+  }
+
+  const ghlContactId = apiResult.contactId;
+
+  // Fire-and-forget note post; the contact already exists whether this
+  // succeeds or not, so a failure here only loses the structured audit
+  // log, not the lead.
+  if (ghlContactId) {
+    postGHLNote(pit, ghlContactId, buildNoteBody(partner)).catch(() => { /* logged in fn */ });
   }
 
   // 5. Persist to Supabase (best-effort).
-  await persistPartner(partner, ghlContactId);
+  await persistPartner(partner, ghlContactId, "api");
 
   console.log(
     `[/api/partners] partner_application phone=%s role=%s state=%s volume=%s ghl=%s`,
