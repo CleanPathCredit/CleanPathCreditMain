@@ -31,27 +31,18 @@ the whole flow.
 
 ## Adding your QR code
 
-Each sheet references a QR PNG by filename:
-
-| Sheet | QR filename it expects |
-|---|---|
-| `lo.html` | `qr-lo.png` |
-| `re-agent.html` | `qr-re.png` |
-| `auto-dealer.html` | `qr-auto.png` |
-| `credit-union.html` | `qr-cu.png` |
-
-If the file isn't in the same folder, the sheet shows a dashed placeholder box where the QR should go.
+All four sheets share a single QR file: **`qr-partners.png`**. Drop one PNG into this folder with that filename and it appears on every sheet. If the file isn't there, a clean dashed placeholder prints in its place.
 
 **Two options to get your QR onto the sheet before printing:**
 
 ### Option A — local download (recommended)
 
-1. Download the entire `docs/partners/onepagers/print/` folder from GitHub:
+1. Download the `docs/partners/onepagers/print/` folder from GitHub:
    - Open https://github.com/CleanPathCredit/CleanPathCreditMain/tree/claude/partner-agreement-template-sePyK/docs/partners/onepagers/print
    - Use the green "Code" button → "Download ZIP" (downloads the whole repo, then extract just this folder), or
    - Use a tool like [download-directory.github.io](https://download-directory.github.io/) to grab just this folder.
 
-2. Save your QR PNGs into the folder with the right filenames (`qr-lo.png`, `qr-re.png`, etc.).
+2. Save your QR PNG into the folder as **`qr-partners.png`**.
 
 3. Open `index.html` in your browser → click any sheet → print.
 

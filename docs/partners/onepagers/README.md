@@ -20,7 +20,7 @@ A bilingual companion to `lo-onepager.md` lives at `../launch/latino-lo-onepager
 - **Color:** emerald (#0a6e3d) accent on black/dark-gray body text on cream / off-white background
 - **Typography:** serif headline, sans-serif body. (Source serif: Cormorant Garamond / Lora. Source sans: Inter.)
 - **Layout:** two-column, headline + hero block at top, two columns underneath, "Next Step" block at bottom-right with the QR code
-- **QR code:** 1.25" × 1.25", high-contrast, points to `cleanpathcredit.com/partners?utm_source=<channel>&utm_medium=print&utm_campaign=onepager`
+- **QR code:** 1.25" × 1.25", high-contrast, points to `cleanpathcredit.com/partners`. Single shared file `qr-partners.png` used across all four sheets — drop once, prints everywhere. (UTM channel attribution can be added later via per-channel URL parameters if/when needed; for now a single QR keeps the print-and-distribute loop tight.)
 - **Bleed:** standard print bleed, 0.125"
 - **Paper:** 100lb cover or 80lb text. Matte preferred over gloss for in-person handoff feel.
 
@@ -31,7 +31,7 @@ The following MUST be filled in before any of these go to print:
 - [ ] **Texas CSO Registration #** (replaces `\[FILL IN AFTER APPROVAL\]` in footer)
 - [ ] **Surety bond on file** confirmed (footer reference)
 - [ ] **Phone / email / address** verified current (currently `(346) 399-5606` / `hello@cleanpathcredit.com` / San Antonio, TX)
-- [ ] **QR code** generated and tested — scan from a real phone to confirm it lands on `/partners`
+- [ ] **QR code** generated, saved as `print/qr-partners.png`, and tested — scan from a real phone to confirm it lands on `/partners`
 - [ ] **Attorney sign-off** on the four no-comp / no-guarantee disclaimers in each one-pager (specifically: the "no fees flow between us" sentence and the "we will never" list)
 - [ ] **Final compliance footer** matches the language used on the live `/partners` page
 
