@@ -13,12 +13,13 @@
  *   4. If already signed in → dashboard
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { CheckCircle2, Star, Zap, Shield, Lock } from "lucide-react";
 import type { Plan } from "@/types/database";
 import { posthog } from "@/lib/posthog-client";
+import { trackStandard } from "@/lib/meta-pixel";
 
 const PLAN_COPY: Record<Plan, {
   title: string;
@@ -96,6 +97,30 @@ export function Welcome() {
       navigate("/dashboard", { replace: true });
     }
   }, [isLoaded, isSignedIn, navigate]);
+
+  // Browser-side Meta Pixel `Purchase` — paired with the server-side
+  // CAPI fire in api/webhooks/stripe.ts. eventID = Stripe session ID
+  // so Meta deduplicates against the server event. Server-side carries
+  // the authoritative value/currency from the Stripe Checkout Session,
+  // so we don't include them here (the page only knows `plan`).
+  // sessionStorage guard prevents a refresh on /welcome from
+  // double-firing within the same browser session.
+  const purchaseFiredRef = useRef(false);
+  useEffect(() => {
+    if (!isPaidPlan || !sessionId) return;
+    if (purchaseFiredRef.current) return;
+    const dedupKey = `cpc_pixel_purchase_${sessionId}`;
+    try {
+      if (sessionStorage.getItem(dedupKey)) return;
+      sessionStorage.setItem(dedupKey, "1");
+    } catch { /* sessionStorage unavailable — fall through and fire once per mount */ }
+    purchaseFiredRef.current = true;
+    trackStandard(
+      "Purchase",
+      { content_name: plan, content_type: "product" },
+      { eventID: sessionId },
+    );
+  }, [isPaidPlan, sessionId, plan]);
 
   /** Log consent data for Stripe dispute defense */
   function logConsent() {

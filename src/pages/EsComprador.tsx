@@ -49,6 +49,7 @@ import {
   ArrowLeft,
   CheckCircle2,
 } from "lucide-react";
+import { trackCustom } from "@/lib/meta-pixel";
 
 const CALENDLY_URL_ES =
   (import.meta.env.VITE_CALENDLY_URL_ES as string | undefined) ??
@@ -81,6 +82,14 @@ export function EsComprador() {
         language: "es",
       });
     }
+
+    // Meta Pixel custom event — surfaces in Ads Manager so the Spanish
+    // funnel can be optimized as a distinct audience / lookalike seed
+    // independent of the English /welcome and Lead events.
+    trackCustom("SpanishFunnelView", {
+      page_location: "/es-comprador",
+      language: "es",
+    });
 
     return () => {
       document.title = prevTitle;
