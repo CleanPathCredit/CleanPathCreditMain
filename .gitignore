@@ -15,3 +15,9 @@ Thumbs.db
 # PostHog wizard artifacts — local-dev only, not runtime config
 .claude/skills/
 posthog-setup-report.md
+
+# Blog build output — sources of truth live in content/blog/*.md
+# (regenerated on every build via scripts/build-blog.ts)
+public/blog/
+public/sitemap.xml
+public/feed.xml
