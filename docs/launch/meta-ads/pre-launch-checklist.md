@@ -35,6 +35,13 @@ Hard gates before the first dollar of ad spend hits Meta. The order matters — 
 - **What:** review `ad-copy.md` for CROA §404, FTC §5 (UDAAP), Spanish translation accuracy, and substantiation backing for any factual claim.
 - **Output:** redlined copy accepted as final.
 
+### ☐ Mirofish `/mirofish compliance-validation` pass on every ad variation
+- **Owner:** Alex
+- **What:** before publishing a variation, paste the **headline + primary text + CTA** into the Mirofish slash command `/mirofish compliance-validation`. The simulation flags overpromise / regulator-trigger language an attorney would catch on a second pass.
+- **Cadence:** every variation, including weekly creative refreshes — not just the first launch batch.
+- **Output:** save the Mirofish output alongside the attorney redline so you have a two-stage review trail per variation.
+- **Rationale:** Mirofish is a faster, cheaper second opinion than re-engaging the attorney for each refresh. Does NOT replace attorney sign-off on the first batch — it augments ongoing creative refresh.
+
 ### ☐ Attorney sign-off on partner agreement template (PR #26)
 - **Owner:** Alex's attorney
 - **What:** review `docs/partners/referral-agreement-template.md` and the four printed one-pagers before any partner outreach starts.
