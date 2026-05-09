@@ -14,6 +14,11 @@
   4. Final pass to confirm: no outcome guarantees, no specific score-lift
      promises, no "guaranteed approval" language, all FCRA / CROA citations
      are accurate
+  5. `/mirofish compliance-validation` pass on chapter intros + closing
+     CTAs + disclaimer footer. Fast second-opinion check that catches
+     overpromise / regulator-trigger language a long-doc attorney redline
+     can miss.
+  6. Attorney redline of the final draft after gates 1–5 are clean
 
 ---
 
