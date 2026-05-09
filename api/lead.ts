@@ -58,6 +58,7 @@
 import type { IncomingMessage, ServerResponse } from "http";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { waitUntil } from "@vercel/functions";
 import type { Database, UrgencyTier, RecommendedOffer, GHLDelivery } from "../src/types/database";
 
 export const config = { runtime: "nodejs" };
@@ -723,18 +724,26 @@ export default async function handler(
   // _fbp on first page-load and _fbc when the visitor lands with
   // ?fbclid=... from an ad. Without these, server-side Lead events have
   // a much lower chance of matching back to the original ad click.
+  //
+  // Wrapped in waitUntil() so Vercel keeps the function alive past
+  // res.end() until the Meta call completes. Without waitUntil, the
+  // bare fire-and-forget promise can be frozen/cancelled when the
+  // function returns and Lead events get dropped intermittently
+  // (https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package).
   const cookies   = parseCookies(req);
   const userAgent = req.headers["user-agent"];
-  void fireMetaCapiLead({
-    lead,
-    ghlContactId: apiResult?.contactId,
-    fbp:          cookies._fbp,
-    fbc:          cookies._fbc,
-    ipAddress:    getClientIp(req),
-    userAgent:    typeof userAgent === "string" ? userAgent : undefined,
-  }).catch((err) => {
-    console.error("[/api/lead] meta_capi_lead_unhandled_error:", err);
-  });
+  waitUntil(
+    fireMetaCapiLead({
+      lead,
+      ghlContactId: apiResult?.contactId,
+      fbp:          cookies._fbp,
+      fbc:          cookies._fbc,
+      ipAddress:    getClientIp(req),
+      userAgent:    typeof userAgent === "string" ? userAgent : undefined,
+    }).catch((err) => {
+      console.error("[/api/lead] meta_capi_lead_unhandled_error:", err);
+    }),
+  );
 
   return sendJson(res, 200, {
     ok: true,
