@@ -33,6 +33,7 @@ The following MUST be filled in before any of these go to print:
 - [ ] **Phone / email / address** verified current (currently `(346) 399-5606` / `hello@cleanpathcredit.com` / San Antonio, TX)
 - [ ] **QR code** generated, saved as `print/qr-partners.png`, and tested — scan from a real phone to confirm it lands on `/partners`
 - [ ] **Attorney sign-off** on the four no-comp / no-guarantee disclaimers in each one-pager (specifically: the "no fees flow between us" sentence and the "we will never" list)
+- [ ] **`/mirofish compliance-validation` pass** on each sheet's headline + primary copy + "We will never" disclaimer block. Faster second-opinion regulator-trigger check; saves attorney bandwidth for redlines that actually matter. Run after the attorney sign-off above so the reviewed copy is what gets simulated.
 - [ ] **Final compliance footer** matches the language used on the live `/partners` page
 
 ## Channel-specific compliance notes
