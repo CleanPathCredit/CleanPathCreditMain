@@ -15,3 +15,9 @@ Thumbs.db
 # PostHog wizard artifacts — local-dev only, not runtime config
 .claude/skills/
 posthog-setup-report.md
+
+# Per-client substantiation folders contain PII (signed releases, redacted
+# credit reports, etc.). Keep README + template committed, exclude the rest.
+docs/substantiation/*/
+!docs/substantiation/README.md
+!docs/substantiation/_template_release.md
