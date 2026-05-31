@@ -16,6 +16,12 @@ Thumbs.db
 .claude/skills/
 posthog-setup-report.md
 
+# Agent skill tooling (claude-ads install) + Claude Code local state.
+# Per-developer tooling and git worktrees — never product code.
+.agents/
+.claude/
+skills-lock.json
+
 # Per-client substantiation folders contain PII (signed releases, redacted
 # credit reports, etc.). Keep README + template committed, exclude the rest.
 docs/substantiation/*/

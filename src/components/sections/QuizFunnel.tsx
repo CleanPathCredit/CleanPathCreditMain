@@ -63,7 +63,7 @@ interface UrgencyTierInfo {
 }
 
 function urgencyTier(score: number): UrgencyTierInfo {
-  if (score >= 70) return { key: 'urgent',   label: 'Urgent — immediate action', tagline: 'The fastest path is a fully done-for-you removal system.',    color: '#ef4444' };
+  if (score >= 70) return { key: 'urgent',   label: 'Urgent — immediate action', tagline: 'The fastest path is a fully done-for-you dispute system.',    color: '#ef4444' };
   if (score >= 50) return { key: 'elevated', label: 'Elevated priority',         tagline: "You're one structured system away from the score you need.", color: '#f59e0b' };
   if (score >= 30) return { key: 'moderate', label: 'Moderate work',             tagline: 'A focused repair plan can close the gap to your goal.',       color: '#eab308' };
   return                   { key: 'low',      label: 'Low priority',             tagline: 'Targeted adjustments can unlock premium rates quickly.',      color: '#10b981' };
