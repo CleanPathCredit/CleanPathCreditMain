@@ -15,3 +15,9 @@ Thumbs.db
 # PostHog wizard artifacts — local-dev only, not runtime config
 .claude/skills/
 posthog-setup-report.md
+
+# Agent skill tooling (claude-ads install) + Claude Code local state.
+# Per-developer tooling and git worktrees — never product code.
+.agents/
+.claude/
+skills-lock.json
