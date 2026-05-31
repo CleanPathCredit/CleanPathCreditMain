@@ -15,6 +15,17 @@
  * misconfigured or unreachable, the Supabase write still succeeds (Clerk
  * webhook must return 2xx or Clerk will retry + eventually pause signups).
  *
+ * Plan-bypass hardening (security audit 2026-05-05, finding H-2 / High #1):
+ *   - Plan and stripe_session_id / stripe_customer_id are read ONLY from
+ *     private_metadata. private_metadata is server-only-writable; a
+ *     signed-in user cannot reach it via Clerk's frontend updateUser API.
+ *   - unsafe_metadata.plan is intentionally IGNORED. Even if a malicious
+ *     user sets unsafe_metadata.plan = "premium" on their own Clerk user
+ *     and triggers a user.updated event, this handler will not honor it.
+ *   - quiz_data continues to be read from unsafe_metadata since it's
+ *     written client-side at signup and isn't security-sensitive (no PII;
+ *     verified by audit).
+ *
  * Setup (one-time):
  *   1. Clerk Dashboard → Webhooks → Add endpoint
  *      URL: https://cleanpathcredit.com/api/webhooks/clerk
@@ -165,7 +176,11 @@ export default async function handler(req: Request): Promise<Response> {
       first_name: string | null;
       last_name: string | null;
       phone_numbers: { phone_number: string }[];
-      unsafe_metadata?: { plan?: string; stripe_session_id?: string; stripe_customer_id?: string; quiz_data?: Record<string, unknown> };
+      // private_metadata is server-only-writable; this is the source of
+      // truth for plan / stripe IDs. unsafe_metadata is client-writable
+      // and is read ONLY for non-security-sensitive fields like quiz_data.
+      private_metadata?: { plan?: string; stripe_session_id?: string; stripe_customer_id?: string };
+      unsafe_metadata?: { quiz_data?: Record<string, unknown> };
     };
 
     const primaryEmail = user.email_addresses.find(
@@ -174,8 +189,9 @@ export default async function handler(req: Request): Promise<Response> {
 
     const fullName    = [user.first_name, user.last_name].filter(Boolean).join(" ") || null;
     const phone       = user.phone_numbers[0]?.phone_number ?? null;
-    const meta        = user.unsafe_metadata ?? {};
-    const plan        = (meta.plan as string) || "free";
+    const privMeta    = user.private_metadata ?? {};
+    const unsafeMeta  = user.unsafe_metadata  ?? {};
+    const plan        = (privMeta.plan as string) || "free";
 
     // Stitch this signup to their most-recent pre-registration quiz lead
     // (matched case-insensitively on email). Profiles doesn't have
@@ -226,13 +242,15 @@ export default async function handler(req: Request): Promise<Response> {
       console.error("Lead auto-link lookup failed:", err);
     }
 
-    // Merge explicit Clerk metadata quiz_data (from in-product flows) over
+    // Merge explicit unsafe_metadata.quiz_data (from in-product flows) over
     // the linked-lead quiz_data. If both exist, the in-product one wins
     // for any overlapping keys but the lead context is preserved under
-    // `lead` namespace.
+    // `lead` namespace. quiz_data is intentionally read from
+    // unsafe_metadata because it's set client-side at signup; it doesn't
+    // contain PII (verified by audit) and isn't security-sensitive.
     const mergedQuizData = (() => {
       const base = linkedLead?.quiz_data ?? null;
-      const meta_qd = (meta.quiz_data as Record<string, unknown> | undefined) ?? null;
+      const meta_qd = (unsafeMeta.quiz_data as Record<string, unknown> | undefined) ?? null;
       if (!base && !meta_qd) return null;
       if (!base) return meta_qd;
       if (!meta_qd) return base;
@@ -246,8 +264,8 @@ export default async function handler(req: Request): Promise<Response> {
       phone,
       role:               process.env.ADMIN_EMAIL?.toLowerCase() === primaryEmail.toLowerCase() ? "admin" : "client",
       plan:               plan as "free" | "diy" | "standard" | "premium",
-      stripe_session_id:  meta.stripe_session_id ?? null,
-      stripe_customer_id: meta.stripe_customer_id ?? null,
+      stripe_session_id:  privMeta.stripe_session_id ?? null,
+      stripe_customer_id: privMeta.stripe_customer_id ?? null,
       goal:               linkedLead?.goal ?? null,
       challenge:          linkedLead?.challenge ?? null,
       quiz_data:          mergedQuizData,
@@ -281,30 +299,34 @@ export default async function handler(req: Request): Promise<Response> {
     });
     await capturePostHogEvent("user_signed_up", user.id, {
       plan,
-      has_stripe_session: !!meta.stripe_session_id,
+      has_stripe_session: !!privMeta.stripe_session_id,
     });
   }
 
   if (event.type === "user.updated") {
+    // Plan-bypass hardening: read plan ONLY from private_metadata. The
+    // unsafe_metadata field is intentionally not read — it's client-
+    // writable via Clerk's frontend updateUser API and would otherwise
+    // let any signed-in user self-promote to premium.
     const user = event.data as {
       id: string;
-      unsafe_metadata?: { plan?: string; stripe_customer_id?: string };
+      private_metadata?: { plan?: string; stripe_customer_id?: string };
     };
-    const meta = user.unsafe_metadata ?? {};
+    const privMeta = user.private_metadata ?? {};
 
-    if (meta.plan) {
+    if (privMeta.plan) {
       await supabase.from("profiles")
         .update({
-          plan: meta.plan as "free" | "diy" | "standard" | "premium",
-          stripe_customer_id: meta.stripe_customer_id ?? null,
+          plan: privMeta.plan as "free" | "diy" | "standard" | "premium",
+          stripe_customer_id: privMeta.stripe_customer_id ?? null,
         })
         .eq("id", user.id);
 
       // PostHog: capture plan upgrade
       await capturePostHogEvent("plan_upgraded", user.id, {
-        plan:               meta.plan,
-        stripe_customer_id: meta.stripe_customer_id ?? undefined,
-        $set: { plan: meta.plan },
+        plan:               privMeta.plan,
+        stripe_customer_id: privMeta.stripe_customer_id ?? undefined,
+        $set: { plan: privMeta.plan },
       });
     }
   }
