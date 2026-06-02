@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import React, { useEffect } from "react";
+import { Seo } from "@/components/Seo";
 
 /**
  * Terms of Service.
@@ -24,12 +25,16 @@ import React, { useEffect } from "react";
  */
 export function Terms() {
   useEffect(() => {
-    document.title = "Terms of Service | Clean Path Credit";
     window.scrollTo(0, 0);
   }, []);
 
   return (
     <div className="relative min-h-screen bg-white font-sans text-zinc-900">
+      <Seo
+        title="Terms of Service | Clean Path Credit"
+        description="The terms governing use of Clean Path Credit's website and credit restoration services, including CROA disclosures and your cancellation rights."
+        canonical="https://cleanpathcredit.com/terms"
+      />
       <Navbar />
       <main className="relative pt-32 pb-24">
         <div className="mx-auto max-w-3xl px-6">

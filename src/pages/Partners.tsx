@@ -28,6 +28,7 @@
  */
 
 import React, { useState } from "react";
+import { Seo } from "@/components/Seo";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -104,12 +105,6 @@ export function Partners() {
   const [submitted, setSubmitted]     = useState(false);
   const [error, setError]             = useState<string | null>(null);
 
-  React.useEffect(() => {
-    const prevTitle = document.title;
-    document.title = "Clean Path Credit | Partner Program for LOs, Agents, and F&I Managers";
-    return () => { document.title = prevTitle; };
-  }, []);
-
   const canSubmit =
     form.firstName.trim().length > 0 &&
     EMAIL_REGEX.test(form.email.trim()) &&
@@ -183,6 +178,11 @@ export function Partners() {
 
   return (
     <div className="relative min-h-screen bg-white font-sans text-zinc-900">
+      <Seo
+        title="Partner Program for Loan Officers, Agents & Dealerships | Clean Path Credit"
+        description="Refer clients to Clean Path Credit's Texas credit-restoration program. Built for mortgage loan officers, real estate agents, and dealership F&I managers."
+        canonical="https://cleanpathcredit.com/partners"
+      />
       <Navbar />
 
       <main className="relative pt-24 pb-16">

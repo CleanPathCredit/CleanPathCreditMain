@@ -9,15 +9,17 @@ import { QuizFunnel } from "@/components/sections/QuizFunnel";
 import { GridPattern } from "@/components/ui/GridPattern";
 import { ParticleDrift } from "@/components/ui/ParticleDrift";
 import { AnimatedGradient } from "@/components/ui/AnimatedGradient";
-import React, { useEffect } from "react";
+import React from "react";
+import { Seo } from "@/components/Seo";
 
 export function Landing() {
-  useEffect(() => {
-    document.title = "Clean Path Credit | AI-Powered Credit Correction & Optimization";
-  }, []);
-
   return (
     <div className="relative min-h-screen bg-white font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-900">
+      <Seo
+        title="Clean Path Credit | Credit Restoration in Texas"
+        description="Texas credit restoration with AI-powered report audits and FCRA-backed dispute strategies for buyers preparing for mortgage, auto, and business funding. Book a free 15-minute credit audit."
+        canonical="https://cleanpathcredit.com/"
+      />
       <Navbar />
       
       <main className="relative">

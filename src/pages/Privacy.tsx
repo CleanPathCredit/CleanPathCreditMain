@@ -1,15 +1,20 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import React, { useEffect } from "react";
+import { Seo } from "@/components/Seo";
 
 export function Privacy() {
   useEffect(() => {
-    document.title = "Privacy Policy | Clean Path Credit";
     window.scrollTo(0, 0);
   }, []);
 
   return (
     <div className="relative min-h-screen bg-white font-sans text-zinc-900">
+      <Seo
+        title="Privacy Policy | Clean Path Credit"
+        description="How Clean Path Credit collects, uses, and protects your personal and credit information. Texas credit restoration services."
+        canonical="https://cleanpathcredit.com/privacy"
+      />
       <Navbar />
       <main className="relative pt-32 pb-24">
         <div className="mx-auto max-w-3xl px-6">

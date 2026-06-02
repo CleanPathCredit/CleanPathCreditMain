@@ -38,6 +38,7 @@
  */
 
 import React, { useEffect } from "react";
+import { Seo } from "@/components/Seo";
 import { Link } from "react-router-dom";
 import {
   ShieldCheck,
@@ -71,9 +72,7 @@ declare global {
 
 export function EsComprador() {
   useEffect(() => {
-    const prevTitle = document.title;
     const prevLang = document.documentElement.lang;
-    document.title = "Clean Path Credit | Una casa para tu familia";
     document.documentElement.lang = "es";
 
     if (typeof window.gtag === "function") {
@@ -92,13 +91,17 @@ export function EsComprador() {
     });
 
     return () => {
-      document.title = prevTitle;
       document.documentElement.lang = prevLang;
     };
   }, []);
 
   return (
     <div className="min-h-screen bg-zinc-50 pb-32 sm:pb-0">
+      <Seo
+        title="Reparación de Crédito en Texas | Clean Path Credit"
+        description="Reparación de crédito en Texas con auditorías impulsadas por IA y estrategias de disputa respaldadas por la FCRA, para compradores que se preparan para hipoteca, auto o financiamiento."
+        canonical="https://cleanpathcredit.com/es-comprador"
+      />
       {/* Header strip — keep the back-link and EN switcher minimal so the
           page reads as ad-conversion focused, not as part of a wider site. */}
       <header className="border-b border-zinc-200 bg-white sticky top-0 z-20">
