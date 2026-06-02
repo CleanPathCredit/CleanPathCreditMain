@@ -61,6 +61,85 @@
          won't pass; safe to leave — no security impact. -->
     <meta name="facebook-domain-verification" content="%VITE_META_DOMAIN_VERIFICATION%" />
     <title>Clean Path Credit | Premium Credit Restoration &amp; Building</title>
+    <!-- Structured data (JSON-LD). Lives in the static <head> so it is
+         crawlable even before SSG ships. SAB (service-area business): no
+         streetAddress. No aggregateRating (Google ignores/flags self-serving
+         review markup). No CSO number until Texas registration is approved. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://cleanpathcredit.com/#organization",
+          "name": "Clean Path Credit",
+          "url": "https://cleanpathcredit.com/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://cleanpathcredit.com/logo.png"
+          },
+          "image": "https://cleanpathcredit.com/og-image.png",
+          "description": "Credit restoration and credit-building services using AI-powered report audits and FCRA-backed dispute strategies, for credit-challenged buyers preparing for mortgage, auto, and business funding.",
+          "knowsLanguage": ["en", "es"],
+          "areaServed": { "@type": "State", "name": "Texas" },
+          "sameAs": ["https://www.google.com/search?kgmid=/g/11z9r1pbsh"],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+1-346-399-5606",
+            "contactType": "customer service",
+            "areaServed": "US-TX",
+            "availableLanguage": ["English", "Spanish"]
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://cleanpathcredit.com/#website",
+          "url": "https://cleanpathcredit.com/",
+          "name": "Clean Path Credit",
+          "inLanguage": "en-US",
+          "publisher": { "@id": "https://cleanpathcredit.com/#organization" }
+        },
+        {
+          "@type": "FinancialService",
+          "@id": "https://cleanpathcredit.com/#localbusiness",
+          "name": "Clean Path Credit",
+          "url": "https://cleanpathcredit.com/",
+          "image": "https://cleanpathcredit.com/og-image.png",
+          "logo": "https://cleanpathcredit.com/logo.png",
+          "telephone": "+1-346-399-5606",
+          "priceRange": "$$",
+          "currenciesAccepted": "USD",
+          "parentOrganization": { "@id": "https://cleanpathcredit.com/#organization" },
+          "address": {
+            "@type": "PostalAddress",
+            "addressRegion": "TX",
+            "addressCountry": "US"
+          },
+          "areaServed": [
+            { "@type": "State", "name": "Texas" },
+            { "@type": "City", "name": "San Antonio" },
+            { "@type": "City", "name": "Houston" }
+          ],
+          "availableLanguage": ["English", "Spanish"]
+        },
+        {
+          "@type": "Service",
+          "@id": "https://cleanpathcredit.com/#service",
+          "serviceType": "Credit repair and restoration",
+          "provider": { "@id": "https://cleanpathcredit.com/#organization" },
+          "areaServed": { "@type": "State", "name": "Texas" },
+          "audience": {
+            "@type": "Audience",
+            "audienceType": "Consumers preparing for mortgage, auto, or business financing"
+          },
+          "availableChannel": {
+            "@type": "ServiceChannel",
+            "serviceUrl": "https://cleanpathcredit.com/"
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <!-- Meta Pixel — noscript fallback for users with JS disabled.
