@@ -36,6 +36,10 @@ const ROUTES = [
   '/credit-repair-san-antonio',
   '/credit-repair-houston',
   '/faq',
+  '/blog',
+  '/blog/are-credit-repair-companies-a-scam',
+  '/blog/do-credit-repair-companies-guarantee-results',
+  '/blog/how-to-know-if-credit-repair-company-is-legitimate',
 ];
 
 const MIME = {

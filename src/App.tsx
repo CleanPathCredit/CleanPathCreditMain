@@ -28,6 +28,10 @@ const Partners    = lazy(() => import("@/pages/Partners").then(m => ({ default: 
 const CreditRepairSanAntonio = lazy(() => import("@/pages/CreditRepairSanAntonio").then(m => ({ default: m.CreditRepairSanAntonio })));
 const Faq          = lazy(() => import("@/pages/Faq").then(m => ({ default: m.Faq })));
 const CreditRepairHouston = lazy(() => import("@/pages/CreditRepairHouston").then(m => ({ default: m.CreditRepairHouston })));
+const Blog          = lazy(() => import("@/pages/Blog").then(m => ({ default: m.Blog })));
+const BlogScam      = lazy(() => import("@/pages/blog/AreCreditRepairCompaniesAScam").then(m => ({ default: m.AreCreditRepairCompaniesAScam })));
+const BlogGuarantee = lazy(() => import("@/pages/blog/DoCreditRepairCompaniesGuaranteeResults").then(m => ({ default: m.DoCreditRepairCompaniesGuaranteeResults })));
+const BlogLegit     = lazy(() => import("@/pages/blog/HowToKnowIfCreditRepairCompanyIsLegitimate").then(m => ({ default: m.HowToKnowIfCreditRepairCompanyIsLegitimate })));
 
 function LoadingFallback() {
   return (
@@ -58,6 +62,10 @@ export default function App() {
               <Route path="/credit-repair-san-antonio" element={<CreditRepairSanAntonio />} />
               <Route path="/credit-repair-houston" element={<CreditRepairHouston />} />
               <Route path="/faq" element={<Faq />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/are-credit-repair-companies-a-scam" element={<BlogScam />} />
+              <Route path="/blog/do-credit-repair-companies-guarantee-results" element={<BlogGuarantee />} />
+              <Route path="/blog/how-to-know-if-credit-repair-company-is-legitimate" element={<BlogLegit />} />
               {/* /upgrade is 301-redirected to /unlock at the edge (vercel.json) */}
               {/* Spanish consumer-facing landing page — Track A4/B2 funnel
                   destination. Do NOT point paid ads/SMS/leave-behinds at
