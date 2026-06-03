@@ -40,6 +40,7 @@ const ROUTES = [
   '/blog/are-credit-repair-companies-a-scam',
   '/blog/do-credit-repair-companies-guarantee-results',
   '/blog/how-to-know-if-credit-repair-company-is-legitimate',
+  '/blog/es/reparar-credito-con-itin',
 ];
 
 const MIME = {
