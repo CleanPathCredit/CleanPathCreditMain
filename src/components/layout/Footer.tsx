@@ -50,6 +50,7 @@ export function Footer() {
             <li><a href="/credit-repair-san-antonio" className="transition-colors hover:text-white">Credit Repair San Antonio</a></li>
             <li><a href="/credit-repair-houston" className="transition-colors hover:text-white">Credit Repair Houston</a></li>
             <li><a href="/faq" className="transition-colors hover:text-white">FAQ</a></li>
+            <li><a href="/blog" className="transition-colors hover:text-white">Blog</a></li>
             <li><a href="/es-comprador" className="transition-colors hover:text-white" lang="es">Reparaci&oacute;n de Cr&eacute;dito</a></li>
           </ul>
         </div>
