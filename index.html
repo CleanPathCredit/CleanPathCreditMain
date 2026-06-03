@@ -33,10 +33,13 @@
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Clean Path Credit — Premium credit restoration & building. AI-powered audits and FCRA-backed dispute strategies for buyers preparing for mortgage, auto, and business funding." />
+    <!-- Per-page <title>/<meta name="description">/<link rel="canonical"> are
+         rendered by each public page via React 19 metadata (src/components/Seo.tsx)
+         and captured by the prerender step (scripts/prerender.mjs) — kept out of
+         this template to avoid duplicate tags. Authed/noindex routes fall back to
+         the SPA. -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-<link rel="canonical" href="https://cleanpathcredit.com/" />
     <meta property="og:title" content="Clean Path Credit | Premium Credit Restoration & Building" />
     <meta property="og:description" content="AI-powered credit restoration with FCRA-backed dispute strategies, built for credit-challenged buyers preparing for mortgages, auto loans, and business funding." />
     <meta property="og:type" content="website" />
@@ -60,7 +63,6 @@
          Until set, the literal %placeholder% remains and Meta verification
          won't pass; safe to leave — no security impact. -->
     <meta name="facebook-domain-verification" content="%VITE_META_DOMAIN_VERIFICATION%" />
-    <title>Clean Path Credit | Premium Credit Restoration &amp; Building</title>
     <!-- Structured data (JSON-LD). Lives in the static <head> so it is
          crawlable even before SSG ships. SAB (service-area business): no
          streetAddress. No aggregateRating (Google ignores/flags self-serving

@@ -3,15 +3,17 @@ import { Footer } from "@/components/layout/Footer";
 import { QuizFunnel } from "@/components/sections/QuizFunnel";
 import { motion } from "motion/react";
 import { CheckCircle2, Search, TrendingUp, XCircle, Check, Scale, ShieldCheck } from "lucide-react";
-import React, { useEffect } from "react";
+import React from "react";
+import { Seo } from "@/components/Seo";
 
 export function Methodology() {
-  useEffect(() => {
-    document.title = "How It Works | Clean Path Credit";
-  }, []);
-
   return (
     <div className="relative min-h-screen bg-white font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-900">
+      <Seo
+        title="How Credit Repair Works in Texas | Clean Path Credit"
+        description="See how Clean Path Credit's FCRA-backed dispute process works step by step — AI report audit, structured dispute rounds, and progress you can track. Texas credit restoration."
+        canonical="https://cleanpathcredit.com/how-it-works"
+      />
       <Navbar />
       
       <main className="relative pt-32">

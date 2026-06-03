@@ -20,6 +20,7 @@
  */
 
 import React from "react";
+import { Seo } from "@/components/Seo";
 import { Link } from "react-router-dom";
 import { CheckCircle2, ShieldCheck, Clock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -98,6 +99,11 @@ const TIERS: TierConfig[] = [
 export function Unlock() {
   return (
     <div className="min-h-screen bg-zinc-50">
+      <Seo
+        title="Unlock Your Credit Plan | Clean Path Credit"
+        description="Review your personalized credit-restoration plan and next steps with Clean Path Credit — Texas FCRA-backed dispute process."
+        canonical="https://cleanpathcredit.com/unlock"
+      />
       <header className="border-b border-zinc-200 bg-white sticky top-0 z-20">
         <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900">
