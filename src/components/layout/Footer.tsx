@@ -48,6 +48,7 @@ export function Footer() {
             <li><a href="/unlock" className="transition-colors hover:text-white">Plans &amp; Pricing</a></li>
             <li><a href="/partners" className="transition-colors hover:text-white">Partner Program</a></li>
             <li><a href="/credit-repair-san-antonio" className="transition-colors hover:text-white">Credit Repair San Antonio</a></li>
+            <li><a href="/credit-repair-houston" className="transition-colors hover:text-white">Credit Repair Houston</a></li>
             <li><a href="/faq" className="transition-colors hover:text-white">FAQ</a></li>
             <li><a href="/es-comprador" className="transition-colors hover:text-white" lang="es">Reparaci&oacute;n de Cr&eacute;dito</a></li>
           </ul>

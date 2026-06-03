@@ -34,6 +34,7 @@ const ROUTES = [
   '/es-comprador',
   '/partners',
   '/credit-repair-san-antonio',
+  '/credit-repair-houston',
   '/faq',
 ];
 
