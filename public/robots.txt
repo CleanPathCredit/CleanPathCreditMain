@@ -1,4 +1,40 @@
+# robots.txt — Clean Path Credit
+# https://cleanpathcredit.com
+
+# Standard crawlers
 User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /welcome
+Disallow: /sms-consent
+Disallow: /upgrade
+Disallow: /api/
+
+# AI search & citation crawlers — explicitly allowed (power Google AI
+# Overviews, ChatGPT Search, Perplexity, Bing Copilot). Public routes are
+# marketing + compliance content only; no consumer data is exposed.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
 Allow: /
 
 Sitemap: https://cleanpathcredit.com/sitemap.xml

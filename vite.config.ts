@@ -19,5 +19,19 @@ export default defineConfig(() => {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       hmr: process.env.DISABLE_HMR !== 'true',
     },
+    build: {
+      // Split heavy vendor libs out of the single entry chunk so they cache
+      // independently and parallelize — improves LCP on the public pages.
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-clerk': ['@clerk/clerk-react'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'vendor-analytics': ['posthog-js'],
+          },
+        },
+      },
+    },
   };
 });

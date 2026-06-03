@@ -33,15 +33,21 @@ export function Footer() {
               Versión en español
             </a>
           </div>
+          <div className="mt-5 space-y-1 text-sm text-zinc-500">
+            <p className="font-medium text-zinc-400">Serving San Antonio &amp; all of Texas</p>
+            <p><a href="tel:+13463995606" className="transition-colors hover:text-white">(346) 399-5606</a></p>
+            <p><a href="mailto:hello@cleanpathcredit.com" className="transition-colors hover:text-white">hello@cleanpathcredit.com</a></p>
+            <p className="pt-1 text-xs text-zinc-600">By appointment · Service delivered remotely statewide</p>
+          </div>
         </div>
 
         <div>
-          <h4 className="mb-4 font-medium text-white">Platform</h4>
+          <h4 className="mb-4 font-medium text-white">Services</h4>
           <ul className="space-y-2 text-sm">
-            <li><a href="#" className="transition-colors hover:text-white">AI Engine</a></li>
-            <li><a href="#" className="transition-colors hover:text-white">Credit Optimization Engine</a></li>
-            <li><a href="#" className="transition-colors hover:text-white">Credit Monitoring</a></li>
-            <li><a href="#" className="transition-colors hover:text-white">API Access</a></li>
+            <li><a href="/how-it-works" className="transition-colors hover:text-white">How It Works</a></li>
+            <li><a href="/unlock" className="transition-colors hover:text-white">Plans &amp; Pricing</a></li>
+            <li><a href="/partners" className="transition-colors hover:text-white">Partner Program</a></li>
+            <li><a href="/es-comprador" className="transition-colors hover:text-white" lang="es">Reparaci&oacute;n de Cr&eacute;dito</a></li>
           </ul>
         </div>
 
@@ -49,8 +55,6 @@ export function Footer() {
           <h4 className="mb-4 font-medium text-white">Company</h4>
           <ul className="space-y-2 text-sm">
             <li><a href="/partners" className="transition-colors hover:text-white">Partner Program</a></li>
-            <li><a href="#" className="transition-colors hover:text-white">About Us</a></li>
-            <li><a href="#" className="transition-colors hover:text-white">Careers</a></li>
             <li><a href="/privacy" className="transition-colors hover:text-white">Privacy Policy</a></li>
             <li><a href="/terms" className="transition-colors hover:text-white">Terms of Service</a></li>
           </ul>

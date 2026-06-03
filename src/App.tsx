@@ -52,8 +52,7 @@ export default function App() {
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/unlock"   element={<Unlock />} />
-              {/* Alias: marketing teams sometimes reach for /upgrade instead */}
-              <Route path="/upgrade"  element={<Unlock />} />
+              {/* /upgrade is 301-redirected to /unlock at the edge (vercel.json) */}
               {/* Spanish consumer-facing landing page — Track A4/B2 funnel
                   destination. Do NOT point paid ads/SMS/leave-behinds at
                   this URL until Texas CSO registration is approved and the
