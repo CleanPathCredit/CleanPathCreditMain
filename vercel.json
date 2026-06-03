@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/upgrade", "destination": "/unlock", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/r/:code",  "destination": "/api/r/:code" },
