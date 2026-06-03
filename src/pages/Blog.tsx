@@ -25,6 +25,12 @@ const POSTS: { slug: string; title: string; excerpt: string; date: string }[] = 
     excerpt: "A 5-minute vetting checklist grounded in CROA and Texas law: contract, no advance fees, cancellation right, registration, bond.",
     date: "June 3, 2026",
   },
+  {
+    slug: "es/reparar-credito-con-itin",
+    title: "Cómo Reparar tu Crédito con ITIN en Texas",
+    excerpt: "Guía en español: cómo reparar y construir crédito con ITIN, tus derechos bajo la FCRA, y cómo prepararte para comprar casa en Texas.",
+    date: "3 de junio, 2026",
+  },
 ];
 
 const SCHEMA = {

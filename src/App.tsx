@@ -32,6 +32,7 @@ const Blog          = lazy(() => import("@/pages/Blog").then(m => ({ default: m.
 const BlogScam      = lazy(() => import("@/pages/blog/AreCreditRepairCompaniesAScam").then(m => ({ default: m.AreCreditRepairCompaniesAScam })));
 const BlogGuarantee = lazy(() => import("@/pages/blog/DoCreditRepairCompaniesGuaranteeResults").then(m => ({ default: m.DoCreditRepairCompaniesGuaranteeResults })));
 const BlogLegit     = lazy(() => import("@/pages/blog/HowToKnowIfCreditRepairCompanyIsLegitimate").then(m => ({ default: m.HowToKnowIfCreditRepairCompanyIsLegitimate })));
+const BlogEsItin    = lazy(() => import("@/pages/blog/es/RepararCreditoConItin").then(m => ({ default: m.RepararCreditoConItin })));
 
 function LoadingFallback() {
   return (
@@ -66,6 +67,7 @@ export default function App() {
               <Route path="/blog/are-credit-repair-companies-a-scam" element={<BlogScam />} />
               <Route path="/blog/do-credit-repair-companies-guarantee-results" element={<BlogGuarantee />} />
               <Route path="/blog/how-to-know-if-credit-repair-company-is-legitimate" element={<BlogLegit />} />
+              <Route path="/blog/es/reparar-credito-con-itin" element={<BlogEsItin />} />
               {/* /upgrade is 301-redirected to /unlock at the edge (vercel.json) */}
               {/* Spanish consumer-facing landing page — Track A4/B2 funnel
                   destination. Do NOT point paid ads/SMS/leave-behinds at
