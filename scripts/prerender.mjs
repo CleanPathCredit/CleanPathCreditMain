@@ -78,10 +78,35 @@ async function main() {
 
   let puppeteer;
   try {
-    puppeteer = (await import('puppeteer')).default;
+    puppeteer = (await import('puppeteer-core')).default;
   } catch (e) {
-    console.warn('[prerender] puppeteer unavailable — shipping SPA without prerender:', e.message);
+    console.warn('[prerender] puppeteer-core unavailable — shipping SPA without prerender:', e.message);
     return;
+  }
+
+  // Resolve a launchable Chromium. On Vercel/CI the build image lacks the
+  // shared libraries puppeteer's bundled Chromium needs (libnspr4.so, etc.),
+  // so use @sparticuz/chromium (a self-contained binary that bundles them).
+  // Locally, use the developer's installed Chrome via the 'chrome' channel.
+  let launchOptions;
+  if (process.env.VERCEL || process.env.CI) {
+    try {
+      const chromium = (await import('@sparticuz/chromium')).default;
+      launchOptions = {
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      };
+    } catch (e) {
+      console.warn('[prerender] @sparticuz/chromium unavailable — shipping SPA without prerender:', e.message);
+      return;
+    }
+  } else {
+    launchOptions = {
+      headless: true,
+      channel: 'chrome',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    };
   }
 
   const template = await readFile(join(DIST, 'index.html'));
@@ -90,10 +115,7 @@ async function main() {
   let browser;
   let ok = 0;
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    browser = await puppeteer.launch(launchOptions);
 
     for (const route of ROUTES) {
       const page = await browser.newPage();
