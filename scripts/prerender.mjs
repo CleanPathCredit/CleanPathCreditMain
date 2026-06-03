@@ -33,6 +33,8 @@ const ROUTES = [
   '/terms',
   '/es-comprador',
   '/partners',
+  '/credit-repair-san-antonio',
+  '/faq',
 ];
 
 const MIME = {

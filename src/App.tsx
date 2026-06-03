@@ -25,6 +25,8 @@ const Unlock      = lazy(() => import("@/pages/Unlock").then(m => ({ default: m.
 const EsComprador = lazy(() => import("@/pages/EsComprador").then(m => ({ default: m.EsComprador })));
 const SmsConsent  = lazy(() => import("@/pages/SmsConsent").then(m => ({ default: m.SmsConsent })));
 const Partners    = lazy(() => import("@/pages/Partners").then(m => ({ default: m.Partners })));
+const CreditRepairSanAntonio = lazy(() => import("@/pages/CreditRepairSanAntonio").then(m => ({ default: m.CreditRepairSanAntonio })));
+const Faq          = lazy(() => import("@/pages/Faq").then(m => ({ default: m.Faq })));
 
 function LoadingFallback() {
   return (
@@ -52,6 +54,8 @@ export default function App() {
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/unlock"   element={<Unlock />} />
+              <Route path="/credit-repair-san-antonio" element={<CreditRepairSanAntonio />} />
+              <Route path="/faq" element={<Faq />} />
               {/* /upgrade is 301-redirected to /unlock at the edge (vercel.json) */}
               {/* Spanish consumer-facing landing page — Track A4/B2 funnel
                   destination. Do NOT point paid ads/SMS/leave-behinds at
