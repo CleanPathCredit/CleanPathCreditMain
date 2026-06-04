@@ -43,7 +43,7 @@ export function BlogArticle({ title, h1, description, slug, datePublished, lang 
       inLanguage: lang,
       mainEntityOfPage: canonical,
       image: "https://cleanpathcredit.com/og-image.png",
-      author: { "@type": "Organization", name: "Clean Path Credit", url: "https://cleanpathcredit.com/" },
+      author: { "@type": "Person", "@id": "https://cleanpathcredit.com/#founder", name: "Alex Serratos", url: "https://cleanpathcredit.com/about" },
       publisher: { "@id": "https://cleanpathcredit.com/#organization" },
     },
   ];
@@ -77,7 +77,12 @@ export function BlogArticle({ title, h1, description, slug, datePublished, lang 
           <a href="/blog" className="text-sm font-medium text-emerald-700 hover:text-emerald-600">
             ← {lang.startsWith("es") ? "Todos los artículos" : "All articles"}
           </a>
-          <h1 className="mt-4 mb-8 font-display text-4xl font-semibold tracking-tight text-zinc-900 md:text-5xl">{h1}</h1>
+          <h1 className="mt-4 mb-3 font-display text-4xl font-semibold tracking-tight text-zinc-900 md:text-5xl">{h1}</h1>
+          <p className="mb-8 text-sm text-zinc-500">
+            {lang.startsWith("es") ? "Por " : "By "}
+            <a href="/about" className="font-medium text-emerald-700 hover:text-emerald-600">Alex Serratos</a>
+            {lang.startsWith("es") ? ", fundador de Clean Path Credit" : ", Founder of Clean Path Credit"}
+          </p>
           <div className="space-y-5">{children}</div>
 
           <div className="mt-14 rounded-3xl border border-emerald-100 bg-emerald-50/60 p-8 text-center">
