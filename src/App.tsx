@@ -37,6 +37,7 @@ const BlogHowLong   = lazy(() => import("@/pages/blog/HowLongDoesCreditRepairTak
 const BlogEsEstafa  = lazy(() => import("@/pages/blog/es/ReparacionDeCreditoEsEstafa").then(m => ({ default: m.ReparacionDeCreditoEsEstafa })));
 const BlogEsTiempo  = lazy(() => import("@/pages/blog/es/CuantoTiempoTardaReparacionCredito").then(m => ({ default: m.CuantoTiempoTardaReparacionCredito })));
 const BlogDiy       = lazy(() => import("@/pages/blog/CanIFixMyCreditMyself").then(m => ({ default: m.CanIFixMyCreditMyself })));
+const About         = lazy(() => import("@/pages/About").then(m => ({ default: m.About })));
 
 function LoadingFallback() {
   return (
@@ -76,6 +77,7 @@ export default function App() {
               <Route path="/blog/es/reparacion-de-credito-es-estafa" element={<BlogEsEstafa />} />
               <Route path="/blog/es/cuanto-tiempo-tarda-reparacion-credito" element={<BlogEsTiempo />} />
               <Route path="/blog/can-i-fix-my-credit-myself" element={<BlogDiy />} />
+              <Route path="/about" element={<About />} />
               {/* /upgrade is 301-redirected to /unlock at the edge (vercel.json) */}
               {/* Spanish consumer-facing landing page — Track A4/B2 funnel
                   destination. Do NOT point paid ads/SMS/leave-behinds at
