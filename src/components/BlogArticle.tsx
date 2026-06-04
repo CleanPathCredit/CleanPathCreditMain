@@ -47,6 +47,14 @@ export function BlogArticle({ title, h1, description, slug, datePublished, lang 
       publisher: { "@id": "https://cleanpathcredit.com/#organization" },
     },
   ];
+  graph.push({
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://cleanpathcredit.com/" },
+      { "@type": "ListItem", position: 2, name: "Blog", item: "https://cleanpathcredit.com/blog" },
+      { "@type": "ListItem", position: 3, name: h1, item: canonical },
+    ],
+  });
   if (faqs && faqs.length) {
     graph.push({
       "@type": "FAQPage",
