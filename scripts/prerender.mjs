@@ -41,6 +41,9 @@ const ROUTES = [
   '/blog/do-credit-repair-companies-guarantee-results',
   '/blog/how-to-know-if-credit-repair-company-is-legitimate',
   '/blog/es/reparar-credito-con-itin',
+  '/blog/how-long-does-credit-repair-take',
+  '/blog/es/reparacion-de-credito-es-estafa',
+  '/blog/es/cuanto-tiempo-tarda-reparacion-credito',
 ];
 
 const MIME = {
