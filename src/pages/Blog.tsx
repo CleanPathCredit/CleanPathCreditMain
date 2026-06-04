@@ -31,6 +31,24 @@ const POSTS: { slug: string; title: string; excerpt: string; date: string }[] = 
     excerpt: "Guía en español: cómo reparar y construir crédito con ITIN, tus derechos bajo la FCRA, y cómo prepararte para comprar casa en Texas.",
     date: "3 de junio, 2026",
   },
+  {
+    slug: "how-long-does-credit-repair-take",
+    title: "How Long Does Credit Repair Take?",
+    excerpt: "The FCRA's 30-day dispute window, why most files need multiple rounds, and what actually speeds things up.",
+    date: "June 3, 2026",
+  },
+  {
+    slug: "es/reparacion-de-credito-es-estafa",
+    title: "¿La Reparación de Crédito es una Estafa?",
+    excerpt: "Cómo distinguir una empresa legítima de una estafa usando la ley CROA — y cómo verificar una compañía en Texas.",
+    date: "3 de junio, 2026",
+  },
+  {
+    slug: "es/cuanto-tiempo-tarda-reparacion-credito",
+    title: "¿Cuánto Tiempo Tarda la Reparación de Crédito?",
+    excerpt: "Expectativas reales: el plazo de 30 días de la FCRA y qué determina cuánto tarda tu caso.",
+    date: "3 de junio, 2026",
+  },
 ];
 
 const SCHEMA = {

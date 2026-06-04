@@ -33,6 +33,9 @@ const BlogScam      = lazy(() => import("@/pages/blog/AreCreditRepairCompaniesAS
 const BlogGuarantee = lazy(() => import("@/pages/blog/DoCreditRepairCompaniesGuaranteeResults").then(m => ({ default: m.DoCreditRepairCompaniesGuaranteeResults })));
 const BlogLegit     = lazy(() => import("@/pages/blog/HowToKnowIfCreditRepairCompanyIsLegitimate").then(m => ({ default: m.HowToKnowIfCreditRepairCompanyIsLegitimate })));
 const BlogEsItin    = lazy(() => import("@/pages/blog/es/RepararCreditoConItin").then(m => ({ default: m.RepararCreditoConItin })));
+const BlogHowLong   = lazy(() => import("@/pages/blog/HowLongDoesCreditRepairTake").then(m => ({ default: m.HowLongDoesCreditRepairTake })));
+const BlogEsEstafa  = lazy(() => import("@/pages/blog/es/ReparacionDeCreditoEsEstafa").then(m => ({ default: m.ReparacionDeCreditoEsEstafa })));
+const BlogEsTiempo  = lazy(() => import("@/pages/blog/es/CuantoTiempoTardaReparacionCredito").then(m => ({ default: m.CuantoTiempoTardaReparacionCredito })));
 
 function LoadingFallback() {
   return (
@@ -68,6 +71,9 @@ export default function App() {
               <Route path="/blog/do-credit-repair-companies-guarantee-results" element={<BlogGuarantee />} />
               <Route path="/blog/how-to-know-if-credit-repair-company-is-legitimate" element={<BlogLegit />} />
               <Route path="/blog/es/reparar-credito-con-itin" element={<BlogEsItin />} />
+              <Route path="/blog/how-long-does-credit-repair-take" element={<BlogHowLong />} />
+              <Route path="/blog/es/reparacion-de-credito-es-estafa" element={<BlogEsEstafa />} />
+              <Route path="/blog/es/cuanto-tiempo-tarda-reparacion-credito" element={<BlogEsTiempo />} />
               {/* /upgrade is 301-redirected to /unlock at the edge (vercel.json) */}
               {/* Spanish consumer-facing landing page — Track A4/B2 funnel
                   destination. Do NOT point paid ads/SMS/leave-behinds at
