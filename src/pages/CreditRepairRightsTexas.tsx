@@ -67,6 +67,11 @@ export function CreditRepairRightsTexas() {
         title="Your Credit Repair Rights in Texas: CROA, FCRA & Ch. 393 | Clean Path Credit"
         description="A plain-English reference to your legal rights with a credit repair company in Texas — no advance fees, 3-day cancellation, FCRA disputes, CSO registration. Know the law before you sign."
         canonical={URL}
+        alternates={[
+          { hreflang: "en", href: "https://cleanpathcredit.com/credit-repair-rights-texas" },
+          { hreflang: "es", href: "https://cleanpathcredit.com/es/tus-derechos-reparacion-credito-texas" },
+          { hreflang: "x-default", href: "https://cleanpathcredit.com/credit-repair-rights-texas" },
+        ]}
       />
       <JsonLd data={SCHEMA} />
       <Navbar />

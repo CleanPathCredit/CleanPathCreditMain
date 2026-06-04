@@ -49,6 +49,7 @@ const ROUTES = [
   '/blog/how-to-choose-credit-repair-company-san-antonio',
   '/about',
   '/credit-repair-rights-texas',
+  '/es/tus-derechos-reparacion-credito-texas',
 ];
 
 const MIME = {
