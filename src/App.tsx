@@ -41,6 +41,7 @@ const About         = lazy(() => import("@/pages/About").then(m => ({ default: m
 const EsReparacionSA = lazy(() => import("@/pages/EsReparacionSanAntonio").then(m => ({ default: m.EsReparacionSanAntonio })));
 const BlogChooseSA  = lazy(() => import("@/pages/blog/HowToChooseCreditRepairSanAntonio").then(m => ({ default: m.HowToChooseCreditRepairSanAntonio })));
 const RightsTexas   = lazy(() => import("@/pages/CreditRepairRightsTexas").then(m => ({ default: m.CreditRepairRightsTexas })));
+const EsDerechos    = lazy(() => import("@/pages/EsTusDerechosTexas").then(m => ({ default: m.EsTusDerechosTexas })));
 
 function LoadingFallback() {
   return (
@@ -83,6 +84,7 @@ export default function App() {
               <Route path="/blog/how-to-choose-credit-repair-company-san-antonio" element={<BlogChooseSA />} />
               <Route path="/about" element={<About />} />
               <Route path="/credit-repair-rights-texas" element={<RightsTexas />} />
+              <Route path="/es/tus-derechos-reparacion-credito-texas" element={<EsDerechos />} />
               <Route path="/es/reparacion-de-credito-san-antonio" element={<EsReparacionSA />} />
               {/* /upgrade is 301-redirected to /unlock at the edge (vercel.json) */}
               {/* Spanish consumer-facing landing page — Track A4/B2 funnel
