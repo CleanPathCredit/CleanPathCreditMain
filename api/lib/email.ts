@@ -136,6 +136,89 @@ export async function sendLettersReadyEmail(
   }
 }
 
+interface ReviewRequestInput {
+  to: string;
+  firstName?: string | null;
+  lang?: "en" | "es";
+}
+
+/**
+ * Ask a client for an HONEST Google review. The single biggest local-SEO
+ * lever (review count × rating × velocity gates the local pack).
+ *
+ * Compliance — FTC Endorsement Guides (16 CFR Part 255):
+ *   - No incentive offered for a review (and never for a *positive* one).
+ *   - Not gated to only-happy clients — send to everyone; the copy asks
+ *     for an honest review "either way." Cherry-picking reviewers is itself
+ *     a deceptive practice. Keep that policy when wiring the caller.
+ *
+ * Bilingual (en/es). Review link comes from GBP_REVIEW_URL (the Google
+ * "write a review" link); falls back to the public profile if unset.
+ * No-op without RESEND_API_KEY, like the other helpers.
+ */
+export async function sendReviewRequestEmail(
+  input: ReviewRequestInput,
+): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from   = process.env.RESEND_FROM ?? DEFAULT_FROM;
+
+  if (!apiKey) {
+    console.warn(
+      "[email] RESEND_API_KEY not set — skipping review-request email to",
+      input.to,
+    );
+    return false;
+  }
+
+  const reviewUrl =
+    process.env.GBP_REVIEW_URL ??
+    "https://www.google.com/search?kgmid=/g/11z9r1pbsh";
+  const es   = input.lang === "es";
+  const name = input.firstName ? escapeHtml(input.firstName) : "";
+
+  const subject  = es ? "¿Nos harías un pequeño favor?" : "A quick favor?";
+  const greeting = name
+    ? (es ? `Hola ${name},` : `Hi ${name},`)
+    : (es ? "Hola," : "Hi,");
+  const bodyLine = es
+    ? "Fue un gusto trabajar contigo. Si te sientes cómodo, ¿podrías compartir una reseña honesta de tu experiencia en Google? Ayuda a otras familias de San Antonio a tomar una decisión. Sin compromiso — y gracias de todas formas."
+    : "It's been a pleasure working with you. If you're comfortable, would you share an honest review of your experience on Google? It helps other San Antonio families decide. No pressure either way — and thank you.";
+  const ctaLabel = es ? "Escribir una reseña" : "Leave a review";
+  const signoff  = "— Alex, Clean Path Credit";
+
+  const html = /* html */ `
+<!doctype html>
+<html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #18181b;">
+  <p>${greeting}</p>
+  <p>${bodyLine}</p>
+  <p style="margin: 24px 0;">
+    <a href="${escapeHtml(reviewUrl)}" style="display: inline-block; background: #059669; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">${ctaLabel}</a>
+  </p>
+  <p style="color: #71717a;">${signoff}</p>
+</body></html>`.trim();
+
+  const text = [`${greeting}`, "", bodyLine, "", reviewUrl, "", signoff].join("\n");
+
+  const resend = new Resend(apiKey);
+  try {
+    const result = await resend.emails.send({
+      from,
+      to:      input.to,
+      subject,
+      html,
+      text,
+    });
+    if (result.error) {
+      console.error("[email] resend rejected review-request", result.error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[email] resend threw on review-request", err);
+    return false;
+  }
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
