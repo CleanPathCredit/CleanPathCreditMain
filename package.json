@@ -8,7 +8,8 @@
     "build": "vite build && node scripts/prerender.mjs",
     "preview": "vite preview",
     "clean": "npx rimraf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "indexnow": "node scripts/indexnow.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
