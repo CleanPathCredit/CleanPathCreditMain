@@ -20,15 +20,20 @@ interface SeoProps {
   canonical: string;
   /** Set on noindex pages (e.g. /sms-consent). */
   noindex?: boolean;
+  /** hreflang alternates, e.g. [{ hreflang: "es", href: "https://.../es/..." }]. */
+  alternates?: { hreflang: string; href: string }[];
 }
 
-export function Seo({ title, description, canonical, noindex }: SeoProps) {
+export function Seo({ title, description, canonical, noindex, alternates }: SeoProps) {
   return (
     <>
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={canonical} />
       {noindex ? <meta name="robots" content="noindex,nofollow" /> : null}
+      {alternates?.map((a) => (
+        <link key={a.hreflang} rel="alternate" hrefLang={a.hreflang} href={a.href} />
+      ))}
     </>
   );
 }

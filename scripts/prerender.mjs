@@ -34,6 +34,7 @@ const ROUTES = [
   '/es-comprador',
   '/partners',
   '/credit-repair-san-antonio',
+  '/es/reparacion-de-credito-san-antonio',
   '/credit-repair-houston',
   '/faq',
   '/blog',

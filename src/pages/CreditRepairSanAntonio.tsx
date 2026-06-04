@@ -90,6 +90,11 @@ export function CreditRepairSanAntonio() {
         title="Credit Repair in San Antonio, TX | Clean Path Credit"
         description="Credit repair in San Antonio, TX — FCRA-backed dispute strategy and AI-assisted report audits for buyers getting mortgage-ready. Bilingual English/Spanish. No advance fees. Free 15-minute audit."
         canonical="https://cleanpathcredit.com/credit-repair-san-antonio"
+        alternates={[
+          { hreflang: "en", href: "https://cleanpathcredit.com/credit-repair-san-antonio" },
+          { hreflang: "es", href: "https://cleanpathcredit.com/es/reparacion-de-credito-san-antonio" },
+          { hreflang: "x-default", href: "https://cleanpathcredit.com/credit-repair-san-antonio" },
+        ]}
       />
       <JsonLd data={SCHEMA} />
       <Navbar />
