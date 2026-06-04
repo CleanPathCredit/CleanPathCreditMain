@@ -59,6 +59,7 @@ export function Footer() {
           <h4 className="mb-4 font-medium text-white">Company</h4>
           <ul className="space-y-2 text-sm">
             <li><a href="/about" className="transition-colors hover:text-white">About</a></li>
+            <li><a href="/credit-repair-rights-texas" className="transition-colors hover:text-white">Your Rights (TX)</a></li>
             <li><a href="/partners" className="transition-colors hover:text-white">Partner Program</a></li>
             <li><a href="/privacy" className="transition-colors hover:text-white">Privacy Policy</a></li>
             <li><a href="/terms" className="transition-colors hover:text-white">Terms of Service</a></li>

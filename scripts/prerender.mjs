@@ -48,6 +48,7 @@ const ROUTES = [
   '/blog/can-i-fix-my-credit-myself',
   '/blog/how-to-choose-credit-repair-company-san-antonio',
   '/about',
+  '/credit-repair-rights-texas',
 ];
 
 const MIME = {
