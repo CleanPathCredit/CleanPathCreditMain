@@ -8,6 +8,12 @@ import { motion } from "motion/react";
 // Add new posts here as they ship (slug must match the route + prerender ROUTES).
 const POSTS: { slug: string; title: string; excerpt: string; date: string }[] = [
   {
+    slug: "how-to-choose-credit-repair-company-san-antonio",
+    title: "How to Choose a Credit Repair Company in San Antonio (2026 Guide)",
+    excerpt: "A law-based vetting guide for San Antonio: the 7-point checklist, red flags, your CROA rights, and the exact questions to ask before you sign.",
+    date: "June 4, 2026",
+  },
+  {
     slug: "are-credit-repair-companies-a-scam",
     title: "Are Credit Repair Companies a Scam? How to Tell the Difference",
     excerpt: "Some are, many aren't — and federal law (CROA) draws a surprisingly clear line. The scam patterns to walk away from.",

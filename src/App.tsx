@@ -39,6 +39,7 @@ const BlogEsTiempo  = lazy(() => import("@/pages/blog/es/CuantoTiempoTardaRepara
 const BlogDiy       = lazy(() => import("@/pages/blog/CanIFixMyCreditMyself").then(m => ({ default: m.CanIFixMyCreditMyself })));
 const About         = lazy(() => import("@/pages/About").then(m => ({ default: m.About })));
 const EsReparacionSA = lazy(() => import("@/pages/EsReparacionSanAntonio").then(m => ({ default: m.EsReparacionSanAntonio })));
+const BlogChooseSA  = lazy(() => import("@/pages/blog/HowToChooseCreditRepairSanAntonio").then(m => ({ default: m.HowToChooseCreditRepairSanAntonio })));
 
 function LoadingFallback() {
   return (
@@ -78,6 +79,7 @@ export default function App() {
               <Route path="/blog/es/reparacion-de-credito-es-estafa" element={<BlogEsEstafa />} />
               <Route path="/blog/es/cuanto-tiempo-tarda-reparacion-credito" element={<BlogEsTiempo />} />
               <Route path="/blog/can-i-fix-my-credit-myself" element={<BlogDiy />} />
+              <Route path="/blog/how-to-choose-credit-repair-company-san-antonio" element={<BlogChooseSA />} />
               <Route path="/about" element={<About />} />
               <Route path="/es/reparacion-de-credito-san-antonio" element={<EsReparacionSA />} />
               {/* /upgrade is 301-redirected to /unlock at the edge (vercel.json) */}

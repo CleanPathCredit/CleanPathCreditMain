@@ -46,6 +46,7 @@ const ROUTES = [
   '/blog/es/reparacion-de-credito-es-estafa',
   '/blog/es/cuanto-tiempo-tarda-reparacion-credito',
   '/blog/can-i-fix-my-credit-myself',
+  '/blog/how-to-choose-credit-repair-company-san-antonio',
   '/about',
 ];
 
