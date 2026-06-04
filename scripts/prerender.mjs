@@ -44,6 +44,7 @@ const ROUTES = [
   '/blog/how-long-does-credit-repair-take',
   '/blog/es/reparacion-de-credito-es-estafa',
   '/blog/es/cuanto-tiempo-tarda-reparacion-credito',
+  '/blog/can-i-fix-my-credit-myself',
 ];
 
 const MIME = {

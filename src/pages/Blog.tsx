@@ -49,6 +49,12 @@ const POSTS: { slug: string; title: string; excerpt: string; date: string }[] = 
     excerpt: "Expectativas reales: el plazo de 30 días de la FCRA y qué determina cuánto tarda tu caso.",
     date: "3 de junio, 2026",
   },
+  {
+    slug: "can-i-fix-my-credit-myself",
+    title: "Can You Fix Your Credit Yourself?",
+    excerpt: "You have the same FCRA rights a company uses. A step-by-step DIY guide — and when paying for help makes sense.",
+    date: "June 3, 2026",
+  },
 ];
 
 const SCHEMA = {
