@@ -47,6 +47,7 @@ const ROUTES = [
   '/blog/es/cuanto-tiempo-tarda-reparacion-credito',
   '/blog/can-i-fix-my-credit-myself',
   '/blog/how-to-choose-credit-repair-company-san-antonio',
+  '/blog/credit-score-to-buy-a-house-texas',
   '/about',
   '/credit-repair-rights-texas',
   '/es/tus-derechos-reparacion-credito-texas',
