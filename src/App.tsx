@@ -41,6 +41,7 @@ const About         = lazy(() => import("@/pages/About").then(m => ({ default: m
 const EsReparacionSA = lazy(() => import("@/pages/EsReparacionSanAntonio").then(m => ({ default: m.EsReparacionSanAntonio })));
 const BlogChooseSA  = lazy(() => import("@/pages/blog/HowToChooseCreditRepairSanAntonio").then(m => ({ default: m.HowToChooseCreditRepairSanAntonio })));
 const BlogHouse     = lazy(() => import("@/pages/blog/CreditScoreToBuyHouseTexas").then(m => ({ default: m.CreditScoreToBuyHouseTexas })));
+const BlogVs        = lazy(() => import("@/pages/blog/CreditRepairVsCounselingVsDebtSettlement").then(m => ({ default: m.CreditRepairVsCounselingVsDebtSettlement })));
 const RightsTexas   = lazy(() => import("@/pages/CreditRepairRightsTexas").then(m => ({ default: m.CreditRepairRightsTexas })));
 const EsDerechos    = lazy(() => import("@/pages/EsTusDerechosTexas").then(m => ({ default: m.EsTusDerechosTexas })));
 
@@ -83,6 +84,7 @@ export default function App() {
               <Route path="/blog/es/cuanto-tiempo-tarda-reparacion-credito" element={<BlogEsTiempo />} />
               <Route path="/blog/can-i-fix-my-credit-myself" element={<BlogDiy />} />
               <Route path="/blog/credit-score-to-buy-a-house-texas" element={<BlogHouse />} />
+              <Route path="/blog/credit-repair-vs-credit-counseling-vs-debt-settlement" element={<BlogVs />} />
               <Route path="/blog/how-to-choose-credit-repair-company-san-antonio" element={<BlogChooseSA />} />
               <Route path="/about" element={<About />} />
               <Route path="/credit-repair-rights-texas" element={<RightsTexas />} />
