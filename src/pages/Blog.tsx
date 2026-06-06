@@ -8,6 +8,12 @@ import { motion } from "motion/react";
 // Add new posts here as they ship (slug must match the route + prerender ROUTES).
 const POSTS: { slug: string; title: string; excerpt: string; date: string }[] = [
   {
+    slug: "credit-score-to-buy-a-house-texas",
+    title: "What Credit Score Do You Need to Buy a House in Texas?",
+    excerpt: "FHA, conventional, VA, USDA — the scores Texas lenders actually look for, what else matters, and how to get mortgage-ready (no promises).",
+    date: "June 5, 2026",
+  },
+  {
     slug: "how-to-choose-credit-repair-company-san-antonio",
     title: "How to Choose a Credit Repair Company in San Antonio (2026 Guide)",
     excerpt: "A law-based vetting guide for San Antonio: the 7-point checklist, red flags, your CROA rights, and the exact questions to ask before you sign.",
