@@ -219,6 +219,21 @@ export function CreditRepairSanAntonio() {
           </div>
         </section>
 
+        {/* Related guides — pillar→spoke internal links (Trust + Mortgage clusters) */}
+        <section className="px-6 max-w-3xl mx-auto pb-8">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 md:text-3xl mb-6 text-center">
+            Before you choose — read these
+          </h2>
+          <ul className="grid sm:grid-cols-2 gap-3 text-zinc-700">
+            <li><a href="/blog/how-to-choose-credit-repair-company-san-antonio" className="block rounded-xl border border-zinc-100 p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50/30">How to choose a credit repair company in San Antonio →</a></li>
+            <li><a href="/blog/how-to-know-if-credit-repair-company-is-legitimate" className="block rounded-xl border border-zinc-100 p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50/30">How to know if a company is legitimate →</a></li>
+            <li><a href="/blog/are-credit-repair-companies-a-scam" className="block rounded-xl border border-zinc-100 p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50/30">Are credit repair companies a scam? →</a></li>
+            <li><a href="/blog/credit-repair-vs-credit-counseling-vs-debt-settlement" className="block rounded-xl border border-zinc-100 p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50/30">Credit repair vs. counseling vs. debt settlement →</a></li>
+            <li><a href="/blog/credit-score-to-buy-a-house-texas" className="block rounded-xl border border-zinc-100 p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50/30">What credit score do you need to buy a house in Texas? →</a></li>
+            <li><a href="/credit-repair-rights-texas" className="block rounded-xl border border-zinc-100 p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50/30">Your credit repair rights in Texas →</a></li>
+          </ul>
+        </section>
+
         {/* CTA */}
         <section className="px-6 pb-24 text-center max-w-3xl mx-auto">
           <h2 className="font-display text-3xl font-semibold text-zinc-900 md:text-4xl mb-5">
