@@ -49,6 +49,7 @@ const ROUTES = [
   '/blog/how-to-choose-credit-repair-company-san-antonio',
   '/blog/credit-score-to-buy-a-house-texas',
   '/blog/credit-repair-vs-credit-counseling-vs-debt-settlement',
+  '/blog/how-to-fix-your-credit-to-buy-a-house-texas',
   '/about',
   '/credit-repair-rights-texas',
   '/es/tus-derechos-reparacion-credito-texas',

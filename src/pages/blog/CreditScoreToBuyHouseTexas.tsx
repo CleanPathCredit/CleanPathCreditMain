@@ -57,7 +57,9 @@ export function CreditScoreToBuyHouseTexas() {
 
       <H2>If your score isn't there yet</H2>
       <P>
-        You have real options, and none of them involve a guarantee. <strong>Lower your utilization</strong> — paying
+        You have real options, and none of them involve a guarantee — here's the{" "}
+        <a href="/blog/how-to-fix-your-credit-to-buy-a-house-texas" className="text-emerald-700 hover:text-emerald-600 underline">full step-by-step guide to fixing your credit to buy a house</a>.{" "}
+        <strong>Lower your utilization</strong> — paying
         card balances below 30% (ideally under 10%) of their limits is often the fastest legitimate lever.{" "}
         <strong>Don't open new debt</strong> in the months before applying. <strong>Keep every payment on time</strong>,
         since payment history is the largest scoring factor. And <strong>make sure your report is accurate</strong>:
