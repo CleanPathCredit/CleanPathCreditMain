@@ -8,6 +8,12 @@ import { motion } from "motion/react";
 // Add new posts here as they ship (slug must match the route + prerender ROUTES).
 const POSTS: { slug: string; title: string; excerpt: string; date: string }[] = [
   {
+    slug: "should-you-give-credit-repair-company-account-access",
+    title: "Should You Give a Credit Repair Company Access to Your Accounts?",
+    excerpt: "Read-only credit reports: normal. Your bank login or control of your money: never. The exact account access a legitimate company needs — and the red flags to walk away from.",
+    date: "June 7, 2026",
+  },
+  {
     slug: "how-to-fix-your-credit-to-buy-a-house-texas",
     title: "How to Fix Your Credit to Buy a House in Texas",
     excerpt: "The step-by-step playbook to get mortgage-ready: check your reports, dispute errors, lower utilization, and avoid the mistakes that sink approvals.",
