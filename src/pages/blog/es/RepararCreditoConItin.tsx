@@ -69,7 +69,9 @@ export function RepararCreditoConItin() {
         Trabajamos completamente en español — contratos, cartas de disputa y actualizaciones semanales. Cobramos por
         ronda de disputa completada (sin pagos por adelantado) y operamos bajo CROA, la FCRA y el Capítulo 393 de
         Texas. Si te estás preparando para comprar casa con ITIN, visita nuestra{" "}
-        <a href="/es-comprador" className="text-emerald-700 hover:text-emerald-600 underline">página en español para compradores</a>.
+        <a href="/es-comprador" className="text-emerald-700 hover:text-emerald-600 underline">página en español para compradores</a>{" "}
+        o lee{" "}
+        <a href="/blog/es/reparar-credito-para-comprar-casa-texas" className="text-emerald-700 hover:text-emerald-600 underline">cómo reparar tu crédito para comprar casa en Texas</a>.
       </P>
     </BlogArticle>
   );

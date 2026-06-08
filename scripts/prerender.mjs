@@ -51,6 +51,7 @@ const ROUTES = [
   '/blog/credit-repair-vs-credit-counseling-vs-debt-settlement',
   '/blog/how-to-fix-your-credit-to-buy-a-house-texas',
   '/blog/should-you-give-credit-repair-company-account-access',
+  '/blog/es/reparar-credito-para-comprar-casa-texas',
   '/about',
   '/credit-repair-rights-texas',
   '/es/tus-derechos-reparacion-credito-texas',
