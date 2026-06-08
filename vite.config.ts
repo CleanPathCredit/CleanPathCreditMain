@@ -29,6 +29,11 @@ export default defineConfig(() => {
             'vendor-clerk': ['@clerk/clerk-react'],
             'vendor-supabase': ['@supabase/supabase-js'],
             'vendor-analytics': ['posthog-js'],
+            // framer-motion (~120KB) is imported by 22 components. Without
+            // its own chunk Rollup hoists it into the first shared chunk that
+            // needs it (was `Button`, bloating it to ~147KB and reloading
+            // motion per-route). Splitting it out caches it once site-wide.
+            'vendor-motion': ['motion'],
           },
         },
       },

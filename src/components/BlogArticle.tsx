@@ -68,7 +68,7 @@ export function BlogArticle({ title, h1, description, slug, datePublished, lang 
 
   return (
     <div className="relative min-h-screen bg-white font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-900">
-      <Seo title={title} description={description} canonical={canonical} />
+      <Seo title={title} description={description} canonical={canonical} ogType="article" />
       <JsonLd data={{ "@context": "https://schema.org", "@graph": graph }} />
       <Navbar />
 
