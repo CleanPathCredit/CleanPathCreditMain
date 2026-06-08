@@ -8,6 +8,12 @@ import { motion } from "motion/react";
 // Add new posts here as they ship (slug must match the route + prerender ROUTES).
 const POSTS: { slug: string; title: string; excerpt: string; date: string }[] = [
   {
+    slug: "es/reparar-credito-para-comprar-casa-texas",
+    title: "Cómo Reparar tu Crédito para Comprar Casa en Texas",
+    excerpt: "Guía en español, paso a paso: revisa tus reportes, disputa errores bajo la FCRA, baja tu utilización y prepárate para la hipoteca — sin promesas de puntaje ni fecha.",
+    date: "8 de junio, 2026",
+  },
+  {
     slug: "should-you-give-credit-repair-company-account-access",
     title: "Should You Give a Credit Repair Company Access to Your Accounts?",
     excerpt: "Read-only credit reports: normal. Your bank login or control of your money: never. The exact account access a legitimate company needs — and the red flags to walk away from.",
