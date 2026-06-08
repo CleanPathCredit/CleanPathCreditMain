@@ -45,6 +45,7 @@ const BlogVs        = lazy(() => import("@/pages/blog/CreditRepairVsCounselingVs
 const BlogFixHouse  = lazy(() => import("@/pages/blog/HowToFixCreditToBuyHouseTexas").then(m => ({ default: m.HowToFixCreditToBuyHouseTexas })));
 const BlogAccess    = lazy(() => import("@/pages/blog/ShouldYouGiveCreditRepairCompanyAccountAccess").then(m => ({ default: m.ShouldYouGiveCreditRepairCompanyAccountAccess })));
 const BlogEsCasa    = lazy(() => import("@/pages/blog/es/RepararCreditoParaComprarCasaTexas").then(m => ({ default: m.RepararCreditoParaComprarCasaTexas })));
+const BlogReadReport = lazy(() => import("@/pages/blog/HowToReadYourCreditReport").then(m => ({ default: m.HowToReadYourCreditReport })));
 const RightsTexas   = lazy(() => import("@/pages/CreditRepairRightsTexas").then(m => ({ default: m.CreditRepairRightsTexas })));
 const EsDerechos    = lazy(() => import("@/pages/EsTusDerechosTexas").then(m => ({ default: m.EsTusDerechosTexas })));
 
@@ -91,6 +92,7 @@ export default function App() {
               <Route path="/blog/how-to-fix-your-credit-to-buy-a-house-texas" element={<BlogFixHouse />} />
               <Route path="/blog/should-you-give-credit-repair-company-account-access" element={<BlogAccess />} />
               <Route path="/blog/es/reparar-credito-para-comprar-casa-texas" element={<BlogEsCasa />} />
+              <Route path="/blog/how-to-read-your-credit-report" element={<BlogReadReport />} />
               <Route path="/blog/how-to-choose-credit-repair-company-san-antonio" element={<BlogChooseSA />} />
               <Route path="/about" element={<About />} />
               <Route path="/credit-repair-rights-texas" element={<RightsTexas />} />
