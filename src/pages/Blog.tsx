@@ -8,6 +8,12 @@ import { motion } from "motion/react";
 // Add new posts here as they ship (slug must match the route + prerender ROUTES).
 const POSTS: { slug: string; title: string; excerpt: string; date: string }[] = [
   {
+    slug: "how-to-fix-your-credit-to-buy-a-house-texas",
+    title: "How to Fix Your Credit to Buy a House in Texas",
+    excerpt: "The step-by-step playbook to get mortgage-ready: check your reports, dispute errors, lower utilization, and avoid the mistakes that sink approvals.",
+    date: "June 6, 2026",
+  },
+  {
     slug: "credit-repair-vs-credit-counseling-vs-debt-settlement",
     title: "Credit Repair vs. Credit Counseling vs. Debt Settlement: What's the Difference?",
     excerpt: "Three services people constantly confuse. What each actually does, the risks, and how to tell which one fits your situation.",
