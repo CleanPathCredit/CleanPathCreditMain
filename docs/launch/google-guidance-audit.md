@@ -61,9 +61,72 @@
 
 ---
 
-## The only genuinely-new action items this audit surfaced
-1. **Rich Results Test** — run `/` , `/credit-repair-rights-texas`, and one blog post through Google's Rich Results Test + the URL Inspection "test live URL" to confirm FAQ/Article rich-result eligibility (5 min, in GSC).
-2. **Strengthen `/about` "Experience"** — add truthful, concrete first-hand detail (the "E" Google weighs most for YMYL). I can draft this with you.
-3. *(Optional)* one genuine image per blog post; a one-line editorial-review note on `/about`.
+## 5) Ranking Systems Guide
+| System | Rewards / Penalizes | Our posture |
+|---|---|---|
+| Helpful Content signals | Rewards people-first, demotes search-first | ✅ aligned (see §3) |
+| **Link analysis / PageRank** | Rewards quality inbound links | 🔴 **the real gap — zero backlinks.** This is the #1 thing off-site work (citations, the linkable `/credit-repair-rights-texas` asset, partner/LO outreach) must build. |
+| Reviews system | Rewards original, expert reviews | ✅ trust/comparison posts qualify as reliable-info content |
+| Reliable information / E-E-A-T | Rewards authority | ✅ named author + legal grounding |
+| Original content | Rewards primary content; canonical for dupes | ✅ canonical per page |
+| Freshness | Rewards recency for time-sensitive queries | 🟡 keep a refresh cadence |
+| Site diversity (≤2 results/site) | — | ✅ hub-and-spoke gives each page a distinct target |
+| SpamBrain | Penalizes policy violations | ✅ see §6 (clean) |
 
-**Everything else is already done.** The audit confirms the on-site foundation is sound by Google's own standards — the remaining ranking levers are off-site (indexing completion, GBP, reviews, citations), exactly as prioritized in `GO-LIVE-action-sheet.md`.
+**Takeaway:** on-site quality systems are satisfied; the one ranking system we're not feeding is **links/PageRank** — we have none. Backlinks + citations are the lever.
+
+## 6) Spam Policies — self-audit: ✅ CLEAN (all 16)
+| Policy | Status | Note |
+|---|---|---|
+| Cloaking | ✅ | Prerender serves identical content to users + bots. |
+| Doorway abuse | ✅ | SA/Houston pages are genuinely unique + capped (no Austin/Dallas churn). |
+| Expired-domain abuse | ✅ | N/A. |
+| Hacked content | ✅ | N/A. |
+| Hidden text/links | ✅ | Only "hidden" element is the anti-bot honeypot input (not SEO text). |
+| Keyword stuffing | ✅ | None. |
+| **Link spam** | ✅ | ~No external outbound links; nothing monetized needing `rel=sponsored`. |
+| Machine-generated traffic | ✅ | N/A. |
+| Malicious practices | ✅ | N/A. |
+| Misleading functionality | ✅ | Claims match service. |
+| **Scaled content abuse** | ✅ | 5 quality-gated posts; mass-production explicitly rejected. |
+| Scraping | ✅ | All original. |
+| Site reputation abuse | ✅ | No third-party hosted content. |
+| Sneaky redirects | ✅ | Only the `/upgrade`→`/unlock` 301 (legit). |
+| **Thin affiliation** | ✅ | **Not an affiliate site.** Chime/Impact tag is verification-only; no monetized affiliate links exist. |
+| User-generated spam | ✅ | No UGC. |
+
+## 7) Local Business structured data (`FinancialService`)
+| Property | Status | Note |
+|---|---|---|
+| name, url, telephone, image, priceRange | ✅ | Present. |
+| geo (≥5 decimals) | ✅ | `29.42412, -98.49363` (5 decimals). |
+| areaServed | ✅ | Texas + San Antonio + Houston. |
+| address (SAB) | ✅ | Region/country only, no street — correct for a by-appointment service-area business. |
+| **aggregateRating / review** | ✅ correctly omitted | Google flags *self-serving* review markup; only valid when reviewing *other* businesses. We deliberately don't use it. |
+| openingHoursSpecification | 🟡 optional | Could add a "by appointment" spec; low priority for SAB. |
+| sameAs | 🟡 | Only the Google KG entity today; add social/profile URLs as they go live. |
+
+## 8) Page Experience / Core Web Vitals
+| Factor | Status | Note |
+|---|---|---|
+| HTTPS | ✅ | Enforced. |
+| Mobile-friendly | ✅ | Tailwind responsive throughout. |
+| Intrusive interstitials | ✅ | Chat widget is dismissible + hidden during the quiz; no interstitial. |
+| Core Web Vitals (LCP<2.5s / INP<200ms / CLS<0.1) | 🟡 pending | No CrUX field data yet (needs traffic). Watch **GSC → Core Web Vitals**. The documented PostHog (−185KB) + Supabase (−192KB) deferrals would directly help LCP/INP if data shows a problem. |
+
+---
+
+## Consolidated next actions (after auditing all 9 docs)
+**On-site (small, mostly me):**
+1. **Rich Results Test** — run `/`, `/credit-repair-rights-texas`, and a blog post through Google's Rich Results Test to confirm FAQ/Article eligibility (5 min, you, in GSC).
+2. **Strengthen `/about` "Experience"** — the "E" Google weights most for YMYL; I draft with your true specifics.
+3. *(Optional, low priority)* `openingHoursSpecification` in schema; one genuine image per post; editorial-review note on /about.
+4. *(If CWV data shows issues)* implement the PostHog/Supabase load deferrals.
+
+**Off-site (the actual ranking levers — you, per `GO-LIVE-action-sheet.md`):**
+5. Finish indexing (sitemap resubmit + Request Indexing). 
+6. GBP verify + category. 
+7. **Backlinks + citations** — the one ranking *system* (PageRank) we're not feeding at all. Citations + the linkable rights asset + partner/LO outreach (`backlink-outreach.md`).
+8. Reviews 1→25.
+
+**Verdict across all 9 Google docs: the site is compliant and well-built by Google's own standards — clean on every spam policy, strong E-E-A-T, correct schema. The remaining gap is authority (links + prominence), which is earned off-site, not coded on-site.**
