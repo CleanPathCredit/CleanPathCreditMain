@@ -33,7 +33,9 @@ export function CanIFixMyCreditMyself() {
       <P>
         <strong>1. Pull your three reports.</strong> Get them free at AnnualCreditReport.com — the only federally
         authorized source. <strong>2. Read for errors.</strong> Look for accounts that aren't yours, wrong balances
-        or dates, duplicate entries, and items you can't verify. <strong>3. Dispute under FCRA §611.</strong> File
+        or dates, duplicate entries, and items you can't verify — here's{" "}
+        <a href="/blog/how-to-read-your-credit-report" className="text-emerald-700 hover:text-emerald-600 underline">how to read your credit report</a>{" "}
+        section by section. <strong>3. Dispute under FCRA §611.</strong> File
         with each bureau that shows the error; the bureau has 30 days to investigate and must remove what it can't
         verify. <strong>4. Escalate under §623 if needed.</strong> If a bureau dispute fails, dispute directly with
         the furnisher (the creditor that reported the item). <strong>5. Keep records.</strong> Save everything in

@@ -8,6 +8,12 @@ import { motion } from "motion/react";
 // Add new posts here as they ship (slug must match the route + prerender ROUTES).
 const POSTS: { slug: string; title: string; excerpt: string; date: string }[] = [
   {
+    slug: "how-to-read-your-credit-report",
+    title: "How to Read Your Credit Report (and Spot the Errors That Hurt You)",
+    excerpt: "All five sections of your credit report explained, the errors that quietly cost you points, and how to dispute them under the FCRA — get all three reports free.",
+    date: "June 8, 2026",
+  },
+  {
     slug: "es/reparar-credito-para-comprar-casa-texas",
     title: "Cómo Reparar tu Crédito para Comprar Casa en Texas",
     excerpt: "Guía en español, paso a paso: revisa tus reportes, disputa errores bajo la FCRA, baja tu utilización y prepárate para la hipoteca — sin promesas de puntaje ni fecha.",
