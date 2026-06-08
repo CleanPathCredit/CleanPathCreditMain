@@ -32,6 +32,13 @@ export function Methodology() {
             <p className="text-lg font-medium text-zinc-900 md:text-xl max-w-3xl mx-auto">
               This isn’t a basic credit service. This is a strategic, AI-assisted audit and credit correction system designed to eliminate inaccurate, unverifiable, and outdated items—fast.
             </p>
+            <p className="mt-6 text-base text-zinc-600 md:text-lg max-w-3xl mx-auto">
+              <strong className="text-zinc-900">How does credit repair work?</strong> Credit repair means reviewing your
+              three credit reports, then disputing items that appear inaccurate, incomplete, or unverifiable under the
+              Fair Credit Reporting Act (FCRA). The credit bureaus must investigate, and anything they cannot verify is
+              corrected or removed. Accurate information stays — no one can remove that, and a legitimate company never
+              promises a specific score or date.
+            </p>
           </motion.div>
         </section>
 
@@ -188,6 +195,30 @@ export function Methodology() {
               ))}
             </div>
           </div>
+        </section>
+
+        {/* Related guides (pillar → spokes) */}
+        <section className="px-6 max-w-3xl mx-auto pt-20">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 mb-5">
+            Learn more before you start
+          </h2>
+          <ul className="space-y-3 text-zinc-700">
+            <li>
+              <a href="/blog/how-to-read-your-credit-report" className="font-medium text-emerald-700 hover:text-emerald-600 underline">How to read your credit report &amp; spot errors</a>
+            </li>
+            <li>
+              <a href="/blog/how-long-does-credit-repair-take" className="font-medium text-emerald-700 hover:text-emerald-600 underline">How long does credit repair take?</a>
+            </li>
+            <li>
+              <a href="/blog/can-i-fix-my-credit-myself" className="font-medium text-emerald-700 hover:text-emerald-600 underline">Can you fix your credit yourself?</a>
+            </li>
+            <li>
+              <a href="/blog/how-to-fix-your-credit-to-buy-a-house-texas" className="font-medium text-emerald-700 hover:text-emerald-600 underline">How to fix your credit to buy a house in Texas</a>
+            </li>
+            <li>
+              <a href="/credit-repair-rights-texas" className="font-medium text-emerald-700 hover:text-emerald-600 underline">Your credit repair rights in Texas</a>
+            </li>
+          </ul>
         </section>
 
         {/* 5. The Bottom Call-to-Action (CTA) */}

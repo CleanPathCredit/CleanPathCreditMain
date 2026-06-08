@@ -105,6 +105,12 @@ export function CreditRepairHouston() {
               FCRA-backed dispute strategy and AI-assisted credit report audits for Houston families getting ready
               to buy a home, finance a car, or fund a business — in English or Spanish, from a local Houston team.
             </p>
+            <p className="mt-5 text-base text-zinc-600 md:text-lg max-w-3xl mx-auto">
+              Credit repair in Houston is the process of reviewing your three credit reports and disputing items that
+              appear inaccurate, incomplete, or unverifiable under the Fair Credit Reporting Act (FCRA) — so your report
+              reflects reality before a lender pulls it. Accurate information cannot be removed, and a legitimate company
+              never promises a specific score or date.
+            </p>
           </motion.div>
         </section>
 
