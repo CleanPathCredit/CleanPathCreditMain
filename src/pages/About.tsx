@@ -85,6 +85,16 @@ export function About() {
             a reliable car, or stop paying the "bad-credit tax." Alex turns the FCRA's protections into a clear,
             round-by-round process clients can follow — and stays honest about what credit repair can and can't do.
           </p>
+          <p>
+            That same standard goes into everything he writes. Alex authors Clean Path Credit's plain-English guides —
+            from{" "}
+            <a href="/credit-repair-rights-texas" className="font-medium text-emerald-700 hover:text-emerald-600">your credit repair rights in Texas</a>{" "}
+            to{" "}
+            <a href="/blog/how-to-know-if-credit-repair-company-is-legitimate" className="font-medium text-emerald-700 hover:text-emerald-600">how to tell if a credit repair company is legitimate</a>{" "}
+            and{" "}
+            <a href="/blog/how-to-fix-your-credit-to-buy-a-house-texas" className="font-medium text-emerald-700 hover:text-emerald-600">how to get your credit mortgage-ready</a>{" "}
+            — so the rights he exercises for clients are the same ones he teaches readers to use themselves.
+          </p>
         </section>
 
         {/* Values */}

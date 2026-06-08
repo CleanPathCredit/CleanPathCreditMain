@@ -71,6 +71,43 @@ These pages are built to be cited — pitch them to finance/realtor/local blogge
 
 ---
 
+## 5. San Antonio target hit-list (work down this list)
+
+Concrete, white-hat targets ranked by realism. **Easy** = you control or have a relationship; **Medium** = warm pitch; **Hard** = cold/earned. Track each (target · contact · asset pitched · date · result).
+
+### A. Partners & referral relationships (EASY — do first)
+| Target | Why it links naturally | Asset to pitch |
+|---|---|---|
+| Mortgage LOs / brokers you've worked with | Their "didn't-qualify-yet" clients need you; resources-page link | `/credit-repair-rights-texas`, `/how-it-works` |
+| Realtors / SABOR-affiliated agents | Same — buyers who need credit prep first | `/blog/how-to-fix-your-credit-to-buy-a-house-texas` |
+| Dealership F&I managers | Subprime buyers; referral + link | `/how-it-works` |
+| Insurance / tax-prep / financial-coach contacts | Adjacent audiences, easy resource link | `/faq` |
+
+### B. Local organizations & directories (EASY–MEDIUM)
+| Target | URL | Angle |
+|---|---|---|
+| San Antonio Hispanic Chamber of Commerce | sahcc.org | Member directory link + bilingual fit (your edge) |
+| Greater SA Chamber | sachamber.org | Member listing |
+| Alamo City Black Chamber of Commerce | — | Member listing + community |
+| Nextdoor (SA neighborhoods) | nextdoor.com/business | Local business profile + recommendations |
+| HUD-approved housing counseling agencies (SA) | hud.gov counselor search | *Referral partner* (they do counseling, you do FCRA disputes — complementary, not competitor) |
+
+### C. Local media / Spanish outlets (MEDIUM — guest column or expert quote)
+| Target | URL | Angle |
+|---|---|---|
+| San Antonio Report (nonprofit news) | sanantonioreport.org | Consumer-finance explainer / first-time-buyer credit readiness |
+| San Antonio Business Journal | bizjournals.com/sanantonio | Expert source on credit/lending trends |
+| La Prensa Texas (Spanish) | laprensatexas.com | **Spanish credit-rights column — underserved, high-fit** |
+| Conexión / Express-News Spanish | — | Bilingual first-time-buyer guidance |
+| KSAT / WOAI consumer segments | ksat.com | "How to spot a credit repair scam" consumer-protection angle |
+
+### D. Editorial / national (MEDIUM–HARD — ongoing via §2)
+Connectively (HARO) + Qwoted for "credit," "mortgage," "home buying," "personal finance" queries — answer as Alex, founder & credit-repair specialist.
+
+> **Where I (Claude) can help:** give me your existing partner contacts (names/emails) and I'll turn §1's templates into ready-to-send **Gmail drafts via Composio** — you just review and hit send. I can also draft a Spanish-language version of the rights-guide pitch for the La Prensa / Conexión angle (your least-contested lane).
+
+---
+
 ## Cadence
 - **Week 1:** email your 5–10 existing partners (§1). Sign up for HARO/Connectively.
 - **Ongoing:** 1–2 HARO responses/day when relevant; pitch the rights guide to 2–3 bloggers/week.
