@@ -3,6 +3,8 @@
 **Date:** 2026-06-05
 **Purpose:** turn the flat list of ~17 pages/posts into a **hub-and-spoke topical structure** so Google reads the site as an authority on credit repair in Texas. Pairs with `content-brief.md` (*how* to write) — this is *what* to write next and *how it all interlinks*.
 
+> **✅ STATUS (2026-06-08): cluster map fully executed.** All 5 priority gap posts shipped & live (PRs #56–#60): vs-counseling, mortgage pillar, account-access, ES homebuyer, read-your-report. Answer-first audit complete — definition leads added to `/how-it-works` (+ pillar→spoke "Learn more" block), `/credit-repair-san-antonio`, and `/credit-repair-houston`. Every post is answer-first, FAQPage-schema'd, hub-and-spoke linked, CROA-safe, and submitted to IndexNow (30 URLs). The Mortgage cluster (#4) is no longer thin — it now has an English pillar + ES mirror. **Next growth lever is off-site (GBP verification/reviews/citations), not more on-site content** — do NOT mass-produce city pages.
+
 > **Method note:** intent + topical clustering (DataForSEO not connected; WebSearch flaky). Validate the gap keywords' difficulty/SERP overlap with `/seo cluster plan` or DataForSEO when available before committing effort. Compliance: no "guaranteed / remove / [N]-day" keywords are targeted.
 
 ---
