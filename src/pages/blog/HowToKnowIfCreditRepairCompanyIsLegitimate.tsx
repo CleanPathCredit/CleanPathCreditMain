@@ -73,7 +73,8 @@ export function HowToKnowIfCreditRepairCompanyIsLegitimate() {
         Chapter 393 with a surety bond in place. For related reading, see{" "}
         <a href="/blog/are-credit-repair-companies-a-scam" className="text-emerald-700 hover:text-emerald-600 underline">are credit repair companies a scam</a>{" "}
         and{" "}
-        <a href="/blog/do-credit-repair-companies-guarantee-results" className="text-emerald-700 hover:text-emerald-600 underline">do credit repair companies guarantee results</a>. Local to Texas? See{" "}
+        <a href="/blog/do-credit-repair-companies-guarantee-results" className="text-emerald-700 hover:text-emerald-600 underline">do credit repair companies guarantee results</a>, and whether you should{" "}
+        <a href="/blog/should-you-give-credit-repair-company-account-access" className="text-emerald-700 hover:text-emerald-600 underline">give a credit repair company access to your accounts</a>. Local to Texas? See{" "}
         <a href="/credit-repair-san-antonio" className="text-emerald-700 hover:text-emerald-600 underline">credit repair in San Antonio</a>.
       </P>
     </BlogArticle>
