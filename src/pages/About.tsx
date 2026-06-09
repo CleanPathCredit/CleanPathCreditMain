@@ -24,7 +24,7 @@ const SCHEMA = {
       worksFor: { "@id": "https://cleanpathcredit.com/#organization" },
       url: "https://cleanpathcredit.com/about",
       description:
-        "Alex Serratos is the founder of Clean Path Credit, a Texas credit-services organization. He has personally helped many people use their FCRA rights to dispute inaccurate, incomplete, or unverifiable items on their credit reports.",
+        "Alex Serratos is the founder of Clean Path Credit, a Texas credit-services organization. He began helping people repair their credit in 2020 — starting with his own family — and has since personally guided around 100 people in using their FCRA rights to dispute inaccurate, incomplete, or unverifiable items on their credit reports.",
       knowsAbout: [
         "Credit repair",
         "FCRA disputes",
@@ -69,10 +69,17 @@ export function About() {
         {/* Bio */}
         <section className="px-6 max-w-3xl mx-auto mb-16 space-y-5 text-lg leading-relaxed text-zinc-700">
           <p>
-            Alex Serratos founded Clean Path Credit to bring an honest, law-grounded approach to credit repair in
-            Texas. He has personally helped many people understand what's actually on their credit reports and use
-            their rights under the Fair Credit Reporting Act (FCRA) to dispute items that are inaccurate, incomplete,
-            or unverifiable.
+            Alex Serratos didn't set out to build a credit-repair company — he set out to help his mom. When she
+            needed to fix her credit to buy a car and a home, Alex taught himself how credit reporting and the Fair
+            Credit Reporting Act (FCRA) dispute process actually work, and walked her through it. It worked for her.
+            So he did the same for his father, his neighbor, his friends — and himself.
+          </p>
+          <p>
+            That was back when COVID shut everything down. Since 2020, word spread — from family, to friends of
+            friends, to real estate agents and clients from his property-management business — and Alex has personally
+            helped around 100 people understand what's on their credit reports and use their FCRA rights to dispute
+            items that are inaccurate, incomplete, or unverifiable. What began as helping his own family became Clean
+            Path Credit.
           </p>
           <p>
             Alex built the company around one principle: a credit-repair company should do exactly what the law

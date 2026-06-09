@@ -104,7 +104,26 @@ Concrete, white-hat targets ranked by realism. **Easy** = you control or have a 
 ### D. Editorial / national (MEDIUM–HARD — ongoing via §2)
 Connectively (HARO) + Qwoted for "credit," "mortgage," "home buying," "personal finance" queries — answer as Alex, founder & credit-repair specialist.
 
-> **Where I (Claude) can help:** give me your existing partner contacts (names/emails) and I'll turn §1's templates into ready-to-send **Gmail drafts via Composio** — you just review and hit send. I can also draft a Spanish-language version of the rights-guide pitch for the La Prensa / Conexión angle (your least-contested lane).
+> **Where I (Claude) can help:** give me your existing partner contacts (names/emails) and I'll turn §1's templates into ready-to-send **Gmail drafts via Composio** — you just review and hit send.
+
+### E. Spanish rights-guide pitch — READY TO SEND (La Prensa Texas / Conexión / Spanish outlets)
+Your least-contested lane: a Spanish credit-rights column has real community value and almost no competition. Pitches the Spanish rights asset (`/es/tus-derechos-reparacion-credito-texas`).
+
+> **Asunto:** Columna gratuita en español: los derechos del consumidor al reparar su crédito
+>
+> Hola [Nombre],
+>
+> Soy Alex Serratos, fundador de Clean Path Credit, una organización de servicios de crédito aquí en Texas. Escribí una guía en español —clara y sin ninguna venta— sobre los derechos que tienen los consumidores cuando usan una compañía de reparación de crédito, bajo las leyes federales CROA y FCRA y el Código Financiero de Texas (Capítulo 393):
+>
+> https://cleanpathcredit.com/es/tus-derechos-reparacion-credito-texas
+>
+> Muchas familias hispanohablantes no saben, por ejemplo, que es ilegal que una compañía les cobre por adelantado o les garantice resultados. Si le parece útil para sus lectores, con gusto pueden enlazarla — o puedo escribir una columna corta y original para [outlet] sobre cómo reconocer una estafa de reparación de crédito.
+>
+> Gracias por el trabajo que hacen por la comunidad.
+>
+> — Alex Serratos, Clean Path Credit · (346) 399-5606 · cleanpathcredit.com
+
+**English subject-line alt (for editors who prefer English first contact):** *"Free Spanish-language column: consumer credit-repair rights."*
 
 ---
 
