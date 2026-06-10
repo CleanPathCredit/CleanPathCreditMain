@@ -11,7 +11,6 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useUser, useSession, useClerk } from "@clerk/clerk-react";
-import { useSupabaseClient } from "@/lib/supabase";
 import type { Profile } from "@/types/database";
 import { posthog } from "@/lib/posthog-client";
 
@@ -28,11 +27,15 @@ interface AuthContextType {
   logout: () => Promise<void>;
   /** Re-fetch the profile row (call after updating profile data) */
   refreshProfile: () => Promise<void>;
-  /** Shared Supabase client — use this instead of calling useSupabaseClient() directly
-   *  to avoid spawning multiple GoTrueClient instances in the same browser context. */
-  supabase: ReturnType<typeof useSupabaseClient>;
 }
 
+// NOTE: this context intentionally does NOT provide a Supabase client.
+// Importing @/lib/supabase here would statically pull @supabase/supabase-js
+// (~192KB vendor-supabase chunk) into the app shell, putting it on the
+// first-paint path of every marketing page. Authed components that need the
+// DB call useSupabaseClient() directly — they all live in lazy route chunks,
+// so the library loads only where it's used. (The client is created with
+// persistSession: false, so multiple instances don't contend over storage.)
 const AuthContext = createContext<AuthContextType>({
   clerkUser: null,
   profile: null,
@@ -40,9 +43,6 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   logout: async () => {},
   refreshProfile: async () => {},
-  // Default is intentionally incomplete — AuthProvider is always in the tree.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: null as any,
 });
 
 const devError = (...args: unknown[]) => {
@@ -53,7 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user: clerkUser, isLoaded: userLoaded } = useUser();
   const { session, isLoaded: sessionLoaded } = useSession();
   const { signOut } = useClerk();
-  const supabase = useSupabaseClient();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -140,7 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         logout,
         refreshProfile: fetchProfile,
-        supabase,
       }}
     >
       {children}
