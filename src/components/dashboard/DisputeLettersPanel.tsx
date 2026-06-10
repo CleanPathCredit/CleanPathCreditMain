@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "@clerk/clerk-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSupabaseClient } from "@/lib/supabase";
 import {
   Download,
   FileText,
@@ -53,8 +54,9 @@ const TONE_CLASSES: Record<string, string> = {
 };
 
 export function DisputeLettersPanel() {
-  const { clerkUser, supabase } = useAuth();
+  const { clerkUser } = useAuth();
   const { session } = useSession();
+  const supabase = useSupabaseClient();
   const [rounds, setRounds] = useState<RoundView[]>([]);
   const [loading, setLoading] = useState(true);
   const [payingRoundId, setPayingRoundId] = useState<string | null>(null);

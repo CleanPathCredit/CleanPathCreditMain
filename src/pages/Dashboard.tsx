@@ -6,6 +6,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import { posthog } from "@/lib/posthog-client";
 import { DocumentVault } from "@/components/dashboard/DocumentVault";
@@ -59,7 +60,8 @@ function getStepStatus(profileStatus: string, stepKey: string): "completed" | "a
 }
 
 export function Dashboard() {
-  const { clerkUser, profile, isAdmin, logout, supabase } = useAuth();
+  const { clerkUser, profile, isAdmin, logout } = useAuth();
+  const supabase = useSupabaseClient();
 
   const [messages, setMessages]               = useState<Message[]>([]);
   const [newMessage, setNewMessage]           = useState("");
