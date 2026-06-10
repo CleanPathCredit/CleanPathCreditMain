@@ -1,14 +1,16 @@
 -- 015_security_advisor_fixes.sql
 --
--- Fixes the 8 warnings in Supabase Security Advisor (project xmegpgdbehlcnxfgowur,
--- 2026-06-10 screenshot):
---   • 6× "Function Search Path Mutable" (lint 0011)
---   • 2× "SECURITY DEFINER executable by anon / signed-in" on public.is_admin()
---     (lints 0028 / 0029)
+-- Resolves the 8 warnings in Supabase Security Advisor (project
+-- xmegpgdbehlcnxfgowur, 2026-06-10):
+--   • 6× "Function Search Path Mutable" (lint 0011) → FIXED by Part 1
+--   • 2× "SECURITY DEFINER executable" on public.is_admin() (lints 0028/0029)
+--     → ACCEPTED as intentional, see Part 2 (revoking breaks RLS for anon —
+--       proven by live test)
 --
--- HOW TO APPLY: paste this whole file into the Supabase Dashboard → SQL Editor
--- → Run (or `supabase db push` if the CLI is linked). Then Security Advisor →
--- "Rerun linter" to confirm.
+-- STATUS: Part 1 was applied to production on 2026-06-10 via the Supabase MCP
+-- (migration `security_advisor_search_path_pins`); advisor re-run confirmed
+-- all 6 search_path warnings cleared. This file is the canonical record —
+-- re-running it is harmless (the DO block is idempotent).
 --
 -- ─────────────────────────────────────────────────────────────────────────────
 -- PART 1 — Pin search_path on the 6 flagged functions (lint 0011).
@@ -49,24 +51,36 @@ begin
 end $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- PART 2 — Lock down EXECUTE on public.is_admin() (lints 0028/0029).
+-- PART 2 — public.is_admin() EXECUTE (lints 0028/0029): ACCEPTED, NOT REVOKED.
 --
--- CONTEXT (verified in the app repo before writing this):
---   • is_admin() is referenced by RLS policies (api/lead.ts: "Admin reads are
---     gated by is_admin() RLS"), and RLS policy expressions check EXECUTE
---     against the QUERYING role — so `authenticated` MUST keep EXECUTE or
---     every admin-gated query breaks for signed-in users (Clerk JWTs map app
---     users to the `authenticated` role via the Supabase JWT template).
---   • Anonymous visitors never query these tables from the browser (leads go
---     through server-side /api/lead with the service key), so `anon` does NOT
---     need it.
+-- The advisor suggests revoking EXECUTE from anon/authenticated. DO NOT.
+-- This was tested live on 2026-06-10 inside a rolled-back transaction:
 --
--- RESULT: the "Public Can Execute" (anon) warning is FIXED. The "Signed-In
--- Users Can Execute" warning will remain — intentionally. It is required for
--- RLS and is harmless: is_admin() only returns a boolean about the caller.
--- Mark it as "accepted" in the Advisor UI rather than revoking.
-revoke execute on function public.is_admin() from public, anon;
-grant  execute on function public.is_admin() to authenticated, service_role;
+--     begin;
+--     revoke execute on function public.is_admin() from public, anon;
+--     set local role anon;
+--     select count(*) from public.profiles;
+--     rollback;
+--     -- → ERROR 42501: permission denied for function is_admin
+--
+-- WHY IT BREAKS: 23 RLS policies (audit_log, profiles, documents, messages,
+-- letter_rounds/packets, credit_reports, referrals, storage.objects, …) call
+-- is_admin() and apply to role {public} — i.e. every role including anon.
+-- RLS policy expressions execute with the QUERYING role's privileges, and
+-- src/lib/supabase.ts intentionally hands out an anon-role client pre-auth
+-- ("RLS will block all writes" — reads silently return empty). Revoking
+-- anon's EXECUTE turns those silent-empty reads into hard 42501 errors.
+--
+-- RISK ASSESSMENT of leaving EXECUTE in place: is_admin() is a STABLE
+-- boolean predicate about the caller (anon → always false). Calling it via
+-- /rest/v1/rpc/is_admin discloses nothing. Mark both advisor warnings as
+-- "accepted" in the dashboard UI.
+--
+-- FUTURE HARDENING (optional, larger change): split each policy into a
+-- client-facing policy (TO authenticated, owner check only) and an admin
+-- policy (TO authenticated ... using is_admin()), then revoke anon. Touches
+-- all 23 policies — do it deliberately, with the transactional test above as
+-- the acceptance gate.
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- VERIFY (optional) — run after applying; both should return the pinned paths
