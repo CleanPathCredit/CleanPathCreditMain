@@ -41,7 +41,41 @@ The category change is the single biggest GBP lever — it determines which "nea
 
 ---
 
-## Citation targets — work top-down (Tier 1 first)
+## Citation targets — work top-down (Tier 0 first)
+
+### Tier 0 — SERP-derived: the sites that ACTUALLY own page 1 (checked 2026-07-27)
+
+A live search for the money keyword (**"credit repair San Antonio"**) returned a page 1 with
+**almost no individual credit-repair companies on it.** It is owned end-to-end by directories
+and "best of" listicles:
+
+| Ranking page | Type | How you get on it |
+|---|---|---|
+| Yelp — "Top 10 Best Credit Repair in San Antonio" | Directory | Claim/add a free business listing |
+| BBB — Credit Repair Services near San Antonio | Directory | bbb.org/get-listed (accreditation optional) |
+| Expertise.com — "11 Best San Antonio Credit Repair Companies" | Editorial listicle | Free nomination form / editorial pitch |
+| management.org — "5 Best San Antonio Credit Repair Companies" | Editorial listicle | Email the editor |
+| zogby.com — "2026 Top Credit Repair Companies in San Antonio" | Editorial listicle | Email the editor |
+| botw.org (Best of the Web) — Texas credit repair | Paid directory | Paid submission |
+| gocleancredit.com — "Top 5 Credit Repair Companies in SA" | Competitor listicle | Editorial pitch (they list rivals) |
+
+**Why this reframes the whole strategy:** these are high-authority aggregators. A brand-new
+domain does not out-rank them on the head keyword in any realistic timeframe — that is not a
+content-quality problem, it is a domain-authority problem, and no amount of on-site work fixes
+it. So the three genuinely winnable paths are:
+
+1. **The local pack (GBP)** — renders *above* all of these organic results, and is scored on
+   proximity + relevance + prominence rather than domain authority. This is the single biggest
+   available win and it is 100% gated on GBP verification + the category fix.
+2. **Get listed *inside* the pages that already rank** — each listing is simultaneously a
+   citation (consistency), a backlink (PageRank — the one ranking system we feed nothing), and
+   a referral-traffic source. Being #4 on a page-1 listicle beats being #40 on your own URL.
+3. **Long-tail queries the aggregators don't target** — exactly what the blog cluster is built
+   for ("what credit score to buy a house in Texas", "is credit repair a scam", the Spanish
+   set). This is where the on-site work pays off, not on the head term.
+
+> **Do not** chase the head keyword organically with more content. The SERP says the slot
+> doesn't exist. Chase the local pack + inclusion + long-tail instead.
 
 ### Tier 1 — Core (do these first; they're the ones Google weighs most)
 | # | Directory | URL | Notes |
