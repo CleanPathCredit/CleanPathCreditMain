@@ -8,6 +8,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { EbookModal } from "@/components/EbookModal";
+import { useEbookPopup } from "@/hooks/useEbookPopup";
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 
@@ -60,13 +62,18 @@ function LoadingFallback() {
   );
 }
 
-export default function App() {
+/**
+ * Renders the routed app shell + the global EbookModal trigger. Lives
+ * inside ClerkProvider + Router so `useEbookPopup` can read both
+ * `useUser()` (skip signed-in users) and `window.location.pathname`
+ * (path-based suppression list).
+ */
+function AppShell(): React.ReactElement {
+  const ebookController = useEbookPopup();
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-      <Router>
-        <AuthProvider>
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
+    <>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/how-it-works" element={<Methodology />} />
               <Route path="/login" element={<Login />} />
@@ -142,8 +149,19 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-            </Routes>
-          </Suspense>
+        </Routes>
+      </Suspense>
+      <EbookModal controller={ebookController} />
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+      <Router>
+        <AuthProvider>
+          <AppShell />
         </AuthProvider>
       </Router>
     </ClerkProvider>
